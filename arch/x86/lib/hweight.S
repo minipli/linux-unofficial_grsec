@@ -1,7 +1,7 @@
 #include <linux/linkage.h>
 #include <asm/export.h>
 
-#include <asm/asm.h>
+#include <asm/alternative-asm.h>
 
 /*
  * unsigned int __sw_hweight32(unsigned int w)
@@ -31,7 +31,7 @@ ENTRY(__sw_hweight32)
 	imull $0x01010101, %eax, %eax		# w_tmp *= 0x01010101
 	shrl $24, %eax				# w = w_tmp >> 24
 	__ASM_SIZE(pop,) %__ASM_REG(dx)
-	ret
+	pax_ret __sw_hweight32
 ENDPROC(__sw_hweight32)
 EXPORT_SYMBOL(__sw_hweight32)
 
@@ -64,19 +64,19 @@ ENTRY(__sw_hweight64)
 
 	popq    %rdx
 	popq    %rdi
-	ret
+	pax_ret __sw_hweight64
 #else /* CONFIG_X86_32 */
 	/* We're getting an u64 arg in (%eax,%edx): unsigned long hweight64(__u64 w) */
 	pushl   %ecx
 
-	call    __sw_hweight32
+	pax_direct_call __sw_hweight32
 	movl    %eax, %ecx                      # stash away result
 	movl    %edx, %eax                      # second part of input
-	call    __sw_hweight32
+	pax_direct_call __sw_hweight32
 	addl    %ecx, %eax                      # result
 
 	popl    %ecx
-	ret
+	pax_ret __sw_hweight64
 #endif
 ENDPROC(__sw_hweight64)
 EXPORT_SYMBOL(__sw_hweight64)

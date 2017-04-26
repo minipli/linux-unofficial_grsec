@@ -262,7 +262,7 @@ struct rxe_qp {
 	struct rxe_comp_info	comp;
 	struct rxe_resp_info	resp;
 
-	atomic_t		ssn;
+	atomic_unchecked_t	ssn;
 	atomic_t		skb_out;
 	int			need_req_skb;
 

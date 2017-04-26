@@ -209,7 +209,7 @@ struct wmax_led_args {
 } __packed;
 
 static struct platform_device *platform_device;
-static struct device_attribute *zone_dev_attrs;
+static device_attribute_no_const *zone_dev_attrs;
 static struct attribute **zone_attrs;
 static struct platform_zone *zone_data;
 
@@ -219,7 +219,7 @@ static struct platform_driver platform_driver = {
 		   }
 };
 
-static struct attribute_group zone_attribute_group = {
+static attribute_group_no_const zone_attribute_group = {
 	.name = "rgb_zones",
 };
 

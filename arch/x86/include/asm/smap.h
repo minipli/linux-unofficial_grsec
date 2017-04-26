@@ -25,6 +25,18 @@
 
 #include <asm/alternative-asm.h>
 
+#if defined(CONFIG_X86_64) && defined(CONFIG_PAX_MEMORY_UDEREF)
+#define ASM_PAX_OPEN_USERLAND					\
+	ALTERNATIVE "", "pax_direct_call __pax_open_userland", X86_FEATURE_STRONGUDEREF
+
+#define ASM_PAX_CLOSE_USERLAND					\
+	ALTERNATIVE "", "pax_direct_call __pax_close_userland", X86_FEATURE_STRONGUDEREF
+
+#else
+#define ASM_PAX_OPEN_USERLAND
+#define ASM_PAX_CLOSE_USERLAND
+#endif
+
 #ifdef CONFIG_X86_SMAP
 
 #define ASM_CLAC \
@@ -40,9 +52,43 @@
 
 #endif /* CONFIG_X86_SMAP */
 
+#define ASM_USER_ACCESS_BEGIN	ASM_PAX_OPEN_USERLAND; ASM_STAC
+#define ASM_USER_ACCESS_END	ASM_CLAC; ASM_PAX_CLOSE_USERLAND
+
 #else /* __ASSEMBLY__ */
 
 #include <asm/alternative.h>
+
+#define __HAVE_ARCH_PAX_OPEN_USERLAND
+#define __HAVE_ARCH_PAX_CLOSE_USERLAND
+
+extern void __pax_open_userland(void);
+static __always_inline unsigned long pax_open_userland(void)
+{
+
+#if defined(CONFIG_X86_64) && defined(CONFIG_PAX_MEMORY_UDEREF)
+	asm volatile(ALTERNATIVE("", PAX_DIRECT_CALL("%P[open]"), X86_FEATURE_STRONGUDEREF)
+		:
+		: [open] "i" (__pax_open_userland)
+		: "memory", "rax");
+#endif
+
+	return 0;
+}
+
+extern void __pax_close_userland(void);
+static __always_inline unsigned long pax_close_userland(void)
+{
+
+#if defined(CONFIG_X86_64) && defined(CONFIG_PAX_MEMORY_UDEREF)
+	asm volatile(ALTERNATIVE("", PAX_DIRECT_CALL("%P[close]"), X86_FEATURE_STRONGUDEREF)
+		:
+		: [close] "i" (__pax_close_userland)
+		: "memory", "rax");
+#endif
+
+	return 0;
+}
 
 #ifdef CONFIG_X86_SMAP
 

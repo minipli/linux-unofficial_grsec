@@ -95,7 +95,10 @@ void set_fiq_handler(void *start, unsigned int length)
 	void *base = vectors_page;
 	unsigned offset = FIQ_OFFSET;
 
+	pax_open_kernel();
 	memcpy(base + offset, start, length);
+	pax_close_kernel();
+
 	if (!cache_is_vipt_nonaliasing())
 		flush_icache_range((unsigned long)base + offset, offset +
 				   length);

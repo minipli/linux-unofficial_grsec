@@ -2103,8 +2103,8 @@ static int mmc_test_rw_multiple_size(struct mmc_test_card *test,
 {
 	int ret = 0;
 	int i;
-	void *pre_req = test->card->host->ops->pre_req;
-	void *post_req = test->card->host->ops->post_req;
+	void (*pre_req)(struct mmc_host *, struct mmc_request *, bool) = test->card->host->ops->pre_req;
+	void (*post_req)(struct mmc_host *, struct mmc_request *, int) = test->card->host->ops->post_req;
 
 	if (rw->do_nonblock_req &&
 	    ((!pre_req && post_req) || (pre_req && !post_req))) {

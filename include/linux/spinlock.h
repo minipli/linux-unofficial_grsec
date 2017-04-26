@@ -142,14 +142,17 @@ do {								\
  extern int do_raw_spin_trylock(raw_spinlock_t *lock);
  extern void do_raw_spin_unlock(raw_spinlock_t *lock) __releases(lock);
 #else
-static inline void do_raw_spin_lock(raw_spinlock_t *lock) __acquires(lock)
+static inline void do_raw_spin_lock(raw_spinlock_t *lock) __acquires(lock);
+static inline void do_raw_spin_lock(raw_spinlock_t *lock)
 {
 	__acquire(lock);
 	arch_spin_lock(&lock->raw_lock);
 }
 
 static inline void
-do_raw_spin_lock_flags(raw_spinlock_t *lock, unsigned long *flags) __acquires(lock)
+do_raw_spin_lock_flags(raw_spinlock_t *lock, unsigned long *flags) __acquires(lock);
+static inline void
+do_raw_spin_lock_flags(raw_spinlock_t *lock, unsigned long *flags)
 {
 	__acquire(lock);
 	arch_spin_lock_flags(&lock->raw_lock, *flags);
@@ -160,7 +163,8 @@ static inline int do_raw_spin_trylock(raw_spinlock_t *lock)
 	return arch_spin_trylock(&(lock)->raw_lock);
 }
 
-static inline void do_raw_spin_unlock(raw_spinlock_t *lock) __releases(lock)
+static inline void do_raw_spin_unlock(raw_spinlock_t *lock) __releases(lock);
+static inline void do_raw_spin_unlock(raw_spinlock_t *lock)
 {
 	arch_spin_unlock(&lock->raw_lock);
 	__release(lock);
@@ -297,11 +301,13 @@ do {							\
 	raw_spin_lock_init(&(_lock)->rlock);		\
 } while (0)
 
+static __always_inline void spin_lock(spinlock_t *lock) __acquires(lock);
 static __always_inline void spin_lock(spinlock_t *lock)
 {
 	raw_spin_lock(&lock->rlock);
 }
 
+static __always_inline void spin_lock_bh(spinlock_t *lock) __acquires(lock);
 static __always_inline void spin_lock_bh(spinlock_t *lock)
 {
 	raw_spin_lock_bh(&lock->rlock);
@@ -327,6 +333,7 @@ do {									\
 	raw_spin_lock_nest_lock(spinlock_check(lock), nest_lock);	\
 } while (0)
 
+static __always_inline void spin_lock_irq(spinlock_t *lock) __acquires(lock);
 static __always_inline void spin_lock_irq(spinlock_t *lock)
 {
 	raw_spin_lock_irq(&lock->rlock);
@@ -342,21 +349,25 @@ do {									\
 	raw_spin_lock_irqsave_nested(spinlock_check(lock), flags, subclass); \
 } while (0)
 
+static __always_inline void spin_unlock(spinlock_t *lock) __releases(lock);
 static __always_inline void spin_unlock(spinlock_t *lock)
 {
 	raw_spin_unlock(&lock->rlock);
 }
 
+static __always_inline void spin_unlock_bh(spinlock_t *lock) __releases(lock);
 static __always_inline void spin_unlock_bh(spinlock_t *lock)
 {
 	raw_spin_unlock_bh(&lock->rlock);
 }
 
+static __always_inline void spin_unlock_irq(spinlock_t *lock) __releases(lock);
 static __always_inline void spin_unlock_irq(spinlock_t *lock)
 {
 	raw_spin_unlock_irq(&lock->rlock);
 }
 
+static __always_inline void spin_unlock_irqrestore(spinlock_t *lock, unsigned long flags) __releases(lock);
 static __always_inline void spin_unlock_irqrestore(spinlock_t *lock, unsigned long flags)
 {
 	raw_spin_unlock_irqrestore(&lock->rlock, flags);

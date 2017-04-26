@@ -752,7 +752,7 @@ static int rfcomm_tty_open(struct tty_struct *tty, struct file *filp)
 	BT_DBG("tty %p id %d", tty, tty->index);
 
 	BT_DBG("dev %p dst %pMR channel %d opened %d", dev, &dev->dst,
-	       dev->channel, dev->port.count);
+	       dev->channel, atomic_read(&dev->port.count));
 
 	err = tty_port_open(&dev->port, tty, filp);
 	if (err)
@@ -775,7 +775,7 @@ static void rfcomm_tty_close(struct tty_struct *tty, struct file *filp)
 	struct rfcomm_dev *dev = (struct rfcomm_dev *) tty->driver_data;
 
 	BT_DBG("tty %p dev %p dlc %p opened %d", tty, dev, dev->dlc,
-						dev->port.count);
+						atomic_read(&dev->port.count));
 
 	tty_port_close(&dev->port, tty, filp);
 }

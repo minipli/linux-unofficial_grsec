@@ -144,7 +144,7 @@ void save_v86_state(struct kernel_vm86_regs *regs, int retval)
 		do_exit(SIGSEGV);
 	}
 
-	tss = &per_cpu(cpu_tss, get_cpu());
+	tss = cpu_tss + get_cpu();
 	tsk->thread.sp0 = vm86->saved_sp0;
 	tsk->thread.sysenter_cs = __KERNEL_CS;
 	load_sp0(tss, &tsk->thread);
@@ -176,10 +176,8 @@ static void mark_screen_rdonly(struct mm_struct *mm)
 		goto out;
 	pmd = pmd_offset(pud, 0xA0000);
 
-	if (pmd_trans_huge(*pmd)) {
-		struct vm_area_struct *vma = find_vma(mm, 0xA0000);
-		split_huge_pmd(vma, pmd, 0xA0000);
-	}
+	if (pmd_trans_huge(*pmd))
+		split_huge_pmd(find_vma(mm, 0xA0000), pmd, 0xA0000);
 	if (pmd_none_or_clear_bad(pmd))
 		goto out;
 	pte = pte_offset_map_lock(mm, pmd, 0xA0000, &ptl);
@@ -262,6 +260,13 @@ static long do_sys_vm86(struct vm86plus_struct __user *user_vm86, bool plus)
 			     from_kuid_munged(&init_user_ns, current_uid()));
 		return -EPERM;
 	}
+
+#ifdef CONFIG_GRKERNSEC_VM86
+	if (!capable(CAP_SYS_RAWIO)) {
+		gr_handle_vm86();
+		return -EPERM;
+	}
+#endif
 
 	if (!vm86) {
 		if (!(vm86 = kzalloc(sizeof(*vm86), GFP_KERNEL)))
@@ -358,7 +363,7 @@ static long do_sys_vm86(struct vm86plus_struct __user *user_vm86, bool plus)
 	vm86->saved_sp0 = tsk->thread.sp0;
 	lazy_save_gs(vm86->regs32.gs);
 
-	tss = &per_cpu(cpu_tss, get_cpu());
+	tss = cpu_tss + get_cpu();
 	/* make room for real-mode segments */
 	tsk->thread.sp0 += 16;
 
@@ -538,7 +543,7 @@ static void do_int(struct kernel_vm86_regs *regs, int i,
 		goto cannot_handle;
 	if (i == 0x21 && is_revectored(AH(regs), &vm86->int21_revectored))
 		goto cannot_handle;
-	intr_ptr = (unsigned long __user *) (i << 2);
+	intr_ptr = (unsigned long __force_user *) (i << 2);
 	if (get_user(segoffs, intr_ptr))
 		goto cannot_handle;
 	if ((segoffs >> 16) == BIOSSEG)
@@ -831,6 +836,14 @@ static inline int get_and_reset_irq(int irqnumber)
 static int do_vm86_irq_handling(int subfunction, int irqnumber)
 {
 	int ret;
+
+#ifdef CONFIG_GRKERNSEC_VM86
+	if (!capable(CAP_SYS_RAWIO)) {
+		gr_handle_vm86();
+		return -EPERM;
+	}
+#endif
+
 	switch (subfunction) {
 		case VM86_GET_AND_RESET_IRQ: {
 			return get_and_reset_irq(irqnumber);

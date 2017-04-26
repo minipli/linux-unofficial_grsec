@@ -651,7 +651,7 @@ long drm_ioctl(struct file *filp,
 	struct drm_file *file_priv = filp->private_data;
 	struct drm_device *dev;
 	const struct drm_ioctl_desc *ioctl = NULL;
-	drm_ioctl_t *func;
+	drm_ioctl_no_const_t func;
 	unsigned int nr = DRM_IOCTL_NR(cmd);
 	int retcode = -EINVAL;
 	char stack_kdata[128];

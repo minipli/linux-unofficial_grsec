@@ -38,10 +38,8 @@
 #define CREATE_TRACE_POINTS
 #include "vsyscall_trace.h"
 
-static enum { EMULATE, NATIVE, NONE } vsyscall_mode =
-#if defined(CONFIG_LEGACY_VSYSCALL_NATIVE)
-	NATIVE;
-#elif defined(CONFIG_LEGACY_VSYSCALL_NONE)
+static enum { EMULATE, NONE } vsyscall_mode =
+#if defined(CONFIG_LEGACY_VSYSCALL_NONE)
 	NONE;
 #else
 	EMULATE;
@@ -52,8 +50,6 @@ static int __init vsyscall_setup(char *str)
 	if (str) {
 		if (!strcmp("emulate", str))
 			vsyscall_mode = EMULATE;
-		else if (!strcmp("native", str))
-			vsyscall_mode = NATIVE;
 		else if (!strcmp("none", str))
 			vsyscall_mode = NONE;
 		else
@@ -271,8 +267,7 @@ do_ret:
 	return true;
 
 sigsegv:
-	force_sig(SIGSEGV, current);
-	return true;
+	do_group_exit(SIGKILL);
 }
 
 /*
@@ -290,8 +285,8 @@ static const struct vm_operations_struct gate_vma_ops = {
 static struct vm_area_struct gate_vma = {
 	.vm_start	= VSYSCALL_ADDR,
 	.vm_end		= VSYSCALL_ADDR + PAGE_SIZE,
-	.vm_page_prot	= PAGE_READONLY_EXEC,
-	.vm_flags	= VM_READ | VM_EXEC,
+	.vm_page_prot	= PAGE_READONLY,
+	.vm_flags	= VM_READ,
 	.vm_ops		= &gate_vma_ops,
 };
 
@@ -332,10 +327,7 @@ void __init map_vsyscall(void)
 	unsigned long physaddr_vsyscall = __pa_symbol(&__vsyscall_page);
 
 	if (vsyscall_mode != NONE)
-		__set_fixmap(VSYSCALL_PAGE, physaddr_vsyscall,
-			     vsyscall_mode == NATIVE
-			     ? PAGE_KERNEL_VSYSCALL
-			     : PAGE_KERNEL_VVAR);
+		__set_fixmap(VSYSCALL_PAGE, physaddr_vsyscall, PAGE_KERNEL_VVAR);
 
 	BUILD_BUG_ON((unsigned long)__fix_to_virt(VSYSCALL_PAGE) !=
 		     (unsigned long)VSYSCALL_ADDR);

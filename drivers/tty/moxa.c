@@ -1188,7 +1188,7 @@ static int moxa_open(struct tty_struct *tty, struct file *filp)
 	}
 
 	ch = &brd->ports[port % MAX_PORTS_PER_BOARD];
-	ch->port.count++;
+	atomic_inc(&ch->port.count);
 	tty->driver_data = ch;
 	tty_port_tty_set(&ch->port, tty);
 	mutex_lock(&ch->port.mutex);

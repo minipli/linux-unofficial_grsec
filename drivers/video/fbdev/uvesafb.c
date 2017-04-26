@@ -19,6 +19,7 @@
 #include <linux/io.h>
 #include <linux/mutex.h>
 #include <linux/slab.h>
+#include <linux/moduleloader.h>
 #include <video/edid.h>
 #include <video/uvesafb.h>
 #ifdef CONFIG_X86
@@ -565,10 +566,32 @@ static int uvesafb_vbe_getpmi(struct uvesafb_ktask *task,
 	if ((task->t.regs.eax & 0xffff) != 0x4f || task->t.regs.es < 0xc000) {
 		par->pmi_setpal = par->ypan = 0;
 	} else {
+
+#ifdef CONFIG_PAX_KERNEXEC
+#ifdef CONFIG_MODULES
+		par->pmi_code = module_alloc_exec((u16)task->t.regs.ecx);
+#endif
+		if (!par->pmi_code) {
+			par->pmi_setpal = par->ypan = 0;
+			return 0;
+		}
+#endif
+
 		par->pmi_base = (u16 *)phys_to_virt(((u32)task->t.regs.es << 4)
 						+ task->t.regs.edi);
+
+#if defined(CONFIG_MODULES) && defined(CONFIG_PAX_KERNEXEC)
+		pax_open_kernel();
+		memcpy(par->pmi_code, par->pmi_base, (u16)task->t.regs.ecx);
+		pax_close_kernel();
+
+		par->pmi_start = (void *)ktva_ktla((unsigned long)(par->pmi_code + par->pmi_base[1]));
+		par->pmi_pal = (void *)ktva_ktla((unsigned long)(par->pmi_code + par->pmi_base[2]));
+#else
 		par->pmi_start = (u8 *)par->pmi_base + par->pmi_base[1];
 		par->pmi_pal = (u8 *)par->pmi_base + par->pmi_base[2];
+#endif
+
 		printk(KERN_INFO "uvesafb: protected mode interface info at "
 				 "%04x:%04x\n",
 				 (u16)task->t.regs.es, (u16)task->t.regs.edi);
@@ -813,13 +836,14 @@ static int uvesafb_vbe_init(struct fb_info *info)
 	par->ypan = ypan;
 
 	if (par->pmi_setpal || par->ypan) {
+#if !defined(CONFIG_MODULES) || !defined(CONFIG_PAX_KERNEXEC)
 		if (__supported_pte_mask & _PAGE_NX) {
 			par->pmi_setpal = par->ypan = 0;
 			printk(KERN_WARNING "uvesafb: NX protection is active, "
 					    "better not use the PMI.\n");
-		} else {
+		} else
+#endif
 			uvesafb_vbe_getpmi(task, par);
-		}
 	}
 #else
 	/* The protected mode interface is not available on non-x86. */
@@ -1452,8 +1476,11 @@ static void uvesafb_init_info(struct fb_info *info, struct vbe_mode_ib *mode)
 	info->fix.ywrapstep = (par->ypan > 1) ? 1 : 0;
 
 	/* Disable blanking if the user requested so. */
-	if (!blank)
-		info->fbops->fb_blank = NULL;
+	if (!blank) {
+		pax_open_kernel();
+		const_cast(info->fbops->fb_blank) = NULL;
+		pax_close_kernel();
+	}
 
 	/*
 	 * Find out how much IO memory is required for the mode with
@@ -1524,8 +1551,11 @@ static void uvesafb_init_info(struct fb_info *info, struct vbe_mode_ib *mode)
 	info->flags = FBINFO_FLAG_DEFAULT |
 			(par->ypan ? FBINFO_HWACCEL_YPAN : 0);
 
-	if (!par->ypan)
-		info->fbops->fb_pan_display = NULL;
+	if (!par->ypan) {
+		pax_open_kernel();
+		const_cast(info->fbops->fb_pan_display) = NULL;
+		pax_close_kernel();
+	}
 }
 
 static void uvesafb_init_mtrr(struct fb_info *info)
@@ -1786,6 +1816,11 @@ out_mode:
 out:
 	kfree(par->vbe_modes);
 
+#if defined(CONFIG_MODULES) && defined(CONFIG_PAX_KERNEXEC)
+	if (par->pmi_code)
+		module_memfree_exec(par->pmi_code);
+#endif
+
 	framebuffer_release(info);
 	return err;
 }
@@ -1809,6 +1844,11 @@ static int uvesafb_remove(struct platform_device *dev)
 		kfree(par->vbe_modes);
 		kfree(par->vbe_state_orig);
 		kfree(par->vbe_state_saved);
+
+#if defined(CONFIG_MODULES) && defined(CONFIG_PAX_KERNEXEC)
+		if (par->pmi_code)
+			module_memfree_exec(par->pmi_code);
+#endif
 
 		framebuffer_release(info);
 	}

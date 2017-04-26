@@ -3389,7 +3389,7 @@ nla_put_failure:
 	return -EMSGSIZE;
 }
 
-static struct rtnl_link_ops macsec_link_ops __read_mostly = {
+static struct rtnl_link_ops macsec_link_ops = {
 	.kind		= "macsec",
 	.priv_size	= sizeof(struct macsec_dev),
 	.maxtype	= IFLA_MACSEC_MAX,

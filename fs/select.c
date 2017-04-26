@@ -20,6 +20,7 @@
 #include <linux/export.h>
 #include <linux/slab.h>
 #include <linux/poll.h>
+#include <linux/security.h>
 #include <linux/personality.h> /* for STICKY_TIMEOUTS */
 #include <linux/file.h>
 #include <linux/fdtable.h>
@@ -731,7 +732,7 @@ SYSCALL_DEFINE6(pselect6, int, n, fd_set __user *, inp, fd_set __user *, outp,
 
 #ifdef __ARCH_WANT_SYS_OLD_SELECT
 struct sel_arg_struct {
-	unsigned long n;
+	long n;
 	fd_set __user *inp, *outp, *exp;
 	struct timeval __user *tvp;
 };
@@ -894,6 +895,7 @@ int do_sys_poll(struct pollfd __user *ufds, unsigned int nfds,
  	struct poll_list *walk = head;
  	unsigned long todo = nfds;
 
+	gr_learn_resource(current, RLIMIT_NOFILE, nfds, 1);
 	if (nfds > rlimit(RLIMIT_NOFILE))
 		return -EINVAL;
 

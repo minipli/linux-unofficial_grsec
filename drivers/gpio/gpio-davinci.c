@@ -440,9 +440,9 @@ static struct irq_chip *davinci_gpio_get_irq_chip(unsigned int irq)
 	return &gpio_unbanked.chip;
 };
 
-static struct irq_chip *keystone_gpio_get_irq_chip(unsigned int irq)
+static irq_chip_no_const *keystone_gpio_get_irq_chip(unsigned int irq)
 {
-	static struct irq_chip gpio_unbanked;
+	static irq_chip_no_const gpio_unbanked;
 
 	gpio_unbanked = *irq_get_chip(irq);
 	return &gpio_unbanked;
@@ -472,7 +472,7 @@ static int davinci_gpio_irq_setup(struct platform_device *pdev)
 	struct davinci_gpio_regs __iomem *g;
 	struct irq_domain	*irq_domain = NULL;
 	const struct of_device_id *match;
-	struct irq_chip *irq_chip;
+	irq_chip_no_const *irq_chip;
 	gpio_get_irq_chip_cb_t gpio_get_irq_chip;
 
 	/*

@@ -933,7 +933,7 @@ static void iwlagn_wowlan_program_keys(struct ieee80211_hw *hw,
 
 			rx_p1ks = data->tkip->rx_uni;
 
-			pn64 = atomic64_read(&key->tx_pn);
+			pn64 = atomic64_read_unchecked(&key->tx_pn);
 			tkip_tx_sc->iv16 = cpu_to_le16(TKIP_PN_TO_IV16(pn64));
 			tkip_tx_sc->iv32 = cpu_to_le32(TKIP_PN_TO_IV32(pn64));
 
@@ -986,7 +986,7 @@ static void iwlagn_wowlan_program_keys(struct ieee80211_hw *hw,
 			aes_sc = data->rsc_tsc->all_tsc_rsc.aes.unicast_rsc;
 			aes_tx_sc = &data->rsc_tsc->all_tsc_rsc.aes.tsc;
 
-			pn64 = atomic64_read(&key->tx_pn);
+			pn64 = atomic64_read_unchecked(&key->tx_pn);
 			aes_tx_sc->pn = cpu_to_le64(pn64);
 		} else
 			aes_sc = data->rsc_tsc->all_tsc_rsc.aes.multicast_rsc;

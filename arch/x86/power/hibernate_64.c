@@ -130,15 +130,14 @@ static int relocate_restore_code(void)
 
 	/* Make the page containing the relocated code executable */
 	pgd = (pgd_t *)__va(read_cr3()) + pgd_index(relocated_restore_code);
+	set_pgd(pgd, __pgd(pgd_val(*pgd) & ~_PAGE_NX));
 	pud = pud_offset(pgd, relocated_restore_code);
-	if (pud_large(*pud)) {
-		set_pud(pud, __pud(pud_val(*pud) & ~_PAGE_NX));
-	} else {
+	set_pud(pud, __pud(pud_val(*pud) & ~_PAGE_NX));
+	if (!pud_large(*pud)) {
 		pmd_t *pmd = pmd_offset(pud, relocated_restore_code);
 
-		if (pmd_large(*pmd)) {
-			set_pmd(pmd, __pmd(pmd_val(*pmd) & ~_PAGE_NX));
-		} else {
+		set_pmd(pmd, __pmd(pmd_val(*pmd) & ~_PAGE_NX));
+		if (!pmd_large(*pmd)) {
 			pte_t *pte = pte_offset_kernel(pmd, relocated_restore_code);
 
 			set_pte(pte, __pte(pte_val(*pte) & ~_PAGE_NX));
@@ -198,7 +197,7 @@ int arch_hibernation_header_save(void *addr, unsigned int max_size)
 	if (max_size < sizeof(struct restore_data_record))
 		return -EOVERFLOW;
 	rdr->jump_address = (unsigned long)&restore_registers;
-	rdr->jump_address_phys = __pa_symbol(&restore_registers);
+	rdr->jump_address_phys = __pa_symbol(rdr->jump_address);
 	rdr->cr3 = restore_cr3;
 	rdr->magic = RESTORE_MAGIC;
 	return 0;

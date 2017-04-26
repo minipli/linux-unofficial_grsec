@@ -61,7 +61,7 @@ static unsigned int card[] = {[0 ... (TW68_MAXBOARDS - 1)] = UNSET };
 module_param_array(card, int, NULL, 0444);
 MODULE_PARM_DESC(card, "card type");
 
-static atomic_t tw68_instance = ATOMIC_INIT(0);
+static atomic_unchecked_t tw68_instance = ATOMIC_INIT(0);
 
 /* ------------------------------------------------------------------ */
 

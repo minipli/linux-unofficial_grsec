@@ -1105,7 +1105,7 @@ static int applesmc_create_nodes(struct applesmc_node_group *groups, int num)
 {
 	struct applesmc_node_group *grp;
 	struct applesmc_dev_attr *node;
-	struct attribute *attr;
+	attribute_no_const *attr;
 	int ret, i;
 
 	for (grp = groups; grp->format; grp++) {
@@ -1242,7 +1242,7 @@ static int applesmc_dmi_match(const struct dmi_system_id *id)
  * Note that DMI_MATCH(...,"MacBook") will match "MacBookPro1,1".
  * So we need to put "Apple MacBook Pro" before "Apple MacBook".
  */
-static __initdata struct dmi_system_id applesmc_whitelist[] = {
+static const __initconst struct dmi_system_id applesmc_whitelist[] = {
 	{ applesmc_dmi_match, "Apple MacBook Air", {
 	  DMI_MATCH(DMI_BOARD_VENDOR, "Apple"),
 	  DMI_MATCH(DMI_PRODUCT_NAME, "MacBookAir") },

@@ -87,7 +87,6 @@ struct cdrom_device_ops {
 
 /* driver specifications */
 	const int capability;   /* capability flags */
-	int n_minors;           /* number of active minor devices */
 	/* handle uniform packets for scsi type devices (scsi,atapi) */
 	int (*generic_packet) (struct cdrom_device_info *,
 			       struct packet_command *);

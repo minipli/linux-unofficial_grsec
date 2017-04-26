@@ -52,7 +52,7 @@ static unsigned long stack_maxrandom_size(void)
  * Leave an at least ~128 MB hole with possible stack randomization.
  */
 #define MIN_GAP (128*1024*1024UL + stack_maxrandom_size())
-#define MAX_GAP (TASK_SIZE/6*5)
+#define MAX_GAP (pax_task_size/6*5)
 
 static int mmap_is_legacy(void)
 {
@@ -81,16 +81,31 @@ unsigned long arch_mmap_rnd(void)
 	return rnd << PAGE_SHIFT;
 }
 
-static unsigned long mmap_base(unsigned long rnd)
+static unsigned long mmap_base(struct mm_struct *mm, unsigned long rnd)
 {
 	unsigned long gap = rlimit(RLIMIT_STACK);
+	unsigned long pax_task_size = TASK_SIZE;
+
+#ifdef CONFIG_PAX_SEGMEXEC
+	if (mm->pax_flags & MF_PAX_SEGMEXEC)
+		pax_task_size = SEGMEXEC_TASK_SIZE;
+#endif
 
 	if (gap < MIN_GAP)
 		gap = MIN_GAP;
 	else if (gap > MAX_GAP)
 		gap = MAX_GAP;
 
-	return PAGE_ALIGN(TASK_SIZE - gap - rnd);
+	return PAGE_ALIGN(pax_task_size - gap - rnd);
+}
+
+static unsigned long mmap_legacy_base(struct mm_struct *mm, unsigned long rnd)
+{
+#ifdef CONFIG_PAX_SEGMEXEC
+	if (mmap_is_ia32() && (mm->pax_flags & MF_PAX_SEGMEXEC))
+		return SEGMEXEC_TASK_UNMAPPED_BASE + rnd;
+#endif
+	return TASK_UNMAPPED_BASE + rnd;
 }
 
 /*
@@ -101,18 +116,29 @@ void arch_pick_mmap_layout(struct mm_struct *mm)
 {
 	unsigned long random_factor = 0UL;
 
+#ifdef CONFIG_PAX_RANDMMAP
+	if (!(mm->pax_flags & MF_PAX_RANDMMAP))
+#endif
 	if (current->flags & PF_RANDOMIZE)
 		random_factor = arch_mmap_rnd();
 
-	mm->mmap_legacy_base = TASK_UNMAPPED_BASE + random_factor;
+	mm->mmap_legacy_base = mmap_legacy_base(mm, random_factor);
 
 	if (mmap_is_legacy()) {
 		mm->mmap_base = mm->mmap_legacy_base;
 		mm->get_unmapped_area = arch_get_unmapped_area;
 	} else {
-		mm->mmap_base = mmap_base(random_factor);
+		mm->mmap_base = mmap_base(mm, random_factor);
 		mm->get_unmapped_area = arch_get_unmapped_area_topdown;
 	}
+
+#ifdef CONFIG_PAX_RANDMMAP
+	if (mm->pax_flags & MF_PAX_RANDMMAP) {
+		mm->mmap_legacy_base += mm->delta_mmap;
+		mm->mmap_base -= mm->delta_mmap + mm->delta_stack;
+	}
+#endif
+
 }
 
 const char *arch_vma_name(struct vm_area_struct *vma)

@@ -74,7 +74,7 @@ ping_client_fini(struct sfw_test_instance *tsi)
 	LASSERT(sn);
 	LASSERT(tsi->tsi_is_client);
 
-	errors = atomic_read(&sn->sn_ping_errors);
+	errors = atomic_read_unchecked(&sn->sn_ping_errors);
 	if (errors)
 		CWARN("%d pings have failed.\n", errors);
 	else
@@ -126,7 +126,7 @@ ping_client_done_rpc(struct sfw_test_unit *tsu, struct srpc_client_rpc *rpc)
 
 	if (rpc->crpc_status) {
 		if (!tsi->tsi_stopping)	/* rpc could have been aborted */
-			atomic_inc(&sn->sn_ping_errors);
+			atomic_inc_unchecked(&sn->sn_ping_errors);
 		CERROR("Unable to ping %s (%d): %d\n",
 		       libcfs_id2str(rpc->crpc_dest),
 		       reqst->pnr_seq, rpc->crpc_status);
@@ -141,7 +141,7 @@ ping_client_done_rpc(struct sfw_test_unit *tsu, struct srpc_client_rpc *rpc)
 
 	if (reply->pnr_magic != LST_PING_TEST_MAGIC) {
 		rpc->crpc_status = -EBADMSG;
-		atomic_inc(&sn->sn_ping_errors);
+		atomic_inc_unchecked(&sn->sn_ping_errors);
 		CERROR("Bad magic %u from %s, %u expected.\n",
 		       reply->pnr_magic, libcfs_id2str(rpc->crpc_dest),
 		       LST_PING_TEST_MAGIC);
@@ -150,7 +150,7 @@ ping_client_done_rpc(struct sfw_test_unit *tsu, struct srpc_client_rpc *rpc)
 
 	if (reply->pnr_seq != reqst->pnr_seq) {
 		rpc->crpc_status = -EBADMSG;
-		atomic_inc(&sn->sn_ping_errors);
+		atomic_inc_unchecked(&sn->sn_ping_errors);
 		CERROR("Bad seq %u from %s, %u expected.\n",
 		       reply->pnr_seq, libcfs_id2str(rpc->crpc_dest),
 		       reqst->pnr_seq);
@@ -206,15 +206,12 @@ ping_server_handle(struct srpc_server_rpc *rpc)
 	return 0;
 }
 
-struct sfw_test_client_ops ping_test_client;
-
-void ping_init_test_client(void)
-{
-	ping_test_client.tso_init = ping_client_init;
-	ping_test_client.tso_fini = ping_client_fini;
-	ping_test_client.tso_prep_rpc = ping_client_prep_rpc;
-	ping_test_client.tso_done_rpc = ping_client_done_rpc;
-}
+struct sfw_test_client_ops ping_test_client = {
+	.tso_init = ping_client_init,
+	.tso_fini = ping_client_fini,
+	.tso_prep_rpc = ping_client_prep_rpc,
+	.tso_done_rpc = ping_client_done_rpc,
+};
 
 struct srpc_service ping_test_service;
 

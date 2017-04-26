@@ -1076,7 +1076,7 @@ restart_loop:
 	 */
 	stats.ts_tid = commit_transaction->t_tid;
 	stats.run.rs_handle_count =
-		atomic_read(&commit_transaction->t_handle_count);
+		atomic_read_unchecked(&commit_transaction->t_handle_count);
 	trace_jbd2_run_stats(journal->j_fs_dev->bd_dev,
 			     commit_transaction->t_tid, &stats.run);
 	stats.ts_requested = (commit_transaction->t_requested) ? 1 : 0;

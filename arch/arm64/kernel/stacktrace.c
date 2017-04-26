@@ -95,8 +95,8 @@ int notrace unwind_frame(struct task_struct *tsk, struct stackframe *frame)
 		struct pt_regs *irq_args;
 		unsigned long orig_sp = IRQ_STACK_TO_TASK_STACK(irq_stack_ptr);
 
-		if (object_is_on_stack((void *)orig_sp) &&
-		   object_is_on_stack((void *)frame->fp)) {
+		if (object_starts_on_stack((void *)orig_sp) &&
+		   object_starts_on_stack((void *)frame->fp)) {
 			frame->sp = orig_sp;
 
 			/* orig_sp is the saved pt_regs, find the elr */

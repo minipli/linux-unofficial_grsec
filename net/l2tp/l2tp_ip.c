@@ -641,7 +641,7 @@ static struct inet_protosw l2tp_ip_protosw = {
 	.ops		= &l2tp_ip_ops,
 };
 
-static struct net_protocol l2tp_ip_protocol __read_mostly = {
+static const struct net_protocol l2tp_ip_protocol = {
 	.handler	= l2tp_ip_recv,
 	.netns_ok	= 1,
 };

@@ -81,7 +81,7 @@ static u32 HASH(const struct in6_addr *addr1, const struct in6_addr *addr2)
 
 static int ip6_tnl_dev_init(struct net_device *dev);
 static void ip6_tnl_dev_setup(struct net_device *dev);
-static struct rtnl_link_ops ip6_link_ops __read_mostly;
+static struct rtnl_link_ops ip6_link_ops;
 
 static int ip6_tnl_net_id __read_mostly;
 struct ip6_tnl_net {
@@ -2103,7 +2103,7 @@ static const struct nla_policy ip6_tnl_policy[IFLA_IPTUN_MAX + 1] = {
 	[IFLA_IPTUN_COLLECT_METADATA]	= { .type = NLA_FLAG },
 };
 
-static struct rtnl_link_ops ip6_link_ops __read_mostly = {
+static struct rtnl_link_ops ip6_link_ops = {
 	.kind		= "ip6tnl",
 	.maxtype	= IFLA_IPTUN_MAX,
 	.policy		= ip6_tnl_policy,

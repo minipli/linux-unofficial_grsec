@@ -396,7 +396,7 @@ static int intc_irqpin_probe(struct platform_device *pdev)
 	struct intc_irqpin_iomem *i;
 	struct resource *io[INTC_IRQPIN_REG_NR];
 	struct resource *irq;
-	struct irq_chip *irq_chip;
+	irq_chip_no_const *irq_chip;
 	void (*enable_fn)(struct irq_data *d);
 	void (*disable_fn)(struct irq_data *d);
 	const char *name = dev_name(dev);

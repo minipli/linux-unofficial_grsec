@@ -2411,6 +2411,8 @@ __intel_get_event_constraints(struct cpu_hw_events *cpuc, int idx,
 }
 
 static void
+intel_start_scheduling(struct cpu_hw_events *cpuc) __acquires(&cpuc->excl_cntrs->lock);
+static void
 intel_start_scheduling(struct cpu_hw_events *cpuc)
 {
 	struct intel_excl_cntrs *excl_cntrs = cpuc->excl_cntrs;
@@ -2420,14 +2422,18 @@ intel_start_scheduling(struct cpu_hw_events *cpuc)
 	/*
 	 * nothing needed if in group validation mode
 	 */
-	if (cpuc->is_fake || !is_ht_workaround_enabled())
+	if (cpuc->is_fake || !is_ht_workaround_enabled()) {
+		__acquire(&excl_cntrs->lock);
 		return;
+	}
 
 	/*
 	 * no exclusion needed
 	 */
-	if (WARN_ON_ONCE(!excl_cntrs))
+	if (WARN_ON_ONCE(!excl_cntrs)) {
+		__acquire(&excl_cntrs->lock);
 		return;
+	}
 
 	xl = &excl_cntrs->states[tid];
 
@@ -2467,6 +2473,8 @@ static void intel_commit_scheduling(struct cpu_hw_events *cpuc, int idx, int cnt
 }
 
 static void
+intel_stop_scheduling(struct cpu_hw_events *cpuc) __releases(&cpuc->excl_cntrs->lock);
+static void
 intel_stop_scheduling(struct cpu_hw_events *cpuc)
 {
 	struct intel_excl_cntrs *excl_cntrs = cpuc->excl_cntrs;
@@ -2476,13 +2484,18 @@ intel_stop_scheduling(struct cpu_hw_events *cpuc)
 	/*
 	 * nothing needed if in group validation mode
 	 */
-	if (cpuc->is_fake || !is_ht_workaround_enabled())
+	if (cpuc->is_fake || !is_ht_workaround_enabled()) {
+		__release(&excl_cntrs->lock);
 		return;
+	}
+
 	/*
 	 * no exclusion needed
 	 */
-	if (WARN_ON_ONCE(!excl_cntrs))
+	if (WARN_ON_ONCE(!excl_cntrs)) {
+		__release(&excl_cntrs->lock);
 		return;
+	}
 
 	xl = &excl_cntrs->states[tid];
 
@@ -2665,19 +2678,22 @@ static void intel_put_excl_constraints(struct cpu_hw_events *cpuc,
 	 * unused now.
 	 */
 	if (hwc->idx >= 0) {
+		bool sched_started;
+
 		xl = &excl_cntrs->states[tid];
+		sched_started = xl->sched_started;
 
 		/*
 		 * put_constraint may be called from x86_schedule_events()
 		 * which already has the lock held so here make locking
 		 * conditional.
 		 */
-		if (!xl->sched_started)
+		if (!sched_started)
 			raw_spin_lock(&excl_cntrs->lock);
 
 		xl->state[hwc->idx] = INTEL_EXCL_UNUSED;
 
-		if (!xl->sched_started)
+		if (!sched_started)
 			raw_spin_unlock(&excl_cntrs->lock);
 	}
 }
@@ -3617,10 +3633,10 @@ __init int intel_pmu_init(void)
 	}
 
 	if (boot_cpu_has(X86_FEATURE_PDCM)) {
-		u64 capabilities;
+		u64 capabilities = x86_pmu.intel_cap.capabilities;
 
-		rdmsrl(MSR_IA32_PERF_CAPABILITIES, capabilities);
-		x86_pmu.intel_cap.capabilities = capabilities;
+		if (rdmsrl_safe(MSR_IA32_PERF_CAPABILITIES, &x86_pmu.intel_cap.capabilities))
+			x86_pmu.intel_cap.capabilities = capabilities;
 	}
 
 	intel_ds_init();

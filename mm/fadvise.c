@@ -165,7 +165,7 @@ out:
 
 #ifdef __ARCH_WANT_SYS_FADVISE64
 
-SYSCALL_DEFINE4(fadvise64, int, fd, loff_t, offset, size_t, len, int, advice)
+SYSCALL_DEFINE4(fadvise64, int, fd, loff_t, offset, loff_t, len, int, advice)
 {
 	return sys_fadvise64_64(fd, offset, len, advice);
 }

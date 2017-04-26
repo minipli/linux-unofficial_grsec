@@ -1226,7 +1226,7 @@ static int mtk_hdmi_conn_get_modes(struct drm_connector *conn)
 	return ret;
 }
 
-static int mtk_hdmi_conn_mode_valid(struct drm_connector *conn,
+static enum drm_mode_status mtk_hdmi_conn_mode_valid(struct drm_connector *conn,
 				    struct drm_display_mode *mode)
 {
 	struct mtk_hdmi *hdmi = hdmi_ctx_from_conn(conn);

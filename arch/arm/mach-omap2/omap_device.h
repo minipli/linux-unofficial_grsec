@@ -72,12 +72,12 @@ int omap_device_idle(struct platform_device *pdev);
 /* Core code interface */
 
 struct platform_device *omap_device_build(const char *pdev_name, int pdev_id,
-					  struct omap_hwmod *oh, void *pdata,
+					  struct omap_hwmod *oh, const void *pdata,
 					  int pdata_len);
 
 struct platform_device *omap_device_build_ss(const char *pdev_name, int pdev_id,
 					 struct omap_hwmod **oh, int oh_cnt,
-					 void *pdata, int pdata_len);
+					 const void *pdata, int pdata_len);
 
 struct omap_device *omap_device_alloc(struct platform_device *pdev,
 				      struct omap_hwmod **ohs, int oh_cnt);

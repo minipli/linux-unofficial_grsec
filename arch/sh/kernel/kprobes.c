@@ -72,6 +72,7 @@ void __kprobes arch_disarm_kprobe(struct kprobe *p)
 			   (unsigned long)p->addr + sizeof(kprobe_opcode_t));
 }
 
+#ifdef CONFIG_KRETPROBES
 int __kprobes arch_trampoline_kprobe(struct kprobe *p)
 {
 	if (*p->addr == BREAKPOINT_INSTRUCTION)
@@ -79,6 +80,7 @@ int __kprobes arch_trampoline_kprobe(struct kprobe *p)
 
 	return 0;
 }
+#endif
 
 /**
  * If an illegal slot instruction exception occurs for an address
@@ -203,6 +205,7 @@ static void __kprobes prepare_singlestep(struct kprobe *p, struct pt_regs *regs)
 }
 
 /* Called with kretprobe_lock held */
+#ifdef CONFIG_KRETPROBES
 void __kprobes arch_prepare_kretprobe(struct kretprobe_instance *ri,
 				      struct pt_regs *regs)
 {
@@ -211,6 +214,7 @@ void __kprobes arch_prepare_kretprobe(struct kretprobe_instance *ri,
 	/* Replace the return addr with trampoline addr */
 	regs->pr = (unsigned long)kretprobe_trampoline;
 }
+#endif
 
 static int __kprobes kprobe_handler(struct pt_regs *regs)
 {

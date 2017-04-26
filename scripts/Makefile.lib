@@ -142,6 +142,22 @@ _c_flags += $(if $(patsubst n%,, \
 	$(CFLAGS_KCOV))
 endif
 
+#
+# Enable gcc plugins for the kernel unless disabled for a file or the entire directory
+# GCC_PLUGINS_file.o:=n will disable gcc plugins for file.o and its suffixed variants (.i, .s, etc)
+# GCC_PLUGINS_file:=n   will disable gcc plugins for file only (when the target itself isn't compiler generated or a file at all)
+# GCC_PLUGINS:=n        will disable gcc plugins for the entire directory
+#
+ifeq ($(CONFIG_GCC_PLUGINS),y)
+_c_flags += $(if $(patsubst n%,, \
+	$(GCC_PLUGINS_$(basetarget).o)$(GCC_PLUGINS_$(basetarget))$(GCC_PLUGINS)y), \
+	$(value GCC_PLUGINS_CFLAGS))
+_c_flags += $(GCC_PLUGINS_CFLAGS_$(basetarget).o)
+_a_flags += $(if $(patsubst n%,, \
+	$(GCC_PLUGINS_$(basetarget).o)$(GCC_PLUGINS_$(basetarget))$(GCC_PLUGINS)y), \
+	$(GCC_PLUGINS_AFLAGS))
+endif
+
 # If building the kernel in a separate objtree expand all occurrences
 # of -Idir to -I$(srctree)/dir except for absolute paths (starting with '/').
 

@@ -59,7 +59,7 @@ static int rds_tcp_skbuf_handler(struct ctl_table *ctl, int write,
 static int rds_tcp_min_sndbuf = SOCK_MIN_SNDBUF;
 static int rds_tcp_min_rcvbuf = SOCK_MIN_RCVBUF;
 
-static struct ctl_table rds_tcp_sysctl_table[] = {
+static ctl_table_no_const rds_tcp_sysctl_table[] = {
 #define	RDS_TCP_SNDBUF	0
 	{
 		.procname       = "rds_tcp_sndbuf",
@@ -88,7 +88,7 @@ void rds_tcp_nonagle(struct socket *sock)
 	int val = 1;
 
 	set_fs(KERNEL_DS);
-	sock->ops->setsockopt(sock, SOL_TCP, TCP_NODELAY, (char __user *)&val,
+	sock->ops->setsockopt(sock, SOL_TCP, TCP_NODELAY, (char __force_user *)&val,
 			      sizeof(val));
 	set_fs(oldfs);
 }
@@ -415,7 +415,7 @@ void rds_tcp_accept_work(struct sock *sk)
 static __net_init int rds_tcp_init_net(struct net *net)
 {
 	struct rds_tcp_net *rtn = net_generic(net, rds_tcp_netid);
-	struct ctl_table *tbl;
+	ctl_table_no_const *tbl;
 	int err = 0;
 
 	memset(rtn, 0, sizeof(*rtn));

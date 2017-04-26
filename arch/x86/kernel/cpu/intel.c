@@ -56,7 +56,9 @@ void check_mpx_erratum(struct cpuinfo_x86 *c)
 	 * is no such hardware known at the moment.
 	 */
 	if (cpu_has(c, X86_FEATURE_MPX) && !cpu_has(c, X86_FEATURE_SMEP)) {
+		pax_open_kernel();
 		setup_clear_cpu_cap(X86_FEATURE_MPX);
+		pax_close_kernel();
 		pr_warn("x86/mpx: Disabling MPX since SMEP not present\n");
 	}
 }
@@ -177,8 +179,10 @@ static void early_init_intel(struct cpuinfo_x86 *c)
 		rdmsrl(MSR_IA32_MISC_ENABLE, misc_enable);
 		if (!(misc_enable & MSR_IA32_MISC_ENABLE_FAST_STRING)) {
 			pr_info("Disabled fast string operations\n");
+			pax_open_kernel();
 			setup_clear_cpu_cap(X86_FEATURE_REP_GOOD);
 			setup_clear_cpu_cap(X86_FEATURE_ERMS);
+			pax_close_kernel();
 		}
 	}
 
@@ -194,7 +198,9 @@ static void early_init_intel(struct cpuinfo_x86 *c)
 	 */
 	if (c->x86 == 5 && c->x86_model == 9) {
 		pr_info("Disabling PGE capability bit\n");
+		pax_open_kernel();
 		setup_clear_cpu_cap(X86_FEATURE_PGE);
+		pax_close_kernel();
 	}
 
 	if (c->cpuid_level >= 0x00000001) {

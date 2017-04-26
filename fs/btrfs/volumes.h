@@ -148,8 +148,8 @@ struct btrfs_device {
 	int dev_stats_valid;
 
 	/* Counter to record the change of device stats */
-	atomic_t dev_stats_ccnt;
-	atomic_t dev_stat_values[BTRFS_DEV_STAT_VALUES_MAX];
+	atomic_unchecked_t dev_stats_ccnt;
+	atomic_unchecked_t dev_stat_values[BTRFS_DEV_STAT_VALUES_MAX];
 };
 
 /*
@@ -307,7 +307,7 @@ struct btrfs_bio {
 	struct bio *orig_bio;
 	unsigned long flags;
 	void *private;
-	atomic_t error;
+	atomic_unchecked_t error;
 	int max_errors;
 	int num_stripes;
 	int mirror_num;
@@ -466,21 +466,21 @@ int btrfs_remove_chunk(struct btrfs_trans_handle *trans,
 
 static inline int btrfs_dev_stats_dirty(struct btrfs_device *dev)
 {
-	return atomic_read(&dev->dev_stats_ccnt);
+	return atomic_read_unchecked(&dev->dev_stats_ccnt);
 }
 
 static inline void btrfs_dev_stat_inc(struct btrfs_device *dev,
 				      int index)
 {
-	atomic_inc(dev->dev_stat_values + index);
+	atomic_inc_unchecked(dev->dev_stat_values + index);
 	smp_mb__before_atomic();
-	atomic_inc(&dev->dev_stats_ccnt);
+	atomic_inc_unchecked(&dev->dev_stats_ccnt);
 }
 
 static inline int btrfs_dev_stat_read(struct btrfs_device *dev,
 				      int index)
 {
-	return atomic_read(dev->dev_stat_values + index);
+	return atomic_read_unchecked(dev->dev_stat_values + index);
 }
 
 static inline int btrfs_dev_stat_read_and_reset(struct btrfs_device *dev,
@@ -488,18 +488,18 @@ static inline int btrfs_dev_stat_read_and_reset(struct btrfs_device *dev,
 {
 	int ret;
 
-	ret = atomic_xchg(dev->dev_stat_values + index, 0);
+	ret = atomic_xchg_unchecked(dev->dev_stat_values + index, 0);
 	smp_mb__before_atomic();
-	atomic_inc(&dev->dev_stats_ccnt);
+	atomic_inc_unchecked(&dev->dev_stats_ccnt);
 	return ret;
 }
 
 static inline void btrfs_dev_stat_set(struct btrfs_device *dev,
 				      int index, unsigned long val)
 {
-	atomic_set(dev->dev_stat_values + index, val);
+	atomic_set_unchecked(dev->dev_stat_values + index, val);
 	smp_mb__before_atomic();
-	atomic_inc(&dev->dev_stats_ccnt);
+	atomic_inc_unchecked(&dev->dev_stats_ccnt);
 }
 
 static inline void btrfs_dev_stat_reset(struct btrfs_device *dev,

@@ -136,6 +136,7 @@ opt_pass *_MAKE_PASS_NAME_PASS(void)
 	return new _PASS_NAME_PASS();
 }
 #else
+struct opt_pass *_MAKE_PASS_NAME_PASS(void);
 struct opt_pass *_MAKE_PASS_NAME_PASS(void)
 {
 	return &_PASS_NAME_PASS.pass;

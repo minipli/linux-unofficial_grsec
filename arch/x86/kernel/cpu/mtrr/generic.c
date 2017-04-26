@@ -726,7 +726,8 @@ static DEFINE_RAW_SPINLOCK(set_atomicity_lock);
  * The caller must ensure that local interrupts are disabled and
  * are reenabled after post_set() has been called.
  */
-static void prepare_set(void) __acquires(set_atomicity_lock)
+static void prepare_set(void) __acquires(&set_atomicity_lock);
+static void prepare_set(void)
 {
 	unsigned long cr0;
 
@@ -762,7 +763,8 @@ static void prepare_set(void) __acquires(set_atomicity_lock)
 	wbinvd();
 }
 
-static void post_set(void) __releases(set_atomicity_lock)
+static void post_set(void) __releases(&set_atomicity_lock);
+static void post_set(void)
 {
 	/* Flush TLBs (no need to flush caches - they are disabled) */
 	count_vm_tlb_event(NR_TLB_LOCAL_FLUSH_ALL);

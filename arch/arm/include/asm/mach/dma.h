@@ -22,7 +22,7 @@ struct dma_ops {
 	int	(*residue)(unsigned int, dma_t *);		/* optional */
 	int	(*setspeed)(unsigned int, dma_t *, int);	/* optional */
 	const char *type;
-};
+} __do_const;
 
 struct dma_struct {
 	void		*addr;		/* single DMA address		*/

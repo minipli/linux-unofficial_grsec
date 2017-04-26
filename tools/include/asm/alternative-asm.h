@@ -6,4 +6,7 @@
 #define altinstruction_entry #
 #define ALTERNATIVE_2 #
 
+	.macro pax_force_retaddr rip=0, reload=0
+	.endm
+
 #endif

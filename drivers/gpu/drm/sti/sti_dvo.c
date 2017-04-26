@@ -191,7 +191,7 @@ static int dvo_dbg_show(struct seq_file *s, void *data)
 	return 0;
 }
 
-static struct drm_info_list dvo_debugfs_files[] = {
+static drm_info_list_no_const dvo_debugfs_files[] __read_only = {
 	{ "dvo", dvo_dbg_show, 0, NULL },
 };
 
@@ -206,8 +206,10 @@ static int dvo_debugfs_init(struct sti_dvo *dvo, struct drm_minor *minor)
 {
 	unsigned int i;
 
+	pax_open_kernel();
 	for (i = 0; i < ARRAY_SIZE(dvo_debugfs_files); i++)
 		dvo_debugfs_files[i].data = dvo;
+	pax_close_kernel();
 
 	return drm_debugfs_create_files(dvo_debugfs_files,
 					ARRAY_SIZE(dvo_debugfs_files),

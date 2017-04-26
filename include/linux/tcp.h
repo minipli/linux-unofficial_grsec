@@ -74,13 +74,13 @@ struct tcp_fastopen_cookie {
 
 /* This defines a selective acknowledgement block. */
 struct tcp_sack_block_wire {
-	__be32	start_seq;
-	__be32	end_seq;
+	__be32	start_seq __intentional_overflow(-1);
+	__be32	end_seq __intentional_overflow(-1);
 };
 
 struct tcp_sack_block {
-	u32	start_seq;
-	u32	end_seq;
+	u32	start_seq __intentional_overflow(-1);
+	u32	end_seq __intentional_overflow(-1);
 };
 
 /*These are used to set the sack_ok field in struct tcp_options_received */
@@ -168,7 +168,7 @@ struct tcp_sock {
 				 * total number of data segments in.
 				 */
  	u32	rcv_nxt;	/* What we want to receive next 	*/
-	u32	copied_seq;	/* Head of yet unread data		*/
+	u32	copied_seq __intentional_overflow(-1);	/* Head of yet unread data		*/
 	u32	rcv_wup;	/* rcv_nxt on last window update sent	*/
  	u32	snd_nxt;	/* Next sequence we send		*/
 	u32	segs_out;	/* RFC4898 tcpEStatsPerfSegsOut
@@ -281,7 +281,7 @@ struct tcp_sock {
 	u32	rate_interval_us;  /* saved rate sample: time elapsed */
 
  	u32	rcv_wnd;	/* Current receiver window		*/
-	u32	write_seq;	/* Tail(+1) of data held in tcp send buffer */
+	u32	write_seq __intentional_overflow(-1);	/* Tail(+1) of data held in tcp send buffer */
 	u32	notsent_lowat;	/* TCP_NOTSENT_LOWAT */
 	u32	pushed_seq;	/* Last pushed seq, required to talk to windows */
 	u32	lost_out;	/* Lost packets			*/
@@ -321,7 +321,7 @@ struct tcp_sock {
 	int	undo_retrans;	/* number of undoable retransmissions. */
 	u32	total_retrans;	/* Total retransmits for entire connection */
 
-	u32	urg_seq;	/* Seq of received urgent pointer */
+	u32	urg_seq __intentional_overflow(-1);	/* Seq of received urgent pointer */
 	unsigned int		keepalive_time;	  /* time before keep alive takes place */
 	unsigned int		keepalive_intvl;  /* time interval between keep alive probes */
 

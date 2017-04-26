@@ -66,6 +66,7 @@ void __kprobes __patch_text_real(void *addr, unsigned int insn, bool remap)
 	else
 		__acquire(&patch_lock);
 
+	pax_open_kernel();
 	if (thumb2 && __opcode_is_thumb16(insn)) {
 		*(u16 *)waddr = __opcode_to_mem_thumb16(insn);
 		size = sizeof(u16);
@@ -97,6 +98,7 @@ void __kprobes __patch_text_real(void *addr, unsigned int insn, bool remap)
 		*(u32 *)waddr = insn;
 		size = sizeof(u32);
 	}
+	pax_close_kernel();
 
 	if (waddr != addr) {
 		flush_kernel_vmap_range(waddr, twopage ? size / 2 : size);

@@ -1638,7 +1638,7 @@ static int configfs_readdir(struct file *file, struct dir_context *ctx)
 		list_move(q, &parent_sd->s_children);
 	for (p = q->next; p != &parent_sd->s_children; p = p->next) {
 		struct configfs_dirent *next;
-		const char *name;
+		const unsigned char * name;
 		int len;
 		struct inode *inode = NULL;
 

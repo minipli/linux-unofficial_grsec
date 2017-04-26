@@ -75,7 +75,7 @@ static inline int ioremap_pmd_range(pud_t *pud, unsigned long addr,
 	unsigned long next;
 
 	phys_addr -= addr;
-	pmd = pmd_alloc(&init_mm, pud, addr);
+	pmd = pmd_alloc_kernel(&init_mm, pud, addr);
 	if (!pmd)
 		return -ENOMEM;
 	do {
@@ -101,7 +101,7 @@ static inline int ioremap_pud_range(pgd_t *pgd, unsigned long addr,
 	unsigned long next;
 
 	phys_addr -= addr;
-	pud = pud_alloc(&init_mm, pgd, addr);
+	pud = pud_alloc_kernel(&init_mm, pgd, addr);
 	if (!pud)
 		return -ENOMEM;
 	do {

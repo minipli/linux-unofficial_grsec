@@ -93,7 +93,7 @@
 #define ARMADA_370_CRYPT0_ENG_ATTR     0x1
 
 extern void ll_disable_coherency(void);
-extern void ll_enable_coherency(void);
+extern int ll_enable_coherency(void);
 
 extern void armada_370_xp_cpu_resume(void);
 extern void armada_38x_cpu_resume(void);

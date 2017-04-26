@@ -48,15 +48,15 @@ asm    (".pushsection .text;"
 	"jne   .slowpath;"
 	"pop   %rdx;"
 	FRAME_END
-	"ret;"
+	PAX_RET(PV_UNLOCK)";"
 	".slowpath: "
 	"push   %rsi;"
 	"movzbl %al,%esi;"
-	"call " PV_UNLOCK_SLOWPATH ";"
+	PAX_DIRECT_CALL(PV_UNLOCK_SLOWPATH)";"
 	"pop    %rsi;"
 	"pop    %rdx;"
 	FRAME_END
-	"ret;"
+	PAX_RET(PV_UNLOCK)";"
 	".size " PV_UNLOCK ", .-" PV_UNLOCK ";"
 	".popsection");
 

@@ -112,7 +112,7 @@ static void rxrpc_conn_retransmit_call(struct rxrpc_connection *conn,
 	iov.iov_base	= &pkt;
 	iov.iov_len	= len;
 
-	serial = atomic_inc_return(&conn->serial);
+	serial = atomic_inc_return_unchecked(&conn->serial);
 	pkt.whdr.serial = htonl(serial);
 
 	switch (chan->last_type) {
@@ -219,7 +219,7 @@ static int rxrpc_abort_connection(struct rxrpc_connection *conn,
 
 	len = iov[0].iov_len + iov[1].iov_len;
 
-	serial = atomic_inc_return(&conn->serial);
+	serial = atomic_inc_return_unchecked(&conn->serial);
 	whdr.serial = htonl(serial);
 	_proto("Tx CONN ABORT %%%u { %d }", serial, conn->local_abort);
 

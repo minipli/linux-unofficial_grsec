@@ -19,6 +19,7 @@
 #include <asm/msr.h>
 #include <asm/apic.h>
 #include <asm/nmi.h>
+#include <asm/pgtable.h>
 
 #include "op_x86_model.h"
 #include "op_counter.h"
@@ -221,8 +222,10 @@ static void arch_perfmon_setup_counters(void)
 
 	num_counters = min((int)eax.split.num_counters, OP_MAX_COUNTER);
 
-	op_arch_perfmon_spec.num_counters = num_counters;
-	op_arch_perfmon_spec.num_controls = num_counters;
+	pax_open_kernel();
+	const_cast(op_arch_perfmon_spec.num_counters) = num_counters;
+	const_cast(op_arch_perfmon_spec.num_controls) = num_counters;
+	pax_close_kernel();
 }
 
 static int arch_perfmon_init(struct oprofile_operations *ignore)

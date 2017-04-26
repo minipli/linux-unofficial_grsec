@@ -147,10 +147,10 @@ MODULE_DEVICE_TABLE(acpi, atk_ids);
 struct atk_sensor_data {
 	struct list_head list;
 	struct atk_data *data;
-	struct device_attribute label_attr;
-	struct device_attribute input_attr;
-	struct device_attribute limit1_attr;
-	struct device_attribute limit2_attr;
+	device_attribute_no_const label_attr;
+	device_attribute_no_const input_attr;
+	device_attribute_no_const limit1_attr;
+	device_attribute_no_const limit2_attr;
 	char label_attr_name[ATTR_NAME_SIZE];
 	char input_attr_name[ATTR_NAME_SIZE];
 	char limit1_attr_name[ATTR_NAME_SIZE];
@@ -270,7 +270,7 @@ static ssize_t atk_name_show(struct device *dev,
 static struct device_attribute atk_name_attr =
 		__ATTR(name, 0444, atk_name_show, NULL);
 
-static void atk_init_attribute(struct device_attribute *attr, char *name,
+static void atk_init_attribute(device_attribute_no_const *attr, char *name,
 		sysfs_show_func show)
 {
 	sysfs_attr_init(&attr->attr);

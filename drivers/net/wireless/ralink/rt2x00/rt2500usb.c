@@ -142,7 +142,7 @@ static int rt2500usb_regbusy_read(struct rt2x00_dev *rt2x00dev,
 	rt2500usb_regbusy_read((__dev), PHY_CSR10, PHY_CSR10_RF_BUSY, (__reg))
 
 static void rt2500usb_bbp_write(struct rt2x00_dev *rt2x00dev,
-				const unsigned int word, const u8 value)
+				const unsigned int word, u8 value)
 {
 	u16 reg;
 
@@ -196,7 +196,7 @@ static void rt2500usb_bbp_read(struct rt2x00_dev *rt2x00dev,
 }
 
 static void rt2500usb_rf_write(struct rt2x00_dev *rt2x00dev,
-			       const unsigned int word, const u32 value)
+			       const unsigned int word, u32 value)
 {
 	u16 reg;
 

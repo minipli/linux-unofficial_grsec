@@ -73,7 +73,7 @@ static __always_inline void __ticket_spin_unlock(arch_spinlock_t *lock)
 	unsigned short	*p = (unsigned short *)&lock->lock + 1, tmp;
 
 	asm volatile ("ld2.bias %0=[%1]" : "=r"(tmp) : "r"(p));
-	ACCESS_ONCE(*p) = (tmp + 2) & ~1;
+	ACCESS_ONCE_RW(*p) = (tmp + 2) & ~1;
 }
 
 static __always_inline void __ticket_spin_unlock_wait(arch_spinlock_t *lock)

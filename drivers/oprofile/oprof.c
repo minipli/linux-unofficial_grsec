@@ -110,7 +110,7 @@ static void switch_worker(struct work_struct *work)
 	if (oprofile_ops.switch_events())
 		return;
 
-	atomic_inc(&oprofile_stats.multiplex_counter);
+	atomic_inc_unchecked(&oprofile_stats.multiplex_counter);
 	start_switch_worker();
 }
 

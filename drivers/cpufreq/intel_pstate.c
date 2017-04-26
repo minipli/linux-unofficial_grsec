@@ -283,13 +283,13 @@ struct pstate_funcs {
 struct cpu_defaults {
 	struct pstate_adjust_policy pid_policy;
 	struct pstate_funcs funcs;
-};
+} __do_const;
 
 static inline int32_t get_target_pstate_use_performance(struct cpudata *cpu);
 static inline int32_t get_target_pstate_use_cpu_load(struct cpudata *cpu);
 
 static struct pstate_adjust_policy pid_params __read_mostly;
-static struct pstate_funcs pstate_funcs __read_mostly;
+static struct pstate_funcs *pstate_funcs __read_mostly;
 static int hwp_active __read_mostly;
 
 #ifdef CONFIG_ACPI
@@ -658,13 +658,13 @@ static void __init intel_pstate_debug_expose_params(void)
 /************************** sysfs begin ************************/
 #define show_one(file_name, object)					\
 	static ssize_t show_##file_name					\
-	(struct kobject *kobj, struct attribute *attr, char *buf)	\
+	(struct kobject *kobj, struct kobj_attribute *attr, char *buf)	\
 	{								\
 		return sprintf(buf, "%u\n", limits->object);		\
 	}
 
 static ssize_t show_turbo_pct(struct kobject *kobj,
-				struct attribute *attr, char *buf)
+				struct kobj_attribute *attr, char *buf)
 {
 	struct cpudata *cpu;
 	int total, no_turbo, turbo_pct;
@@ -680,7 +680,7 @@ static ssize_t show_turbo_pct(struct kobject *kobj,
 }
 
 static ssize_t show_num_pstates(struct kobject *kobj,
-				struct attribute *attr, char *buf)
+				struct kobj_attribute *attr, char *buf)
 {
 	struct cpudata *cpu;
 	int total;
@@ -691,7 +691,7 @@ static ssize_t show_num_pstates(struct kobject *kobj,
 }
 
 static ssize_t show_no_turbo(struct kobject *kobj,
-			     struct attribute *attr, char *buf)
+			     struct kobj_attribute *attr, char *buf)
 {
 	ssize_t ret;
 
@@ -704,7 +704,7 @@ static ssize_t show_no_turbo(struct kobject *kobj,
 	return ret;
 }
 
-static ssize_t store_no_turbo(struct kobject *a, struct attribute *b,
+static ssize_t store_no_turbo(struct kobject *a, struct kobj_attribute *b,
 			      const char *buf, size_t count)
 {
 	unsigned int input;
@@ -728,7 +728,7 @@ static ssize_t store_no_turbo(struct kobject *a, struct attribute *b,
 	return count;
 }
 
-static ssize_t store_max_perf_pct(struct kobject *a, struct attribute *b,
+static ssize_t store_max_perf_pct(struct kobject *a, struct kobj_attribute *b,
 				  const char *buf, size_t count)
 {
 	unsigned int input;
@@ -752,7 +752,7 @@ static ssize_t store_max_perf_pct(struct kobject *a, struct attribute *b,
 	return count;
 }
 
-static ssize_t store_min_perf_pct(struct kobject *a, struct attribute *b,
+static ssize_t store_min_perf_pct(struct kobject *a, struct kobj_attribute *b,
 				  const char *buf, size_t count)
 {
 	unsigned int input;
@@ -1173,7 +1173,7 @@ static void intel_pstate_set_pstate(struct cpudata *cpu, int pstate)
 	 * right CPU.
 	 */
 	wrmsrl_on_cpu(cpu->cpu, MSR_IA32_PERF_CTL,
-		      pstate_funcs.get_val(cpu, pstate));
+		      pstate_funcs->get_val(cpu, pstate));
 }
 
 static void intel_pstate_set_min_pstate(struct cpudata *cpu)
@@ -1192,14 +1192,14 @@ static void intel_pstate_max_within_limits(struct cpudata *cpu)
 
 static void intel_pstate_get_cpu_pstates(struct cpudata *cpu)
 {
-	cpu->pstate.min_pstate = pstate_funcs.get_min();
-	cpu->pstate.max_pstate = pstate_funcs.get_max();
-	cpu->pstate.max_pstate_physical = pstate_funcs.get_max_physical();
-	cpu->pstate.turbo_pstate = pstate_funcs.get_turbo();
-	cpu->pstate.scaling = pstate_funcs.get_scaling();
+	cpu->pstate.min_pstate = pstate_funcs->get_min();
+	cpu->pstate.max_pstate = pstate_funcs->get_max();
+	cpu->pstate.max_pstate_physical = pstate_funcs->get_max_physical();
+	cpu->pstate.turbo_pstate = pstate_funcs->get_turbo();
+	cpu->pstate.scaling = pstate_funcs->get_scaling();
 
-	if (pstate_funcs.get_vid)
-		pstate_funcs.get_vid(cpu);
+	if (pstate_funcs->get_vid)
+		pstate_funcs->get_vid(cpu);
 
 	intel_pstate_set_min_pstate(cpu);
 }
@@ -1348,7 +1348,7 @@ static inline void intel_pstate_update_pstate(struct cpudata *cpu, int pstate)
 		return;
 
 	cpu->pstate.current_pstate = pstate;
-	wrmsrl(MSR_IA32_PERF_CTL, pstate_funcs.get_val(cpu, pstate));
+	wrmsrl(MSR_IA32_PERF_CTL, pstate_funcs->get_val(cpu, pstate));
 }
 
 static inline void intel_pstate_adjust_busy_pstate(struct cpudata *cpu)
@@ -1359,7 +1359,7 @@ static inline void intel_pstate_adjust_busy_pstate(struct cpudata *cpu)
 	from = cpu->pstate.current_pstate;
 
 	target_pstate = cpu->policy == CPUFREQ_POLICY_PERFORMANCE ?
-		cpu->pstate.turbo_pstate : pstate_funcs.get_target_pstate(cpu);
+		cpu->pstate.turbo_pstate : pstate_funcs->get_target_pstate(cpu);
 
 	intel_pstate_update_pstate(cpu, target_pstate);
 
@@ -1683,15 +1683,15 @@ static unsigned int force_load __initdata;
 
 static int __init intel_pstate_msrs_not_valid(void)
 {
-	if (!pstate_funcs.get_max() ||
-	    !pstate_funcs.get_min() ||
-	    !pstate_funcs.get_turbo())
+	if (!pstate_funcs->get_max() ||
+	    !pstate_funcs->get_min() ||
+	    !pstate_funcs->get_turbo())
 		return -ENODEV;
 
 	return 0;
 }
 
-static void __init copy_pid_params(struct pstate_adjust_policy *policy)
+static void __init copy_pid_params(const struct pstate_adjust_policy *policy)
 {
 	pid_params.sample_rate_ms = policy->sample_rate_ms;
 	pid_params.sample_rate_ns = pid_params.sample_rate_ms * NSEC_PER_MSEC;
@@ -1704,15 +1704,7 @@ static void __init copy_pid_params(struct pstate_adjust_policy *policy)
 
 static void __init copy_cpu_funcs(struct pstate_funcs *funcs)
 {
-	pstate_funcs.get_max   = funcs->get_max;
-	pstate_funcs.get_max_physical = funcs->get_max_physical;
-	pstate_funcs.get_min   = funcs->get_min;
-	pstate_funcs.get_turbo = funcs->get_turbo;
-	pstate_funcs.get_scaling = funcs->get_scaling;
-	pstate_funcs.get_val   = funcs->get_val;
-	pstate_funcs.get_vid   = funcs->get_vid;
-	pstate_funcs.get_target_pstate = funcs->get_target_pstate;
-
+	pstate_funcs = funcs;
 }
 
 #ifdef CONFIG_ACPI

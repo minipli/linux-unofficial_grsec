@@ -385,7 +385,7 @@ void drm_unplug_dev(struct drm_device *dev)
 
 	drm_device_set_unplugged(dev);
 
-	if (dev->open_count == 0) {
+	if (local_read(&dev->open_count) == 0) {
 		drm_put_dev(dev);
 	}
 	mutex_unlock(&drm_global_mutex);

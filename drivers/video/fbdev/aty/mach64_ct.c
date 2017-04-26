@@ -630,13 +630,14 @@ static void aty_resume_pll_ct(const struct fb_info *info,
 	aty_st_pll_ct(EXT_VPLL_CNTL, pll->ct.ext_vpll_cntl, par);
 }
 
-static int dummy(void)
+static int aty_set_dac(const struct fb_info * info,
+		const union aty_pll * pll, u32 bpp, u32 accel)
 {
 	return 0;
 }
 
 const struct aty_dac_ops aty_dac_ct = {
-	.set_dac	= (void *) dummy,
+	.set_dac	= aty_set_dac
 };
 
 const struct aty_pll_ops aty_pll_ct = {

@@ -183,6 +183,7 @@ static struct clocksource hyperv_cs_tsc = {
 };
 #endif
 
+static char hv_hypercall_page[PAGE_SIZE] __aligned(PAGE_SIZE) __used __section(".text");
 
 /*
  * hv_init - Main initialization routine.
@@ -193,7 +194,6 @@ int hv_init(void)
 {
 	int max_leaf;
 	union hv_x64_msr_hypercall_contents hypercall_msr;
-	void *virtaddr = NULL;
 
 	memset(hv_context.synic_event_page, 0, sizeof(void *) * NR_CPUS);
 	memset(hv_context.synic_message_page, 0,
@@ -220,14 +220,9 @@ int hv_init(void)
 	/* See if the hypercall page is already set */
 	rdmsrl(HV_X64_MSR_HYPERCALL, hypercall_msr.as_uint64);
 
-	virtaddr = __vmalloc(PAGE_SIZE, GFP_KERNEL, PAGE_KERNEL_RX);
-
-	if (!virtaddr)
-		goto cleanup;
-
 	hypercall_msr.enable = 1;
 
-	hypercall_msr.guest_physical_address = vmalloc_to_pfn(virtaddr);
+	hypercall_msr.guest_physical_address = __phys_to_pfn(slow_virt_to_phys((void *)(ktla_ktva((unsigned long)hv_hypercall_page))));
 	wrmsrl(HV_X64_MSR_HYPERCALL, hypercall_msr.as_uint64);
 
 	/* Confirm that hypercall page did get setup. */
@@ -237,7 +232,7 @@ int hv_init(void)
 	if (!hypercall_msr.enable)
 		goto cleanup;
 
-	hv_context.hypercall_page = virtaddr;
+	hv_context.hypercall_page = hv_hypercall_page;
 
 #ifdef CONFIG_X86_64
 	if (ms_hyperv.features & HV_X64_MSR_REFERENCE_TSC_AVAILABLE) {
@@ -261,13 +256,9 @@ int hv_init(void)
 	return 0;
 
 cleanup:
-	if (virtaddr) {
-		if (hypercall_msr.enable) {
-			hypercall_msr.as_uint64 = 0;
-			wrmsrl(HV_X64_MSR_HYPERCALL, hypercall_msr.as_uint64);
-		}
-
-		vfree(virtaddr);
+	if (hypercall_msr.enable) {
+		hypercall_msr.as_uint64 = 0;
+		wrmsrl(HV_X64_MSR_HYPERCALL, hypercall_msr.as_uint64);
 	}
 
 	return -ENOTSUPP;
@@ -288,8 +279,6 @@ void hv_cleanup(bool crash)
 	if (hv_context.hypercall_page) {
 		hypercall_msr.as_uint64 = 0;
 		wrmsrl(HV_X64_MSR_HYPERCALL, hypercall_msr.as_uint64);
-		if (!crash)
-			vfree(hv_context.hypercall_page);
 		hv_context.hypercall_page = NULL;
 	}
 

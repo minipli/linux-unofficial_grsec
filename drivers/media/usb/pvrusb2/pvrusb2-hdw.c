@@ -2097,7 +2097,7 @@ static void pvr2_hdw_load_modules(struct pvr2_hdw *hdw)
 
 	cm = &hdw->hdw_desc->client_modules;
 	for (idx = 0; idx < cm->cnt; idx++) {
-		request_module(cm->lst[idx]);
+		request_module("%s", cm->lst[idx]);
 	}
 
 	ct = &hdw->hdw_desc->client_table;

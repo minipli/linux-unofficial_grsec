@@ -15,7 +15,7 @@
 #ifndef _KEYS_ENCRYPTED_TYPE_H
 #define _KEYS_ENCRYPTED_TYPE_H
 
-#include <linux/key.h>
+#include <linux/key-type.h>
 #include <linux/rcupdate.h>
 
 struct encrypted_key_payload {

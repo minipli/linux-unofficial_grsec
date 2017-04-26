@@ -163,7 +163,7 @@ struct pnp_resource *pnp_add_resource(struct pnp_dev *dev,
 				      struct resource *res);
 struct pnp_resource *pnp_add_irq_resource(struct pnp_dev *dev, int irq,
 					  int flags);
-struct pnp_resource *pnp_add_dma_resource(struct pnp_dev *dev, int dma,
+struct pnp_resource *pnp_add_dma_resource(struct pnp_dev *dev, resource_size_t dma,
 					  int flags);
 struct pnp_resource *pnp_add_io_resource(struct pnp_dev *dev,
 					 resource_size_t start,

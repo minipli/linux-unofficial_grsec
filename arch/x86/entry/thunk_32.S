@@ -5,7 +5,7 @@
  * Subject to the GNU public license, v.2. No warranty of any kind.
  */
 	#include <linux/linkage.h>
-	#include <asm/asm.h>
+	#include <asm/alternative-asm.h>
 	#include <asm/export.h>
 
 	/* put return address in eax (arg1) */
@@ -21,11 +21,11 @@
 	movl 3*4(%esp), %eax
 	.endif
 
-	call \func
+	pax_direct_call \func
 	popl %edx
 	popl %ecx
 	popl %eax
-	ret
+	pax_ret \name
 	_ASM_NOKPROBE(\name)
 	.endm
 

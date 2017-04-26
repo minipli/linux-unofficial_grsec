@@ -190,7 +190,7 @@ static int compat_mga_dma_bootstrap(struct file *file, unsigned int cmd,
 	return 0;
 }
 
-drm_ioctl_compat_t *mga_compat_ioctls[] = {
+drm_ioctl_compat_t mga_compat_ioctls[] = {
 	[DRM_MGA_INIT] = compat_mga_init,
 	[DRM_MGA_GETPARAM] = compat_mga_getparam,
 	[DRM_MGA_DMA_BOOTSTRAP] = compat_mga_dma_bootstrap,
@@ -208,17 +208,13 @@ drm_ioctl_compat_t *mga_compat_ioctls[] = {
 long mga_compat_ioctl(struct file *filp, unsigned int cmd, unsigned long arg)
 {
 	unsigned int nr = DRM_IOCTL_NR(cmd);
-	drm_ioctl_compat_t *fn = NULL;
 	int ret;
 
 	if (nr < DRM_COMMAND_BASE)
 		return drm_compat_ioctl(filp, cmd, arg);
 
-	if (nr < DRM_COMMAND_BASE + ARRAY_SIZE(mga_compat_ioctls))
-		fn = mga_compat_ioctls[nr - DRM_COMMAND_BASE];
-
-	if (fn != NULL)
-		ret = (*fn) (filp, cmd, arg);
+	if (nr < DRM_COMMAND_BASE + ARRAY_SIZE(mga_compat_ioctls) && mga_compat_ioctls[nr - DRM_COMMAND_BASE])
+		ret = (*mga_compat_ioctls[nr - DRM_COMMAND_BASE]) (filp, cmd, arg);
 	else
 		ret = drm_ioctl(filp, cmd, arg);
 

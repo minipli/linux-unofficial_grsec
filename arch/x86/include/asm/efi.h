@@ -150,6 +150,11 @@ static inline bool efi_is_native(void)
 
 static inline bool efi_runtime_supported(void)
 {
+
+#if defined(CONFIG_X86_32) && defined(CONFIG_PAX_KERNEXEC)
+	return false;
+#endif
+
 	if (efi_is_native())
 		return true;
 

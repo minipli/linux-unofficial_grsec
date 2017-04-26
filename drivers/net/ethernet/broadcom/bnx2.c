@@ -8732,7 +8732,7 @@ static SIMPLE_DEV_PM_OPS(bnx2_pm_ops, bnx2_suspend, bnx2_resume);
  * this device has been detected.
  */
 static pci_ers_result_t bnx2_io_error_detected(struct pci_dev *pdev,
-					       pci_channel_state_t state)
+					       enum pci_channel_state state)
 {
 	struct net_device *dev = pci_get_drvdata(pdev);
 	struct bnx2 *bp = netdev_priv(dev);

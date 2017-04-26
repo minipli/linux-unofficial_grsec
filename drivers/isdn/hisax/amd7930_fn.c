@@ -685,8 +685,9 @@ DC_Close_Amd7930(struct IsdnCardState *cs) {
 
 
 static void
-dbusy_timer_handler(struct IsdnCardState *cs)
+dbusy_timer_handler(unsigned long _cs)
 {
+	struct IsdnCardState *cs = (struct IsdnCardState *)_cs;
 	u_long flags;
 	struct PStack *stptr;
 	WORD dtcr, der;
@@ -789,7 +790,7 @@ void Amd7930_init(struct IsdnCardState *cs)
 void setup_Amd7930(struct IsdnCardState *cs)
 {
 	INIT_WORK(&cs->tqueue, Amd7930_bh);
-	cs->dbusytimer.function = (void *) dbusy_timer_handler;
+	cs->dbusytimer.function = dbusy_timer_handler;
 	cs->dbusytimer.data = (long) cs;
 	init_timer(&cs->dbusytimer);
 }

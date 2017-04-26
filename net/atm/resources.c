@@ -160,7 +160,7 @@ EXPORT_SYMBOL(atm_dev_deregister);
 static void copy_aal_stats(struct k_atm_aal_stats *from,
     struct atm_aal_stats *to)
 {
-#define __HANDLE_ITEM(i) to->i = atomic_read(&from->i)
+#define __HANDLE_ITEM(i) to->i = atomic_read_unchecked(&from->i)
 	__AAL_STAT_ITEMS
 #undef __HANDLE_ITEM
 }
@@ -168,7 +168,7 @@ static void copy_aal_stats(struct k_atm_aal_stats *from,
 static void subtract_aal_stats(struct k_atm_aal_stats *from,
     struct atm_aal_stats *to)
 {
-#define __HANDLE_ITEM(i) atomic_sub(to->i, &from->i)
+#define __HANDLE_ITEM(i) atomic_sub_unchecked(to->i, &from->i)
 	__AAL_STAT_ITEMS
 #undef __HANDLE_ITEM
 }

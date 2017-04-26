@@ -901,7 +901,7 @@ __be32 nfsd_readv(struct file *file, loff_t offset, struct kvec *vec, int vlen,
 
 	oldfs = get_fs();
 	set_fs(KERNEL_DS);
-	host_err = vfs_readv(file, (struct iovec __user *)vec, vlen, &offset, 0);
+	host_err = vfs_readv(file, (struct iovec __force_user *)vec, vlen, &offset, 0);
 	set_fs(oldfs);
 	return nfsd_finish_read(file, count, host_err);
 }
@@ -991,7 +991,7 @@ nfsd_vfs_write(struct svc_rqst *rqstp, struct svc_fh *fhp, struct file *file,
 
 	/* Write the data. */
 	oldfs = get_fs(); set_fs(KERNEL_DS);
-	host_err = vfs_writev(file, (struct iovec __user *)vec, vlen, &pos, flags);
+	host_err = vfs_writev(file, (struct iovec __force_user *)vec, vlen, &pos, flags);
 	set_fs(oldfs);
 	if (host_err < 0)
 		goto out_nfserr;
@@ -1490,7 +1490,7 @@ nfsd_readlink(struct svc_rqst *rqstp, struct svc_fh *fhp, char *buf, int *lenp)
 	 */
 
 	oldfs = get_fs(); set_fs(KERNEL_DS);
-	host_err = inode->i_op->readlink(path.dentry, (char __user *)buf, *lenp);
+	host_err = inode->i_op->readlink(path.dentry, (char __force_user *)buf, *lenp);
 	set_fs(oldfs);
 
 	if (host_err < 0)

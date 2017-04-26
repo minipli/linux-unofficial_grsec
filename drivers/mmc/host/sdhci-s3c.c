@@ -598,9 +598,11 @@ static int sdhci_s3c_probe(struct platform_device *pdev)
 	 * we can use overriding functions instead of default.
 	 */
 	if (sc->no_divider) {
-		sdhci_s3c_ops.set_clock = sdhci_cmu_set_clock;
-		sdhci_s3c_ops.get_min_clock = sdhci_cmu_get_min_clock;
-		sdhci_s3c_ops.get_max_clock = sdhci_cmu_get_max_clock;
+		pax_open_kernel();
+		const_cast(sdhci_s3c_ops.set_clock) = sdhci_cmu_set_clock;
+		const_cast(sdhci_s3c_ops.get_min_clock) = sdhci_cmu_get_min_clock;
+		const_cast(sdhci_s3c_ops.get_max_clock) = sdhci_cmu_get_max_clock;
+		pax_close_kernel();
 	}
 
 	/* It supports additional host capabilities if needed */

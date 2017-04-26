@@ -161,7 +161,7 @@ static void pcmcia_copy_from_remap(struct map_info *map, void *to, unsigned long
 }
 
 
-static void pcmcia_write8_remap(struct map_info *map, map_word d, unsigned long adr)
+static void pcmcia_write8_remap(struct map_info *map, const map_word d, unsigned long adr)
 {
 	void __iomem *addr = remap_window(map, adr);
 
@@ -173,7 +173,7 @@ static void pcmcia_write8_remap(struct map_info *map, map_word d, unsigned long 
 }
 
 
-static void pcmcia_write16_remap(struct map_info *map, map_word d, unsigned long adr)
+static void pcmcia_write16_remap(struct map_info *map, const map_word d, unsigned long adr)
 {
 	void __iomem *addr = remap_window(map, adr);
 	if(!addr)
@@ -256,7 +256,7 @@ static void pcmcia_copy_from(struct map_info *map, void *to, unsigned long from,
 }
 
 
-static void pcmcia_write8(struct map_info *map, map_word d, unsigned long adr)
+static void pcmcia_write8(struct map_info *map, const map_word d, unsigned long adr)
 {
 	void __iomem *win_base = (void __iomem *)map->map_priv_2;
 
@@ -269,7 +269,7 @@ static void pcmcia_write8(struct map_info *map, map_word d, unsigned long adr)
 }
 
 
-static void pcmcia_write16(struct map_info *map, map_word d, unsigned long adr)
+static void pcmcia_write16(struct map_info *map, const map_word d, unsigned long adr)
 {
 	void __iomem *win_base = (void __iomem *)map->map_priv_2;
 

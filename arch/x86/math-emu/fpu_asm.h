@@ -11,6 +11,7 @@
 #define _FPU_ASM_H_
 
 #include <linux/linkage.h>
+#include <asm/alternative-asm.h>
 
 #define	EXCEPTION	FPU_exception
 

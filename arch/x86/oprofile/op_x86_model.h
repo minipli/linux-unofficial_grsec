@@ -52,7 +52,7 @@ struct op_x86_model_spec {
 	void		(*switch_ctrl)(struct op_x86_model_spec const *model,
 				       struct op_msrs const * const msrs);
 #endif
-};
+} __do_const;
 
 struct op_counter_config;
 

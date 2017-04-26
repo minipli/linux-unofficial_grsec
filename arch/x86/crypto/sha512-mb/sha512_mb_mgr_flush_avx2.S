@@ -53,6 +53,7 @@
 
 #include <linux/linkage.h>
 #include <asm/frame.h>
+#include <asm/alternative-asm.h>
 #include "sha512_mb_mgr_datastruct.S"
 
 .extern sha512_x4_avx2
@@ -107,7 +108,7 @@ offset = \_offset
 
 # JOB* sha512_mb_mgr_flush_avx2(MB_MGR *state)
 # arg 1 : rcx : state
-ENTRY(sha512_mb_mgr_flush_avx2)
+RAP_ENTRY(sha512_mb_mgr_flush_avx2)
 	FRAME_BEGIN
 	push	%rbx
 
@@ -177,7 +178,7 @@ LABEL skip_ %I
 
         # "state" and "args" are the same address, arg1
         # len is arg2
-        call    sha512_x4_avx2
+        pax_direct_call sha512_x4_avx2
         # state and idx are intact
 
 len_is_0:
@@ -212,7 +213,7 @@ len_is_0:
 return:
 	pop	%rbx
 	FRAME_END
-        ret
+        pax_ret sha512_mb_mgr_flush_avx2
 
 return_null:
         xor     job_rax, job_rax
@@ -220,7 +221,7 @@ return_null:
 ENDPROC(sha512_mb_mgr_flush_avx2)
 .align 16
 
-ENTRY(sha512_mb_mgr_get_comp_job_avx2)
+RAP_ENTRY(sha512_mb_mgr_get_comp_job_avx2)
         push    %rbx
 
 	mov     _unused_lanes(state), unused_lanes
@@ -273,12 +274,12 @@ ENTRY(sha512_mb_mgr_get_comp_job_avx2)
 
 	pop     %rbx
 
-        ret
+	pax_ret sha512_mb_mgr_get_comp_job_avx2
 
 .return_null:
         xor     job_rax, job_rax
 	pop     %rbx
-        ret
+	pax_ret sha512_mb_mgr_get_comp_job_avx2
 ENDPROC(sha512_mb_mgr_get_comp_job_avx2)
 .data
 

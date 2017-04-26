@@ -12,7 +12,7 @@
  *	David Mosberger-Tang <davidm@hpl.hp.com>
  */
 
-
+#include <linux/const.h>
 #include <asm/mman.h>
 #include <asm/page.h>
 #include <asm/processor.h>
@@ -139,6 +139,17 @@
 #define PAGE_READONLY	__pgprot(__ACCESS_BITS | _PAGE_PL_3 | _PAGE_AR_R)
 #define PAGE_COPY	__pgprot(__ACCESS_BITS | _PAGE_PL_3 | _PAGE_AR_R)
 #define PAGE_COPY_EXEC	__pgprot(__ACCESS_BITS | _PAGE_PL_3 | _PAGE_AR_RX)
+
+#ifdef CONFIG_PAX_PAGEEXEC
+# define PAGE_SHARED_NOEXEC	__pgprot(__ACCESS_BITS | _PAGE_PL_3 | _PAGE_AR_RW)
+# define PAGE_READONLY_NOEXEC	__pgprot(__ACCESS_BITS | _PAGE_PL_3 | _PAGE_AR_R)
+# define PAGE_COPY_NOEXEC	__pgprot(__ACCESS_BITS | _PAGE_PL_3 | _PAGE_AR_R)
+#else
+# define PAGE_SHARED_NOEXEC	PAGE_SHARED
+# define PAGE_READONLY_NOEXEC	PAGE_READONLY
+# define PAGE_COPY_NOEXEC	PAGE_COPY
+#endif
+
 #define PAGE_GATE	__pgprot(__ACCESS_BITS | _PAGE_PL_0 | _PAGE_AR_X_RX)
 #define PAGE_KERNEL	__pgprot(__DIRTY_BITS  | _PAGE_PL_0 | _PAGE_AR_RWX)
 #define PAGE_KERNELRX	__pgprot(__ACCESS_BITS | _PAGE_PL_0 | _PAGE_AR_RX)

@@ -753,7 +753,7 @@ static void process_txdone_queue (struct fs_dev *dev, struct queue *q)
 				}
 			}
 
-			atomic_inc(&ATM_SKB(skb)->vcc->stats->tx);
+			atomic_inc_unchecked(&ATM_SKB(skb)->vcc->stats->tx);
 
 			fs_dprintk (FS_DEBUG_TXMEM, "i");
 			fs_dprintk (FS_DEBUG_ALLOC, "Free t-skb: %p\n", skb);
@@ -820,7 +820,7 @@ static void process_incoming (struct fs_dev *dev, struct queue *q)
 #endif
 				skb_put (skb, qe->p1 & 0xffff); 
 				ATM_SKB(skb)->vcc = atm_vcc;
-				atomic_inc(&atm_vcc->stats->rx);
+				atomic_inc_unchecked(&atm_vcc->stats->rx);
 				__net_timestamp(skb);
 				fs_dprintk (FS_DEBUG_ALLOC, "Free rec-skb: %p (pushed)\n", skb);
 				atm_vcc->push (atm_vcc, skb);
@@ -841,12 +841,12 @@ static void process_incoming (struct fs_dev *dev, struct queue *q)
 				kfree (pe);
 			}
 			if (atm_vcc)
-				atomic_inc(&atm_vcc->stats->rx_drop);
+				atomic_inc_unchecked(&atm_vcc->stats->rx_drop);
 			break;
 		case 0x1f: /*  Reassembly abort: no buffers. */
 			/* Silently increment error counter. */
 			if (atm_vcc)
-				atomic_inc(&atm_vcc->stats->rx_drop);
+				atomic_inc_unchecked(&atm_vcc->stats->rx_drop);
 			break;
 		default: /* Hmm. Haven't written the code to handle the others yet... -- REW */
 			printk (KERN_WARNING "Don't know what to do with RX status %x: %s.\n", 

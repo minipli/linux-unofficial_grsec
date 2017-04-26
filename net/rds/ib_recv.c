@@ -624,7 +624,7 @@ static u64 rds_ib_get_ack(struct rds_ib_connection *ic)
 #else
 void rds_ib_set_ack(struct rds_ib_connection *ic, u64 seq, int ack_required)
 {
-	atomic64_set(&ic->i_ack_next, seq);
+	atomic64_set_unchecked(&ic->i_ack_next, seq);
 	if (ack_required) {
 		smp_mb__before_atomic();
 		set_bit(IB_ACK_REQUESTED, &ic->i_ack_flags);
@@ -636,7 +636,7 @@ static u64 rds_ib_get_ack(struct rds_ib_connection *ic)
 	clear_bit(IB_ACK_REQUESTED, &ic->i_ack_flags);
 	smp_mb__after_atomic();
 
-	return atomic64_read(&ic->i_ack_next);
+	return atomic64_read_unchecked(&ic->i_ack_next);
 }
 #endif
 

@@ -8006,8 +8006,11 @@ int ath10k_mac_register(struct ath10k *ar)
 	 * supports the pull-push mechanism.
 	 */
 	if (!test_bit(ATH10K_FW_FEATURE_PEER_FLOW_CONTROL,
-		      ar->running_fw->fw_file.fw_features))
-		ar->ops->wake_tx_queue = NULL;
+		      ar->running_fw->fw_file.fw_features)) {
+		pax_open_kernel();
+		const_cast(ar->ops->wake_tx_queue) = NULL;
+		pax_close_kernel();
+	}
 
 	ret = ath_regd_init(&ar->ath_common.regulatory, ar->hw->wiphy,
 			    ath10k_reg_notifier);

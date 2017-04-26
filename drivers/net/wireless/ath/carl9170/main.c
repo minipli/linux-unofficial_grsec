@@ -320,7 +320,7 @@ static void carl9170_zap_queues(struct ar9170 *ar)
 	rcu_read_unlock();
 
 	atomic_set(&ar->tx_ampdu_upload, 0);
-	atomic_set(&ar->tx_ampdu_scheduler, 0);
+	atomic_set_unchecked(&ar->tx_ampdu_scheduler, 0);
 	atomic_set(&ar->tx_total_pending, 0);
 	atomic_set(&ar->tx_total_queued, 0);
 	atomic_set(&ar->mem_free_blocks, ar->fw.mem_blocks);
@@ -370,7 +370,7 @@ static int carl9170_op_start(struct ieee80211_hw *hw)
 		ar->max_queue_stop_timeout[i] = 0;
 	}
 
-	atomic_set(&ar->mem_allocs, 0);
+	atomic_set_unchecked(&ar->mem_allocs, 0);
 
 	err = carl9170_usb_open(ar);
 	if (err)
@@ -490,7 +490,7 @@ static void carl9170_restart_work(struct work_struct *work)
 
 	if (!err && !ar->force_usb_reset) {
 		ar->restart_counter++;
-		atomic_set(&ar->pending_restarts, 0);
+		atomic_set_unchecked(&ar->pending_restarts, 0);
 
 		ieee80211_restart_hw(ar->hw);
 	} else {
@@ -513,7 +513,7 @@ void carl9170_restart(struct ar9170 *ar, const enum carl9170_restart_reasons r)
 	 * By ignoring these *surplus* reset events, the device won't be
 	 * killed again, right after it has recovered.
 	 */
-	if (atomic_inc_return(&ar->pending_restarts) > 1) {
+	if (atomic_inc_return_unchecked(&ar->pending_restarts) > 1) {
 		dev_dbg(&ar->udev->dev, "ignoring restart (%d)\n", r);
 		return;
 	}
@@ -1820,7 +1820,7 @@ void *carl9170_alloc(size_t priv_size)
 	spin_lock_init(&ar->tx_ampdu_list_lock);
 	spin_lock_init(&ar->mem_lock);
 	spin_lock_init(&ar->state_lock);
-	atomic_set(&ar->pending_restarts, 0);
+	atomic_set_unchecked(&ar->pending_restarts, 0);
 	ar->vifs = 0;
 	for (i = 0; i < ar->hw->queues; i++) {
 		skb_queue_head_init(&ar->tx_status[i]);

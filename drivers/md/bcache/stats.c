@@ -120,7 +120,7 @@ void bch_cache_accounting_destroy(struct cache_accounting *acc)
 	kobject_put(&acc->hour.kobj);
 	kobject_put(&acc->day.kobj);
 
-	atomic_set(&acc->closing, 1);
+	atomic_set_unchecked(&acc->closing, 1);
 	if (del_timer_sync(&acc->timer))
 		closure_return(&acc->cl);
 }
@@ -151,7 +151,7 @@ static void scale_accounting(unsigned long data)
 	struct cache_accounting *acc = (struct cache_accounting *) data;
 
 #define move_stat(name) do {						\
-	unsigned t = atomic_xchg(&acc->collector.name, 0);		\
+	unsigned t = atomic_xchg_unchecked(&acc->collector.name, 0);	\
 	t <<= 16;							\
 	acc->five_minute.name += t;					\
 	acc->hour.name += t;						\
@@ -174,7 +174,7 @@ static void scale_accounting(unsigned long data)
 
 	acc->timer.expires += accounting_delay;
 
-	if (!atomic_read(&acc->closing))
+	if (!atomic_read_unchecked(&acc->closing))
 		add_timer(&acc->timer);
 	else
 		closure_return(&acc->cl);
@@ -185,14 +185,14 @@ static void mark_cache_stats(struct cache_stat_collector *stats,
 {
 	if (!bypass)
 		if (hit)
-			atomic_inc(&stats->cache_hits);
+			atomic_inc_unchecked(&stats->cache_hits);
 		else
-			atomic_inc(&stats->cache_misses);
+			atomic_inc_unchecked(&stats->cache_misses);
 	else
 		if (hit)
-			atomic_inc(&stats->cache_bypass_hits);
+			atomic_inc_unchecked(&stats->cache_bypass_hits);
 		else
-			atomic_inc(&stats->cache_bypass_misses);
+			atomic_inc_unchecked(&stats->cache_bypass_misses);
 }
 
 void bch_mark_cache_accounting(struct cache_set *c, struct bcache_device *d,
@@ -206,22 +206,22 @@ void bch_mark_cache_accounting(struct cache_set *c, struct bcache_device *d,
 void bch_mark_cache_readahead(struct cache_set *c, struct bcache_device *d)
 {
 	struct cached_dev *dc = container_of(d, struct cached_dev, disk);
-	atomic_inc(&dc->accounting.collector.cache_readaheads);
-	atomic_inc(&c->accounting.collector.cache_readaheads);
+	atomic_inc_unchecked(&dc->accounting.collector.cache_readaheads);
+	atomic_inc_unchecked(&c->accounting.collector.cache_readaheads);
 }
 
 void bch_mark_cache_miss_collision(struct cache_set *c, struct bcache_device *d)
 {
 	struct cached_dev *dc = container_of(d, struct cached_dev, disk);
-	atomic_inc(&dc->accounting.collector.cache_miss_collisions);
-	atomic_inc(&c->accounting.collector.cache_miss_collisions);
+	atomic_inc_unchecked(&dc->accounting.collector.cache_miss_collisions);
+	atomic_inc_unchecked(&c->accounting.collector.cache_miss_collisions);
 }
 
 void bch_mark_sectors_bypassed(struct cache_set *c, struct cached_dev *dc,
 			       int sectors)
 {
-	atomic_add(sectors, &dc->accounting.collector.sectors_bypassed);
-	atomic_add(sectors, &c->accounting.collector.sectors_bypassed);
+	atomic_add_unchecked(sectors, &dc->accounting.collector.sectors_bypassed);
+	atomic_add_unchecked(sectors, &c->accounting.collector.sectors_bypassed);
 }
 
 void bch_cache_accounting_init(struct cache_accounting *acc,

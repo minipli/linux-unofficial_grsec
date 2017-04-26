@@ -14,7 +14,7 @@
 #include <linux/fs.h>
 #include <linux/pagemap.h>
 #include <linux/rxrpc.h>
-#include <linux/key.h>
+#include <linux/key-type.h>
 #include <linux/workqueue.h>
 #include <linux/sched.h>
 #include <linux/fscache.h>
@@ -493,7 +493,7 @@ extern const struct file_operations afs_file_operations;
 
 extern int afs_open(struct inode *, struct file *);
 extern int afs_release(struct inode *, struct file *);
-extern int afs_page_filler(void *, struct page *);
+extern int afs_page_filler(struct file *, struct page *);
 
 /*
  * flock.c

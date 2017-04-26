@@ -513,7 +513,7 @@ nfsd_cache_update(struct svc_rqst *rqstp, int cachetype, __be32 *statp)
 	struct kvec	*resv = &rqstp->rq_res.head[0], *cachv;
 	u32		hash;
 	struct nfsd_drc_bucket *b;
-	int		len;
+	long		len;
 	size_t		bufsize = 0;
 
 	if (!rp)
@@ -522,11 +522,14 @@ nfsd_cache_update(struct svc_rqst *rqstp, int cachetype, __be32 *statp)
 	hash = nfsd_cache_hash(rp->c_xid);
 	b = &drc_hashtbl[hash];
 
-	len = resv->iov_len - ((char*)statp - (char*)resv->iov_base);
-	len >>= 2;
+	if (statp) {
+		len = (char*)statp - (char*)resv->iov_base;
+		len = resv->iov_len - len;
+		len >>= 2;
+	}
 
 	/* Don't cache excessive amounts of data and XDR failures */
-	if (!statp || len > (256 >> 2)) {
+	if (!statp || len > (256 >> 2) || len < 0) {
 		nfsd_reply_cache_free(b, rp);
 		return;
 	}
@@ -534,7 +537,7 @@ nfsd_cache_update(struct svc_rqst *rqstp, int cachetype, __be32 *statp)
 	switch (cachetype) {
 	case RC_REPLSTAT:
 		if (len != 1)
-			printk("nfsd: RC_REPLSTAT/reply len %d!\n",len);
+			printk("nfsd: RC_REPLSTAT/reply len %ld!\n",len);
 		rp->c_replstat = *statp;
 		break;
 	case RC_REPLBUFF:

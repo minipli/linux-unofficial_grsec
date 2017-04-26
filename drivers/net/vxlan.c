@@ -3196,7 +3196,7 @@ static struct net *vxlan_get_link_net(const struct net_device *dev)
 	return vxlan->net;
 }
 
-static struct rtnl_link_ops vxlan_link_ops __read_mostly = {
+static struct rtnl_link_ops vxlan_link_ops = {
 	.kind		= "vxlan",
 	.maxtype	= IFLA_VXLAN_MAX,
 	.policy		= vxlan_policy,
@@ -3280,7 +3280,7 @@ static int vxlan_netdevice_event(struct notifier_block *unused,
 	return NOTIFY_DONE;
 }
 
-static struct notifier_block vxlan_notifier_block __read_mostly = {
+static struct notifier_block vxlan_notifier_block = {
 	.notifier_call = vxlan_netdevice_event,
 };
 

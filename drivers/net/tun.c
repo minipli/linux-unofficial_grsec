@@ -977,7 +977,7 @@ static void tun_set_headroom(struct net_device *dev, int new_hr)
 {
 	struct tun_struct *tun = netdev_priv(dev);
 
-	if (new_hr < NET_SKB_PAD)
+	if (new_hr < 0 || new_hr < NET_SKB_PAD)
 		new_hr = NET_SKB_PAD;
 
 	tun->align = new_hr;
@@ -1562,7 +1562,7 @@ static int tun_validate(struct nlattr *tb[], struct nlattr *data[])
 	return -EINVAL;
 }
 
-static struct rtnl_link_ops tun_link_ops __read_mostly = {
+static struct rtnl_link_ops tun_link_ops = {
 	.kind		= DRV_NAME,
 	.priv_size	= sizeof(struct tun_struct),
 	.setup		= tun_setup,
@@ -1991,7 +1991,7 @@ unlock:
 }
 
 static long __tun_chr_ioctl(struct file *file, unsigned int cmd,
-			    unsigned long arg, int ifreq_len)
+			    unsigned long arg, size_t ifreq_len)
 {
 	struct tun_file *tfile = file->private_data;
 	struct tun_struct *tun;
@@ -2004,6 +2004,9 @@ static long __tun_chr_ioctl(struct file *file, unsigned int cmd,
 	unsigned int ifindex;
 	int le;
 	int ret;
+
+	if (ifreq_len > sizeof ifr)
+		return -EFAULT;
 
 	if (cmd == TUNSETIFF || cmd == TUNSETQUEUE || _IOC_TYPE(cmd) == 0x89) {
 		if (copy_from_user(&ifr, argp, ifreq_len))
@@ -2520,7 +2523,7 @@ static int tun_device_event(struct notifier_block *unused,
 	return NOTIFY_DONE;
 }
 
-static struct notifier_block tun_notifier_block __read_mostly = {
+static struct notifier_block tun_notifier_block = {
 	.notifier_call	= tun_device_event,
 };
 

@@ -44,7 +44,7 @@ static void _rtl92e_hw_sleep(struct net_device *dev)
 	rtl92e_set_rf_state(dev, eRfSleep, RF_CHANGE_BY_PS);
 }
 
-void rtl92e_hw_sleep_wq(void *data)
+void rtl92e_hw_sleep_wq(struct work_struct *data)
 {
 	struct rtllib_device *ieee = container_of_dwork_rsl(data,
 				     struct rtllib_device, hw_sleep_wq);
@@ -72,7 +72,7 @@ void rtl92e_hw_wakeup(struct net_device *dev)
 	rtl92e_set_rf_state(dev, eRfOn, RF_CHANGE_BY_PS);
 }
 
-void rtl92e_hw_wakeup_wq(void *data)
+void rtl92e_hw_wakeup_wq(struct work_struct *data)
 {
 	struct rtllib_device *ieee = container_of_dwork_rsl(data,
 				     struct rtllib_device, hw_wakeup_wq);
@@ -172,7 +172,7 @@ void rtl92e_ips_leave(struct net_device *dev)
 	}
 }
 
-void rtl92e_ips_leave_wq(void *data)
+void rtl92e_ips_leave_wq(struct work_struct *data)
 {
 	struct rtllib_device *ieee = container_of_work_rsl(data,
 				     struct rtllib_device, ips_leave_wq);

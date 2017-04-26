@@ -74,7 +74,7 @@ enum {
 	BYTESEX_BE,
 };
 
-static inline __u64 fs64_to_cpu(struct qnx6_sb_info *sbi, __fs64 n)
+static inline __u64 __intentional_overflow(-1) fs64_to_cpu(struct qnx6_sb_info *sbi, __fs64 n)
 {
 	if (sbi->s_bytesex == BYTESEX_LE)
 		return le64_to_cpu((__force __le64)n);
@@ -90,7 +90,7 @@ static inline __fs64 cpu_to_fs64(struct qnx6_sb_info *sbi, __u64 n)
 		return (__force __fs64)cpu_to_be64(n);
 }
 
-static inline __u32 fs32_to_cpu(struct qnx6_sb_info *sbi, __fs32 n)
+static inline __u32 __intentional_overflow(-1) fs32_to_cpu(struct qnx6_sb_info *sbi, __fs32 n)
 {
 	if (sbi->s_bytesex == BYTESEX_LE)
 		return le32_to_cpu((__force __le32)n);

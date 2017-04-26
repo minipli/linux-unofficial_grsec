@@ -859,11 +859,21 @@ static void copy_cmd_to_buffer(struct amd_iommu *iommu,
 
 static void build_completion_wait(struct iommu_cmd *cmd, u64 address)
 {
+	phys_addr_t physaddr;
 	WARN_ON(address & 0x7ULL);
 
 	memset(cmd, 0, sizeof(*cmd));
-	cmd->data[0] = lower_32_bits(__pa(address)) | CMD_COMPL_WAIT_STORE_MASK;
-	cmd->data[1] = upper_32_bits(__pa(address));
+
+#ifdef CONFIG_GRKERNSEC_KSTACKOVERFLOW
+	if (object_starts_on_stack((void *)address)) {
+		void *adjbuf = (void *)address - current->stack + current->lowmem_stack;
+		physaddr = __pa((u64)adjbuf);
+	} else
+#endif
+	physaddr = __pa(address);
+
+	cmd->data[0] = lower_32_bits(physaddr) | CMD_COMPL_WAIT_STORE_MASK;
+	cmd->data[1] = upper_32_bits(physaddr);
 	cmd->data[2] = 1;
 	CMD_SET_TYPE(cmd, CMD_COMPL_WAIT);
 }

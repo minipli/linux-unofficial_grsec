@@ -296,9 +296,9 @@ struct buffer_data_page {
  */
 struct buffer_page {
 	struct list_head list;		/* list of buffer pages */
-	local_t		 write;		/* index for next write */
+	local_unchecked_t	 write;		/* index for next write */
 	unsigned	 read;		/* index for next read */
-	local_t		 entries;	/* entries on this page */
+	local_unchecked_t	 entries;	/* entries on this page */
 	unsigned long	 real_end;	/* real end of data */
 	struct buffer_data_page *page;	/* Actual data page */
 };
@@ -448,11 +448,11 @@ struct ring_buffer_per_cpu {
 	unsigned long			last_overrun;
 	local_t				entries_bytes;
 	local_t				entries;
-	local_t				overrun;
-	local_t				commit_overrun;
-	local_t				dropped_events;
+	local_unchecked_t		overrun;
+	local_unchecked_t		commit_overrun;
+	local_unchecked_t		dropped_events;
 	local_t				committing;
-	local_t				commits;
+	local_unchecked_t		commits;
 	unsigned long			read;
 	unsigned long			read_bytes;
 	u64				write_stamp;
@@ -1018,8 +1018,8 @@ static void rb_tail_page_update(struct ring_buffer_per_cpu *cpu_buffer,
 	 *
 	 * We add a counter to the write field to denote this.
 	 */
-	old_write = local_add_return(RB_WRITE_INTCNT, &next_page->write);
-	old_entries = local_add_return(RB_WRITE_INTCNT, &next_page->entries);
+	old_write = local_add_return_unchecked(RB_WRITE_INTCNT, &next_page->write);
+	old_entries = local_add_return_unchecked(RB_WRITE_INTCNT, &next_page->entries);
 
 	/*
 	 * Just make sure we have seen our old_write and synchronize
@@ -1047,8 +1047,8 @@ static void rb_tail_page_update(struct ring_buffer_per_cpu *cpu_buffer,
 		 * cmpxchg to only update if an interrupt did not already
 		 * do it for us. If the cmpxchg fails, we don't care.
 		 */
-		(void)local_cmpxchg(&next_page->write, old_write, val);
-		(void)local_cmpxchg(&next_page->entries, old_entries, eval);
+		(void)local_cmpxchg_unchecked(&next_page->write, old_write, val);
+		(void)local_cmpxchg_unchecked(&next_page->entries, old_entries, eval);
 
 		/*
 		 * No need to worry about races with clearing out the commit.
@@ -1412,12 +1412,12 @@ static void rb_reset_cpu(struct ring_buffer_per_cpu *cpu_buffer);
 
 static inline unsigned long rb_page_entries(struct buffer_page *bpage)
 {
-	return local_read(&bpage->entries) & RB_WRITE_MASK;
+	return local_read_unchecked(&bpage->entries) & RB_WRITE_MASK;
 }
 
 static inline unsigned long rb_page_write(struct buffer_page *bpage)
 {
-	return local_read(&bpage->write) & RB_WRITE_MASK;
+	return local_read_unchecked(&bpage->write) & RB_WRITE_MASK;
 }
 
 static int
@@ -1512,7 +1512,7 @@ rb_remove_pages(struct ring_buffer_per_cpu *cpu_buffer, unsigned long nr_pages)
 			 * bytes consumed in ring buffer from here.
 			 * Increment overrun to account for the lost events.
 			 */
-			local_add(page_entries, &cpu_buffer->overrun);
+			local_add_unchecked(page_entries, &cpu_buffer->overrun);
 			local_sub(BUF_PAGE_SIZE, &cpu_buffer->entries_bytes);
 		}
 
@@ -1942,7 +1942,7 @@ rb_handle_head_page(struct ring_buffer_per_cpu *cpu_buffer,
 		 * it is our responsibility to update
 		 * the counters.
 		 */
-		local_add(entries, &cpu_buffer->overrun);
+		local_add_unchecked(entries, &cpu_buffer->overrun);
 		local_sub(BUF_PAGE_SIZE, &cpu_buffer->entries_bytes);
 
 		/*
@@ -2079,7 +2079,7 @@ rb_reset_tail(struct ring_buffer_per_cpu *cpu_buffer,
 		if (tail == BUF_PAGE_SIZE)
 			tail_page->real_end = 0;
 
-		local_sub(length, &tail_page->write);
+		local_sub_unchecked(length, &tail_page->write);
 		return;
 	}
 
@@ -2114,7 +2114,7 @@ rb_reset_tail(struct ring_buffer_per_cpu *cpu_buffer,
 		rb_event_set_padding(event);
 
 		/* Set the write back to the previous setting */
-		local_sub(length, &tail_page->write);
+		local_sub_unchecked(length, &tail_page->write);
 		return;
 	}
 
@@ -2126,7 +2126,7 @@ rb_reset_tail(struct ring_buffer_per_cpu *cpu_buffer,
 
 	/* Set write to end of buffer */
 	length = (tail + length) - BUF_PAGE_SIZE;
-	local_sub(length, &tail_page->write);
+	local_sub_unchecked(length, &tail_page->write);
 }
 
 static inline void rb_end_commit(struct ring_buffer_per_cpu *cpu_buffer);
@@ -2154,7 +2154,7 @@ rb_move_tail(struct ring_buffer_per_cpu *cpu_buffer,
 	 * about it.
 	 */
 	if (unlikely(next_page == commit_page)) {
-		local_inc(&cpu_buffer->commit_overrun);
+		local_inc_unchecked(&cpu_buffer->commit_overrun);
 		goto out_reset;
 	}
 
@@ -2184,7 +2184,7 @@ rb_move_tail(struct ring_buffer_per_cpu *cpu_buffer,
 			 * this is easy, just stop here.
 			 */
 			if (!(buffer->flags & RB_FL_OVERWRITE)) {
-				local_inc(&cpu_buffer->dropped_events);
+				local_inc_unchecked(&cpu_buffer->dropped_events);
 				goto out_reset;
 			}
 
@@ -2210,7 +2210,7 @@ rb_move_tail(struct ring_buffer_per_cpu *cpu_buffer,
 				      cpu_buffer->tail_page) &&
 				     (cpu_buffer->commit_page ==
 				      cpu_buffer->reader_page))) {
-				local_inc(&cpu_buffer->commit_overrun);
+				local_inc_unchecked(&cpu_buffer->commit_overrun);
 				goto out_reset;
 			}
 		}
@@ -2358,7 +2358,7 @@ rb_try_to_discard(struct ring_buffer_per_cpu *cpu_buffer,
 
 	if (bpage->page == (void *)addr && rb_page_write(bpage) == old_index) {
 		unsigned long write_mask =
-			local_read(&bpage->write) & ~RB_WRITE_MASK;
+			local_read_unchecked(&bpage->write) & ~RB_WRITE_MASK;
 		unsigned long event_length = rb_event_length(event);
 		/*
 		 * This is on the tail page. It is possible that
@@ -2368,7 +2368,7 @@ rb_try_to_discard(struct ring_buffer_per_cpu *cpu_buffer,
 		 */
 		old_index += write_mask;
 		new_index += write_mask;
-		index = local_cmpxchg(&bpage->write, old_index, new_index);
+		index = local_cmpxchg_unchecked(&bpage->write, old_index, new_index);
 		if (index == old_index) {
 			/* update counters */
 			local_sub(event_length, &cpu_buffer->entries_bytes);
@@ -2383,7 +2383,7 @@ rb_try_to_discard(struct ring_buffer_per_cpu *cpu_buffer,
 static void rb_start_commit(struct ring_buffer_per_cpu *cpu_buffer)
 {
 	local_inc(&cpu_buffer->committing);
-	local_inc(&cpu_buffer->commits);
+	local_inc_unchecked(&cpu_buffer->commits);
 }
 
 static void
@@ -2450,7 +2450,7 @@ static inline void rb_end_commit(struct ring_buffer_per_cpu *cpu_buffer)
 		return;
 
  again:
-	commits = local_read(&cpu_buffer->commits);
+	commits = local_read_unchecked(&cpu_buffer->commits);
 	/* synchronize with interrupts */
 	barrier();
 	if (local_read(&cpu_buffer->committing) == 1)
@@ -2466,7 +2466,7 @@ static inline void rb_end_commit(struct ring_buffer_per_cpu *cpu_buffer)
 	 * updating of the commit page and the clearing of the
 	 * committing counter.
 	 */
-	if (unlikely(local_read(&cpu_buffer->commits) != commits) &&
+	if (unlikely(local_read_unchecked(&cpu_buffer->commits) != commits) &&
 	    !local_read(&cpu_buffer->committing)) {
 		local_inc(&cpu_buffer->committing);
 		goto again;
@@ -2695,7 +2695,7 @@ __rb_reserve_next(struct ring_buffer_per_cpu *cpu_buffer,
 
 	/* Don't let the compiler play games with cpu_buffer->tail_page */
 	tail_page = info->tail_page = READ_ONCE(cpu_buffer->tail_page);
-	write = local_add_return(info->length, &tail_page->write);
+	write = local_add_return_unchecked(info->length, &tail_page->write);
 
 	/* set write to only the index of the write */
 	write &= RB_WRITE_MASK;
@@ -2718,7 +2718,7 @@ __rb_reserve_next(struct ring_buffer_per_cpu *cpu_buffer,
 	kmemcheck_annotate_bitfield(event, bitfield);
 	rb_update_event(cpu_buffer, event, info);
 
-	local_inc(&tail_page->entries);
+	local_inc_unchecked(&tail_page->entries);
 
 	/*
 	 * If this is the first commit on the page, then update
@@ -2755,7 +2755,7 @@ rb_reserve_next_event(struct ring_buffer *buffer,
 	barrier();
 	if (unlikely(ACCESS_ONCE(cpu_buffer->buffer) != buffer)) {
 		local_dec(&cpu_buffer->committing);
-		local_dec(&cpu_buffer->commits);
+		local_dec_unchecked(&cpu_buffer->commits);
 		return NULL;
 	}
 #endif
@@ -2884,7 +2884,7 @@ rb_decrement_entry(struct ring_buffer_per_cpu *cpu_buffer,
 
 	/* Do the likely case first */
 	if (likely(bpage->page == (void *)addr)) {
-		local_dec(&bpage->entries);
+		local_dec_unchecked(&bpage->entries);
 		return;
 	}
 
@@ -2896,7 +2896,7 @@ rb_decrement_entry(struct ring_buffer_per_cpu *cpu_buffer,
 	start = bpage;
 	do {
 		if (bpage->page == (void *)addr) {
-			local_dec(&bpage->entries);
+			local_dec_unchecked(&bpage->entries);
 			return;
 		}
 		rb_inc_page(cpu_buffer, &bpage);
@@ -3184,7 +3184,7 @@ static inline unsigned long
 rb_num_of_entries(struct ring_buffer_per_cpu *cpu_buffer)
 {
 	return local_read(&cpu_buffer->entries) -
-		(local_read(&cpu_buffer->overrun) + cpu_buffer->read);
+		(local_read_unchecked(&cpu_buffer->overrun) + cpu_buffer->read);
 }
 
 /**
@@ -3273,7 +3273,7 @@ unsigned long ring_buffer_overrun_cpu(struct ring_buffer *buffer, int cpu)
 		return 0;
 
 	cpu_buffer = buffer->buffers[cpu];
-	ret = local_read(&cpu_buffer->overrun);
+	ret = local_read_unchecked(&cpu_buffer->overrun);
 
 	return ret;
 }
@@ -3296,7 +3296,7 @@ ring_buffer_commit_overrun_cpu(struct ring_buffer *buffer, int cpu)
 		return 0;
 
 	cpu_buffer = buffer->buffers[cpu];
-	ret = local_read(&cpu_buffer->commit_overrun);
+	ret = local_read_unchecked(&cpu_buffer->commit_overrun);
 
 	return ret;
 }
@@ -3318,7 +3318,7 @@ ring_buffer_dropped_events_cpu(struct ring_buffer *buffer, int cpu)
 		return 0;
 
 	cpu_buffer = buffer->buffers[cpu];
-	ret = local_read(&cpu_buffer->dropped_events);
+	ret = local_read_unchecked(&cpu_buffer->dropped_events);
 
 	return ret;
 }
@@ -3381,7 +3381,7 @@ unsigned long ring_buffer_overruns(struct ring_buffer *buffer)
 	/* if you care about this being correct, lock the buffer */
 	for_each_buffer_cpu(buffer, cpu) {
 		cpu_buffer = buffer->buffers[cpu];
-		overruns += local_read(&cpu_buffer->overrun);
+		overruns += local_read_unchecked(&cpu_buffer->overrun);
 	}
 
 	return overruns;
@@ -3552,8 +3552,8 @@ rb_get_reader_page(struct ring_buffer_per_cpu *cpu_buffer)
 	/*
 	 * Reset the reader page to size zero.
 	 */
-	local_set(&cpu_buffer->reader_page->write, 0);
-	local_set(&cpu_buffer->reader_page->entries, 0);
+	local_set_unchecked(&cpu_buffer->reader_page->write, 0);
+	local_set_unchecked(&cpu_buffer->reader_page->entries, 0);
 	local_set(&cpu_buffer->reader_page->page->commit, 0);
 	cpu_buffer->reader_page->real_end = 0;
 
@@ -3587,7 +3587,7 @@ rb_get_reader_page(struct ring_buffer_per_cpu *cpu_buffer)
 	 * want to compare with the last_overrun.
 	 */
 	smp_mb();
-	overwrite = local_read(&(cpu_buffer->overrun));
+	overwrite = local_read_unchecked(&(cpu_buffer->overrun));
 
 	/*
 	 * Here's the tricky part.
@@ -4173,8 +4173,8 @@ rb_reset_cpu(struct ring_buffer_per_cpu *cpu_buffer)
 
 	cpu_buffer->head_page
 		= list_entry(cpu_buffer->pages, struct buffer_page, list);
-	local_set(&cpu_buffer->head_page->write, 0);
-	local_set(&cpu_buffer->head_page->entries, 0);
+	local_set_unchecked(&cpu_buffer->head_page->write, 0);
+	local_set_unchecked(&cpu_buffer->head_page->entries, 0);
 	local_set(&cpu_buffer->head_page->page->commit, 0);
 
 	cpu_buffer->head_page->read = 0;
@@ -4184,18 +4184,18 @@ rb_reset_cpu(struct ring_buffer_per_cpu *cpu_buffer)
 
 	INIT_LIST_HEAD(&cpu_buffer->reader_page->list);
 	INIT_LIST_HEAD(&cpu_buffer->new_pages);
-	local_set(&cpu_buffer->reader_page->write, 0);
-	local_set(&cpu_buffer->reader_page->entries, 0);
+	local_set_unchecked(&cpu_buffer->reader_page->write, 0);
+	local_set_unchecked(&cpu_buffer->reader_page->entries, 0);
 	local_set(&cpu_buffer->reader_page->page->commit, 0);
 	cpu_buffer->reader_page->read = 0;
 
 	local_set(&cpu_buffer->entries_bytes, 0);
-	local_set(&cpu_buffer->overrun, 0);
-	local_set(&cpu_buffer->commit_overrun, 0);
-	local_set(&cpu_buffer->dropped_events, 0);
+	local_set_unchecked(&cpu_buffer->overrun, 0);
+	local_set_unchecked(&cpu_buffer->commit_overrun, 0);
+	local_set_unchecked(&cpu_buffer->dropped_events, 0);
 	local_set(&cpu_buffer->entries, 0);
 	local_set(&cpu_buffer->committing, 0);
-	local_set(&cpu_buffer->commits, 0);
+	local_set_unchecked(&cpu_buffer->commits, 0);
 	cpu_buffer->read = 0;
 	cpu_buffer->read_bytes = 0;
 
@@ -4585,8 +4585,8 @@ int ring_buffer_read_page(struct ring_buffer *buffer,
 		rb_init_page(bpage);
 		bpage = reader->page;
 		reader->page = *data_page;
-		local_set(&reader->write, 0);
-		local_set(&reader->entries, 0);
+		local_set_unchecked(&reader->write, 0);
+		local_set_unchecked(&reader->entries, 0);
 		reader->read = 0;
 		*data_page = bpage;
 

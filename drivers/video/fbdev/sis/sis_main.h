@@ -763,7 +763,7 @@ extern void		SiS_SetCH700x(struct SiS_Private *SiS_Pr, unsigned short reg, unsig
 extern unsigned short	SiS_GetCH701x(struct SiS_Private *SiS_Pr, unsigned short reg);
 extern void		SiS_SetCH701x(struct SiS_Private *SiS_Pr, unsigned short reg, unsigned char val);
 extern void		SiS_SetCH70xxANDOR(struct SiS_Private *SiS_Pr, unsigned short reg,
-				unsigned char myor, unsigned char myand);
+				unsigned char myor, unsigned short myand);
 extern void		SiS_DDC2Delay(struct SiS_Private *SiS_Pr, unsigned int delaytime);
 extern void		SiS_SetChrontelGPIO(struct SiS_Private *SiS_Pr, unsigned short myvbinfo);
 extern unsigned short	SiS_HandleDDC(struct SiS_Private *SiS_Pr, unsigned int VBFlags, int VGAEngine,

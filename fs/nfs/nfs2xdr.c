@@ -566,9 +566,9 @@ out_default:
  * "NFS: Network File System Protocol Specification".
  */
 
-static void nfs2_xdr_enc_fhandle(struct rpc_rqst *req,
+static void nfs2_xdr_enc_fhandle(void *req,
 				 struct xdr_stream *xdr,
-				 const struct nfs_fh *fh)
+				 void *fh)
 {
 	encode_fhandle(xdr, fh);
 }
@@ -581,25 +581,31 @@ static void nfs2_xdr_enc_fhandle(struct rpc_rqst *req,
  *		sattr attributes;
  *	};
  */
-static void nfs2_xdr_enc_sattrargs(struct rpc_rqst *req,
+static void nfs2_xdr_enc_sattrargs(void *req,
 				   struct xdr_stream *xdr,
-				   const struct nfs_sattrargs *args)
+				   void *_args)
 {
+	const struct nfs_sattrargs *args = _args;
+
 	encode_fhandle(xdr, args->fh);
 	encode_sattr(xdr, args->sattr);
 }
 
-static void nfs2_xdr_enc_diropargs(struct rpc_rqst *req,
+static void nfs2_xdr_enc_diropargs(void *req,
 				   struct xdr_stream *xdr,
-				   const struct nfs_diropargs *args)
+				   void *_args)
 {
+	const struct nfs_diropargs *args = _args;
+
 	encode_diropargs(xdr, args->fh, args->name, args->len);
 }
 
-static void nfs2_xdr_enc_readlinkargs(struct rpc_rqst *req,
+static void nfs2_xdr_enc_readlinkargs(void *req,
 				      struct xdr_stream *xdr,
-				      const struct nfs_readlinkargs *args)
+				      void *_args)
 {
+	const struct nfs_readlinkargs *args = _args;
+
 	encode_fhandle(xdr, args->fh);
 	prepare_reply_buffer(req, args->pages, args->pgbase,
 					args->pglen, NFS_readlinkres_sz);
@@ -630,10 +636,13 @@ static void encode_readargs(struct xdr_stream *xdr,
 	*p = cpu_to_be32(count);
 }
 
-static void nfs2_xdr_enc_readargs(struct rpc_rqst *req,
+static void nfs2_xdr_enc_readargs(void *_req,
 				  struct xdr_stream *xdr,
-				  const struct nfs_pgio_args *args)
+				  void *_args)
 {
+	struct rpc_rqst *req = _req;
+	const struct nfs_pgio_args *args = _args;
+
 	encode_readargs(xdr, args);
 	prepare_reply_buffer(req, args->pages, args->pgbase,
 					args->count, NFS_readres_sz);
@@ -670,9 +679,9 @@ static void encode_writeargs(struct xdr_stream *xdr,
 	xdr_write_pages(xdr, args->pages, args->pgbase, count);
 }
 
-static void nfs2_xdr_enc_writeargs(struct rpc_rqst *req,
+static void nfs2_xdr_enc_writeargs(void *req,
 				   struct xdr_stream *xdr,
-				   const struct nfs_pgio_args *args)
+				   void *args)
 {
 	encode_writeargs(xdr, args);
 	xdr->buf->flags |= XDRBUF_WRITE;
@@ -686,18 +695,22 @@ static void nfs2_xdr_enc_writeargs(struct rpc_rqst *req,
  *		sattr attributes;
  *	};
  */
-static void nfs2_xdr_enc_createargs(struct rpc_rqst *req,
+static void nfs2_xdr_enc_createargs(void *req,
 				    struct xdr_stream *xdr,
-				    const struct nfs_createargs *args)
+				    void *_args)
 {
+	const struct nfs_createargs *args = _args;
+
 	encode_diropargs(xdr, args->fh, args->name, args->len);
 	encode_sattr(xdr, args->sattr);
 }
 
-static void nfs2_xdr_enc_removeargs(struct rpc_rqst *req,
+static void nfs2_xdr_enc_removeargs(void *req,
 				    struct xdr_stream *xdr,
-				    const struct nfs_removeargs *args)
+				    void *_args)
 {
+	const struct nfs_removeargs *args = _args;
+
 	encode_diropargs(xdr, args->fh, args->name.name, args->name.len);
 }
 
@@ -709,10 +722,11 @@ static void nfs2_xdr_enc_removeargs(struct rpc_rqst *req,
  *		diropargs to;
  *	};
  */
-static void nfs2_xdr_enc_renameargs(struct rpc_rqst *req,
+static void nfs2_xdr_enc_renameargs(void *req,
 				    struct xdr_stream *xdr,
-				    const struct nfs_renameargs *args)
+				    void *_args)
 {
+	const struct nfs_renameargs *args = _args;
 	const struct qstr *old = args->old_name;
 	const struct qstr *new = args->new_name;
 
@@ -728,10 +742,12 @@ static void nfs2_xdr_enc_renameargs(struct rpc_rqst *req,
  *		diropargs to;
  *	};
  */
-static void nfs2_xdr_enc_linkargs(struct rpc_rqst *req,
+static void nfs2_xdr_enc_linkargs(void *req,
 				  struct xdr_stream *xdr,
-				  const struct nfs_linkargs *args)
+				  void *_args)
 {
+	const struct nfs_linkargs *args = _args;
+
 	encode_fhandle(xdr, args->fromfh);
 	encode_diropargs(xdr, args->tofh, args->toname, args->tolen);
 }
@@ -745,10 +761,12 @@ static void nfs2_xdr_enc_linkargs(struct rpc_rqst *req,
  *		sattr attributes;
  *	};
  */
-static void nfs2_xdr_enc_symlinkargs(struct rpc_rqst *req,
+static void nfs2_xdr_enc_symlinkargs(void *req,
 				     struct xdr_stream *xdr,
-				     const struct nfs_symlinkargs *args)
+				     void *_args)
 {
+	const struct nfs_symlinkargs *args = _args;
+
 	encode_diropargs(xdr, args->fromfh, args->fromname, args->fromlen);
 	encode_path(xdr, args->pages, args->pathlen);
 	encode_sattr(xdr, args->sattr);
@@ -775,10 +793,12 @@ static void encode_readdirargs(struct xdr_stream *xdr,
 	*p = cpu_to_be32(args->count);
 }
 
-static void nfs2_xdr_enc_readdirargs(struct rpc_rqst *req,
+static void nfs2_xdr_enc_readdirargs(void *req,
 				     struct xdr_stream *xdr,
-				     const struct nfs_readdirargs *args)
+				     void *_args)
 {
+	const struct nfs_readdirargs *args = _args;
+
 	encode_readdirargs(xdr, args);
 	prepare_reply_buffer(req, args->pages, 0,
 					args->count, NFS_readdirres_sz);
@@ -791,7 +811,7 @@ static void nfs2_xdr_enc_readdirargs(struct rpc_rqst *req,
  * "NFS: Network File System Protocol Specification".
  */
 
-static int nfs2_xdr_dec_stat(struct rpc_rqst *req, struct xdr_stream *xdr,
+static int nfs2_xdr_dec_stat(void *req, struct xdr_stream *xdr,
 			     void *__unused)
 {
 	enum nfs_stat status;
@@ -808,14 +828,14 @@ out_default:
 	return nfs_stat_to_errno(status);
 }
 
-static int nfs2_xdr_dec_attrstat(struct rpc_rqst *req, struct xdr_stream *xdr,
-				 struct nfs_fattr *result)
+static int nfs2_xdr_dec_attrstat(void *req, struct xdr_stream *xdr,
+				 void *result)
 {
 	return decode_attrstat(xdr, result, NULL);
 }
 
-static int nfs2_xdr_dec_diropres(struct rpc_rqst *req, struct xdr_stream *xdr,
-				 struct nfs_diropok *result)
+static int nfs2_xdr_dec_diropres(void *req, struct xdr_stream *xdr,
+				 void *result)
 {
 	return decode_diropres(xdr, result);
 }
@@ -830,7 +850,7 @@ static int nfs2_xdr_dec_diropres(struct rpc_rqst *req, struct xdr_stream *xdr,
  *		void;
  *	};
  */
-static int nfs2_xdr_dec_readlinkres(struct rpc_rqst *req,
+static int nfs2_xdr_dec_readlinkres(void *req,
 				    struct xdr_stream *xdr, void *__unused)
 {
 	enum nfs_stat status;
@@ -859,9 +879,10 @@ out_default:
  *		void;
  *	};
  */
-static int nfs2_xdr_dec_readres(struct rpc_rqst *req, struct xdr_stream *xdr,
-				struct nfs_pgio_res *result)
+static int nfs2_xdr_dec_readres(void *req, struct xdr_stream *xdr,
+				void *_result)
 {
+	struct nfs_pgio_res *result = _result;
 	enum nfs_stat status;
 	int error;
 
@@ -881,9 +902,11 @@ out_default:
 	return nfs_stat_to_errno(status);
 }
 
-static int nfs2_xdr_dec_writeres(struct rpc_rqst *req, struct xdr_stream *xdr,
-				 struct nfs_pgio_res *result)
+static int nfs2_xdr_dec_writeres(void *req, struct xdr_stream *xdr,
+				 void *_result)
 {
+	struct nfs_pgio_res *result = _result;
+
 	/* All NFSv2 writes are "file sync" writes */
 	result->verf->committed = NFS_FILE_SYNC;
 	return decode_attrstat(xdr, result->fattr, &result->op_status);
@@ -981,7 +1004,7 @@ static int decode_readdirok(struct xdr_stream *xdr)
 	return xdr_read_pages(xdr, xdr->buf->page_len);
 }
 
-static int nfs2_xdr_dec_readdirres(struct rpc_rqst *req,
+static int nfs2_xdr_dec_readdirres(void *req,
 				   struct xdr_stream *xdr, void *__unused)
 {
 	enum nfs_stat status;
@@ -1033,8 +1056,8 @@ out_overflow:
 	return -EIO;
 }
 
-static int nfs2_xdr_dec_statfsres(struct rpc_rqst *req, struct xdr_stream *xdr,
-				  struct nfs2_fsstat *result)
+static int nfs2_xdr_dec_statfsres(void *req, struct xdr_stream *xdr,
+				  void *result)
 {
 	enum nfs_stat status;
 	int error;
@@ -1118,8 +1141,8 @@ static int nfs_stat_to_errno(enum nfs_stat status)
 #define PROC(proc, argtype, restype, timer)				\
 [NFSPROC_##proc] = {							\
 	.p_proc	    =  NFSPROC_##proc,					\
-	.p_encode   =  (kxdreproc_t)nfs2_xdr_enc_##argtype,		\
-	.p_decode   =  (kxdrdproc_t)nfs2_xdr_dec_##restype,		\
+	.p_encode   =  nfs2_xdr_enc_##argtype,				\
+	.p_decode   =  nfs2_xdr_dec_##restype,				\
 	.p_arglen   =  NFS_##argtype##_sz,				\
 	.p_replen   =  NFS_##restype##_sz,				\
 	.p_timer    =  timer,						\

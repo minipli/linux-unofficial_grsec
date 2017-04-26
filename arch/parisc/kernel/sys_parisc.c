@@ -92,6 +92,7 @@ unsigned long arch_get_unmapped_area(struct file *filp, unsigned long addr,
 	unsigned long task_size = TASK_SIZE;
 	int do_color_align, last_mmap;
 	struct vm_unmapped_area_info info;
+	unsigned long offset = gr_rand_threadstack_offset(current->mm, filp, flags);
 
 	if (len > task_size)
 		return -ENOMEM;
@@ -108,6 +109,10 @@ unsigned long arch_get_unmapped_area(struct file *filp, unsigned long addr,
 			return -EINVAL;
 		goto found_addr;
 	}
+
+#ifdef CONFIG_PAX_RANDMMAP
+	if (!(mm->pax_flags & MF_PAX_RANDMMAP))
+#endif
 
 	if (addr) {
 		if (do_color_align && last_mmap)
@@ -127,6 +132,7 @@ unsigned long arch_get_unmapped_area(struct file *filp, unsigned long addr,
 	info.high_limit = mmap_upper_limit();
 	info.align_mask = last_mmap ? (PAGE_MASK & (SHM_COLOUR - 1)) : 0;
 	info.align_offset = shared_align_offset(last_mmap, pgoff);
+	info.threadstack_offset = offset;
 	addr = vm_unmapped_area(&info);
 
 found_addr:
@@ -146,6 +152,7 @@ arch_get_unmapped_area_topdown(struct file *filp, const unsigned long addr0,
 	unsigned long addr = addr0;
 	int do_color_align, last_mmap;
 	struct vm_unmapped_area_info info;
+	unsigned long offset = gr_rand_threadstack_offset(current->mm, filp, flags);
 
 #ifdef CONFIG_64BIT
 	/* This should only ever run for 32-bit processes.  */
@@ -170,6 +177,10 @@ arch_get_unmapped_area_topdown(struct file *filp, const unsigned long addr0,
 	}
 
 	/* requesting a specific address */
+#ifdef CONFIG_PAX_RANDMMAP
+	if (!(mm->pax_flags & MF_PAX_RANDMMAP))
+#endif
+
 	if (addr) {
 		if (do_color_align && last_mmap)
 			addr = COLOR_ALIGN(addr, last_mmap, pgoff);
@@ -187,6 +198,7 @@ arch_get_unmapped_area_topdown(struct file *filp, const unsigned long addr0,
 	info.high_limit = mm->mmap_base;
 	info.align_mask = last_mmap ? (PAGE_MASK & (SHM_COLOUR - 1)) : 0;
 	info.align_offset = shared_align_offset(last_mmap, pgoff);
+	info.threadstack_offset = offset;
 	addr = vm_unmapped_area(&info);
 	if (!(addr & ~PAGE_MASK))
 		goto found_addr;
@@ -251,6 +263,13 @@ void arch_pick_mmap_layout(struct mm_struct *mm)
 {
 	mm->mmap_legacy_base = mmap_legacy_base();
 	mm->mmap_base = mmap_upper_limit();
+
+#ifdef CONFIG_PAX_RANDMMAP
+	if (mm->pax_flags & MF_PAX_RANDMMAP) {
+		mm->mmap_legacy_base += mm->delta_mmap;
+		mm->mmap_base -= mm->delta_mmap + mm->delta_stack;
+	}
+#endif
 
 	if (mmap_is_legacy()) {
 		mm->mmap_base = mm->mmap_legacy_base;

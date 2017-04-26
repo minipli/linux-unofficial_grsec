@@ -156,7 +156,7 @@ struct scif_client {
 	void (*probe)(struct scif_peer_dev *spdev);
 	void (*remove)(struct scif_peer_dev *spdev);
 	struct subsys_interface si;
-};
+} __do_const;
 
 #define SCIF_OPEN_FAILED ((scif_epd_t)-1)
 #define SCIF_REGISTER_FAILED ((off_t)-1)

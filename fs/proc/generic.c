@@ -22,6 +22,7 @@
 #include <linux/bitops.h>
 #include <linux/spinlock.h>
 #include <linux/completion.h>
+#include <linux/grsecurity.h>
 #include <asm/uaccess.h>
 
 #include "internal.h"
@@ -253,6 +254,15 @@ struct dentry *proc_lookup(struct inode *dir, struct dentry *dentry,
 	return proc_lookup_de(PDE(dir), dir, dentry);
 }
 
+struct dentry *proc_lookup_restrict(struct inode *dir, struct dentry *dentry,
+		unsigned int flags)
+{
+	if (gr_proc_is_restricted())
+		return ERR_PTR(-EACCES);
+
+	return proc_lookup_de(PDE(dir), dir, dentry);
+}
+
 /*
  * This returns non-zero if at EOF, so that the /proc
  * root directory can use this and check if it should
@@ -310,6 +320,16 @@ int proc_readdir(struct file *file, struct dir_context *ctx)
 	return proc_readdir_de(PDE(inode), file, ctx);
 }
 
+int proc_readdir_restrict(struct file *file, struct dir_context *ctx)
+{
+	struct inode *inode = file_inode(file);
+
+	if (gr_proc_is_restricted())
+		return -EACCES;
+
+	return proc_readdir_de(PDE(inode), file, ctx);
+}
+
 /*
  * These are the generic /proc directory operations. They
  * use the in-memory "struct proc_dir_entry" tree to parse
@@ -321,11 +341,23 @@ static const struct file_operations proc_dir_operations = {
 	.iterate_shared		= proc_readdir,
 };
 
+static const struct file_operations proc_dir_restricted_operations = {
+	.llseek			= generic_file_llseek,
+	.read			= generic_read_dir,
+	.iterate		= proc_readdir_restrict,
+};
+
 /*
  * proc directories can do almost nothing..
  */
 static const struct inode_operations proc_dir_inode_operations = {
 	.lookup		= proc_lookup,
+	.getattr	= proc_getattr,
+	.setattr	= proc_notify_change,
+};
+
+static const struct inode_operations proc_dir_restricted_inode_operations = {
+	.lookup		= proc_lookup_restrict,
 	.getattr	= proc_getattr,
 	.setattr	= proc_notify_change,
 };
@@ -447,6 +479,31 @@ struct proc_dir_entry *proc_mkdir_data(const char *name, umode_t mode,
 }
 EXPORT_SYMBOL_GPL(proc_mkdir_data);
 
+struct proc_dir_entry *proc_mkdir_data_restrict(const char *name, umode_t mode,
+		struct proc_dir_entry *parent, void *data)
+{
+	struct proc_dir_entry *ent;
+
+	if (mode == 0)
+		mode = S_IRUGO | S_IXUGO;
+
+	ent = __proc_create(&parent, name, S_IFDIR | mode, 2);
+	if (ent) {
+		ent->data = data;
+		ent->restricted = 1;
+		ent->proc_fops = &proc_dir_restricted_operations;
+		ent->proc_iops = &proc_dir_restricted_inode_operations;
+		parent->nlink++;
+		if (proc_register(parent, ent) < 0) {
+			kfree(ent);
+			parent->nlink--;
+			ent = NULL;
+		}
+	}
+	return ent;
+}
+EXPORT_SYMBOL_GPL(proc_mkdir_data_restrict);
+
 struct proc_dir_entry *proc_mkdir_mode(const char *name, umode_t mode,
 				       struct proc_dir_entry *parent)
 {
@@ -460,6 +517,13 @@ struct proc_dir_entry *proc_mkdir(const char *name,
 	return proc_mkdir_data(name, 0, parent, NULL);
 }
 EXPORT_SYMBOL(proc_mkdir);
+
+struct proc_dir_entry *proc_mkdir_restrict(const char *name,
+		struct proc_dir_entry *parent)
+{
+	return proc_mkdir_data_restrict(name, 0, parent, NULL);
+}
+EXPORT_SYMBOL(proc_mkdir_restrict);
 
 struct proc_dir_entry *proc_create_mount_point(const char *name)
 {

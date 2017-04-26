@@ -242,7 +242,7 @@ void flow_cache_fini(struct net *net);
 
 void flow_cache_flush(struct net *net);
 void flow_cache_flush_deferred(struct net *net);
-extern atomic_t flow_cache_genid;
+extern atomic_unchecked_t flow_cache_genid;
 
 __u32 __get_hash_from_flowi6(const struct flowi6 *fl6, struct flow_keys *keys);
 

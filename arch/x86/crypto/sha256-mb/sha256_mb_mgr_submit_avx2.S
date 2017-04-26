@@ -53,6 +53,7 @@
 
 #include <linux/linkage.h>
 #include <asm/frame.h>
+#include <asm/alternative-asm.h>
 #include "sha256_mb_mgr_datastruct.S"
 
 .extern sha256_x8_avx2
@@ -96,7 +97,7 @@ lane_data	= %r10
 # JOB* sha256_mb_mgr_submit_avx2(MB_MGR *state, JOB_SHA256 *job)
 # arg 1 : rcx : state
 # arg 2 : rdx : job
-ENTRY(sha256_mb_mgr_submit_avx2)
+RAP_ENTRY(sha256_mb_mgr_submit_avx2)
 	FRAME_BEGIN
 	push	%rbx
 	push	%r12
@@ -164,7 +165,7 @@ start_loop:
 
 	# "state" and "args" are the same address, arg1
 	# len is arg2
-	call	sha256_x8_avx2
+	pax_direct_call sha256_x8_avx2
 
 	# state and idx are intact
 
@@ -200,7 +201,7 @@ return:
 	pop     %r12
         pop     %rbx
         FRAME_END
-	ret
+	pax_ret sha256_mb_mgr_submit_avx2
 
 return_null:
 	xor	job_rax, job_rax

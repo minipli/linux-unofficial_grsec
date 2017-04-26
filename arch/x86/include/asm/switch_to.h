@@ -42,7 +42,9 @@ struct inactive_task_frame {
 	unsigned long r15;
 	unsigned long r14;
 	unsigned long r13;
+#ifndef CONFIG_PAX_KERNEXEC_PLUGIN_METHOD_OR
 	unsigned long r12;
+#endif
 #else
 	unsigned long si;
 	unsigned long di;

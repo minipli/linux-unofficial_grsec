@@ -377,7 +377,7 @@ static int msm_hdmi_connector_get_modes(struct drm_connector *connector)
 	return ret;
 }
 
-static int msm_hdmi_connector_mode_valid(struct drm_connector *connector,
+static enum drm_mode_status msm_hdmi_connector_mode_valid(struct drm_connector *connector,
 				 struct drm_display_mode *mode)
 {
 	struct hdmi_connector *hdmi_connector = to_hdmi_connector(connector);

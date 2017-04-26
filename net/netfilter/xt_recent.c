@@ -639,7 +639,7 @@ static int __net_init recent_proc_net_init(struct net *net)
 {
 	struct recent_net *recent_net = recent_pernet(net);
 
-	recent_net->xt_recent = proc_mkdir("xt_recent", net->proc_net);
+	recent_net->xt_recent = proc_mkdir_restrict("xt_recent", net->proc_net);
 	if (!recent_net->xt_recent)
 		return -ENOMEM;
 	return 0;

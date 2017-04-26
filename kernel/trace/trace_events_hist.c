@@ -1078,8 +1078,8 @@ static void hist_trigger_show(struct seq_file *m,
 	}
 
 	seq_printf(m, "\nTotals:\n    Hits: %llu\n    Entries: %u\n    Dropped: %llu\n",
-		   (u64)atomic64_read(&hist_data->map->hits),
-		   n_entries, (u64)atomic64_read(&hist_data->map->drops));
+		   (u64)atomic64_read_unchecked(&hist_data->map->hits),
+		   n_entries, (u64)atomic64_read_unchecked(&hist_data->map->drops));
 }
 
 static int hist_show(struct seq_file *m, void *v)

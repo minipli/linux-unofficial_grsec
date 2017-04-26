@@ -679,7 +679,7 @@ static int watchdog_nmi_enable(unsigned int cpu) { return 0; }
 static void watchdog_nmi_disable(unsigned int cpu) { return; }
 #endif /* CONFIG_HARDLOCKUP_DETECTOR */
 
-static struct smp_hotplug_thread watchdog_threads = {
+static struct smp_hotplug_thread watchdog_threads __read_only = {
 	.store			= &softlockup_watchdog,
 	.thread_should_run	= watchdog_should_run,
 	.thread_fn		= watchdog,

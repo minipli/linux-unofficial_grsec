@@ -42,6 +42,7 @@ show up in /proc/sys/kernel:
 - kptr_restrict
 - kstack_depth_to_print       [ X86 only ]
 - l2cr                        [ PPC only ]
+- modify_ldt                  [ X86 only ]
 - modprobe                    ==> Documentation/debugging-modules.txt
 - modules_disabled
 - msg_next_id		      [ sysv ipc ]
@@ -406,6 +407,20 @@ l2cr: (PPC only)
 
 This flag controls the L2 cache of G3 processor boards. If
 0, the cache is disabled. Enabled if nonzero.
+
+==============================================================
+
+modify_ldt: (X86 only)
+
+Enables (1) or disables (0) the modify_ldt syscall. Modifying the LDT
+(Local Descriptor Table) may be needed to run a 16-bit or segmented code
+such as Dosemu or Wine. This is done via a system call which is not needed
+to run portable applications, and which can sometimes be abused to exploit
+some weaknesses of the architecture, opening new vulnerabilities.
+
+This sysctl allows one to increase the system's security by disabling the
+system call, or to restore compatibility with specific applications when it
+was already disabled.
 
 ==============================================================
 

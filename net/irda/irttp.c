@@ -42,7 +42,7 @@
 
 static struct irttp_cb *irttp;
 
-static void __irttp_close_tsap(struct tsap_cb *self);
+static void __irttp_close_tsap(void *_self);
 
 static int irttp_data_indication(void *instance, void *sap,
 				 struct sk_buff *skb);
@@ -121,7 +121,7 @@ void irttp_cleanup(void)
 	/*
 	 *  Delete hashbin and close all TSAP instances in it
 	 */
-	hashbin_delete(irttp->tsaps, (FREE_FUNC) __irttp_close_tsap);
+	hashbin_delete(irttp->tsaps, __irttp_close_tsap);
 
 	irttp->magic = 0;
 
@@ -469,8 +469,10 @@ EXPORT_SYMBOL(irttp_open_tsap);
  *    deallocation of the TSAP, and resetting of the TSAPs values;
  *
  */
-static void __irttp_close_tsap(struct tsap_cb *self)
+static void __irttp_close_tsap(void *_self)
 {
+	struct tsap_cb *self = _self;
+
 	/* First make sure we're connected. */
 	IRDA_ASSERT(self != NULL, return;);
 	IRDA_ASSERT(self->magic == TTP_TSAP_MAGIC, return;);

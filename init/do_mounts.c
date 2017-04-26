@@ -363,11 +363,11 @@ static void __init get_fs_names(char *page)
 static int __init do_mount_root(char *name, char *fs, int flags, void *data)
 {
 	struct super_block *s;
-	int err = sys_mount(name, "/root", fs, flags, data);
+	int err = sys_mount((char __force_user *)name, (char __force_user *)"/root", (char __force_user *)fs, flags, (void __force_user *)data);
 	if (err)
 		return err;
 
-	sys_chdir("/root");
+	sys_chdir((const char __force_user *)"/root");
 	s = current->fs->pwd.dentry->d_sb;
 	ROOT_DEV = s->s_dev;
 	printk(KERN_INFO
@@ -490,18 +490,18 @@ void __init change_floppy(char *fmt, ...)
 	va_start(args, fmt);
 	vsprintf(buf, fmt, args);
 	va_end(args);
-	fd = sys_open("/dev/root", O_RDWR | O_NDELAY, 0);
+	fd = sys_open((char __user *)"/dev/root", O_RDWR | O_NDELAY, 0);
 	if (fd >= 0) {
 		sys_ioctl(fd, FDEJECT, 0);
 		sys_close(fd);
 	}
 	printk(KERN_NOTICE "VFS: Insert %s and press ENTER\n", buf);
-	fd = sys_open("/dev/console", O_RDWR, 0);
+	fd = sys_open((__force const char __user *)"/dev/console", O_RDWR, 0);
 	if (fd >= 0) {
 		sys_ioctl(fd, TCGETS, (long)&termios);
 		termios.c_lflag &= ~ICANON;
 		sys_ioctl(fd, TCSETSF, (long)&termios);
-		sys_read(fd, &c, 1);
+		sys_read(fd, (char __user *)&c, 1);
 		termios.c_lflag |= ICANON;
 		sys_ioctl(fd, TCSETSF, (long)&termios);
 		sys_close(fd);
@@ -600,8 +600,8 @@ void __init prepare_namespace(void)
 	mount_root();
 out:
 	devtmpfs_mount("dev");
-	sys_mount(".", "/", NULL, MS_MOVE, NULL);
-	sys_chroot(".");
+	sys_mount((char __force_user *)".", (char __force_user *)"/", NULL, MS_MOVE, NULL);
+	sys_chroot((const char __force_user *)".");
 }
 
 static bool is_tmpfs;
@@ -609,7 +609,7 @@ static struct dentry *rootfs_mount(struct file_system_type *fs_type,
 	int flags, const char *dev_name, void *data)
 {
 	static unsigned long once;
-	void *fill = ramfs_fill_super;
+	int (*fill)(struct super_block *, void *, int) = ramfs_fill_super;
 
 	if (test_and_set_bit(0, &once))
 		return ERR_PTR(-ENODEV);

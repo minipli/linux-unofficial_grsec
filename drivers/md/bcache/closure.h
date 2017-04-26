@@ -152,7 +152,7 @@ struct closure {
 			struct workqueue_struct *wq;
 			struct task_struct	*task;
 			struct llist_node	list;
-			closure_fn		*fn;
+			work_func_t		fn;
 		};
 		struct work_struct	work;
 	};
@@ -236,10 +236,10 @@ static inline void closure_set_stopped(struct closure *cl)
 	atomic_sub(CLOSURE_RUNNING, &cl->remaining);
 }
 
-static inline void set_closure_fn(struct closure *cl, closure_fn *fn,
+static inline void set_closure_fn(struct closure *cl, work_func_t fn,
 				  struct workqueue_struct *wq)
 {
-	BUG_ON(object_is_on_stack(cl));
+	BUG_ON(object_starts_on_stack(cl));
 	closure_set_ip(cl);
 	cl->fn = fn;
 	cl->wq = wq;
@@ -254,7 +254,7 @@ static inline void closure_queue(struct closure *cl)
 		INIT_WORK(&cl->work, cl->work.func);
 		BUG_ON(!queue_work(wq, &cl->work));
 	} else
-		cl->fn(cl);
+		cl->fn(&cl->work);
 }
 
 /**
@@ -373,7 +373,7 @@ do {									\
  * asynchronously out of a new closure - @parent will then wait for @cl to
  * finish.
  */
-static inline void closure_call(struct closure *cl, closure_fn fn,
+static inline void closure_call(struct closure *cl, work_func_t fn,
 				struct workqueue_struct *wq,
 				struct closure *parent)
 {

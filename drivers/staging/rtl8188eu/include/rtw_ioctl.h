@@ -88,13 +88,4 @@ static int oid_null_function(struct oid_par_priv *poid_par_priv) {
 
 extern struct iw_handler_def  rtw_handlers_def;
 
-int drv_query_info(struct  net_device *miniportadaptercontext, NDIS_OID oid,
-		   void *informationbuffer, u32 informationbufferlength,
-		   u32 *byteswritten, u32 *bytesneeded);
-
-int drv_set_info(struct  net_device *MiniportAdapterContext,
-		 NDIS_OID oid, void *informationbuffer,
-		 u32 informationbufferlength, u32 *bytesread,
-		 u32 *bytesneeded);
-
 #endif /*  #ifndef __INC_CEINFO_ */

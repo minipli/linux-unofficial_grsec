@@ -590,7 +590,7 @@ static int hid_sensor_custom_add_attributes(struct hid_sensor_custom
 		j = 0;
 		while (j < HID_CUSTOM_TOTAL_ATTRS &&
 		       hid_custom_attrs[j].name) {
-			struct device_attribute *device_attr;
+			device_attribute_no_const *device_attr;
 
 			device_attr = &sensor_inst->fields[i].sd_attrs[j];
 

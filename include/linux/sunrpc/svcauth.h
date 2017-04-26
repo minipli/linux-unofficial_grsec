@@ -128,7 +128,7 @@ struct auth_ops {
 	int	(*release)(struct svc_rqst *rq);
 	void	(*domain_release)(struct auth_domain *);
 	int	(*set_client)(struct svc_rqst *rq);
-};
+} __do_const;
 
 #define	SVC_GARBAGE	1
 #define	SVC_SYSERR	2

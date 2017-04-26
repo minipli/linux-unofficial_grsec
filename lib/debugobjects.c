@@ -288,7 +288,7 @@ static void debug_object_is_on_stack(void *addr, int onstack)
 	if (limit > 4)
 		return;
 
-	is_on_stack = object_is_on_stack(addr);
+	is_on_stack = object_starts_on_stack(addr);
 	if (is_on_stack == onstack)
 		return;
 

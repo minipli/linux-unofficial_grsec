@@ -71,7 +71,7 @@ L_exit_valid:
 L_exit:
 	popl	%ebx
 	leave
-	ret
+	pax_ret FPU_normalize
 
 
 L_zero:
@@ -83,7 +83,7 @@ L_underflow:
 	/* Convert the exponent to 80x87 form. */
 	addw	EXTENDED_Ebias,EXP(%ebx)
 	push	%ebx
-	call	arith_underflow
+	pax_direct_call arith_underflow
 	pop	%ebx
 	jmp	L_exit
 
@@ -91,7 +91,7 @@ L_overflow:
 	/* Convert the exponent to 80x87 form. */
 	addw	EXTENDED_Ebias,EXP(%ebx)
 	push	%ebx
-	call	arith_overflow
+	pax_direct_call arith_overflow
 	pop	%ebx
 	jmp	L_exit
 
@@ -136,7 +136,7 @@ L_exit_nuo_valid:
 
 	popl	%ebx
 	leave
-	ret
+	pax_ret FPU_normalize_nuo
 
 L_exit_nuo_zero:
 	movl	TAG_Zero,%eax
@@ -144,4 +144,4 @@ L_exit_nuo_zero:
 
 	popl	%ebx
 	leave
-	ret
+	pax_ret FPU_normalize_nuo

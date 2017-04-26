@@ -134,8 +134,8 @@ int rtl_rx_agg_start(struct ieee80211_hw *hw,
 		     struct ieee80211_sta *sta, u16 tid);
 int rtl_rx_agg_stop(struct ieee80211_hw *hw,
 		    struct ieee80211_sta *sta, u16 tid);
-void rtl_watchdog_wq_callback(void *data);
-void rtl_fwevt_wq_callback(void *data);
+void rtl_watchdog_wq_callback(struct work_struct *data);
+void rtl_fwevt_wq_callback(struct work_struct *data);
 
 void rtl_get_tcb_desc(struct ieee80211_hw *hw,
 		      struct ieee80211_tx_info *info,

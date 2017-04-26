@@ -136,7 +136,7 @@ struct configfs_attribute {
 	umode_t			ca_mode;
 	ssize_t (*show)(struct config_item *, char *);
 	ssize_t (*store)(struct config_item *, const char *, size_t);
-};
+} __do_const;
 
 #define CONFIGFS_ATTR(_pfx, _name)			\
 static struct configfs_attribute _pfx##attr_##_name = {	\

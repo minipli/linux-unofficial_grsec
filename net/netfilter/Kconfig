@@ -1166,6 +1166,16 @@ config NETFILTER_XT_MATCH_ESP
 
 	  To compile it as a module, choose M here.  If unsure, say N.
 
+config NETFILTER_XT_MATCH_GRADM
+	tristate '"gradm" match support'
+	depends on NETFILTER_XTABLES && NETFILTER_ADVANCED
+	depends on GRKERNSEC && !GRKERNSEC_NO_RBAC
+	---help---
+	  The gradm match allows to match on grsecurity RBAC being enabled.
+	  It is useful when iptables rules are applied early on bootup to
+	  prevent connections to the machine (except from a trusted host)
+	  while the RBAC system is disabled.
+
 config NETFILTER_XT_MATCH_HASHLIMIT
 	tristate '"hashlimit" match support'
 	depends on IP6_NF_IPTABLES || IP6_NF_IPTABLES=n

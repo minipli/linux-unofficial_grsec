@@ -430,10 +430,12 @@ static struct inode *befs_iget(struct super_block *sb, unsigned long ino)
 static int __init
 befs_init_inodecache(void)
 {
-	befs_inode_cachep = kmem_cache_create("befs_inode_cache",
+	befs_inode_cachep = kmem_cache_create_usercopy("befs_inode_cache",
 					      sizeof (struct befs_inode_info),
 					      0, (SLAB_RECLAIM_ACCOUNT|
 						SLAB_MEM_SPREAD|SLAB_ACCOUNT),
+					      offsetof(struct befs_inode_info, i_data.symlink),
+					      sizeof(((struct befs_inode_info *)0)->i_data.symlink),
 					      init_once);
 	if (befs_inode_cachep == NULL)
 		return -ENOMEM;

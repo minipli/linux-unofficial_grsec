@@ -408,6 +408,16 @@ bfad_hcb_comp(void *arg, bfa_status_t status)
 	complete(&fcomp->comp);
 }
 
+void
+bfad_stats_comp(void *arg, bfa_boolean_t _status)
+{
+	struct bfad_hal_comp *fcomp = (struct bfad_hal_comp *)arg;
+	bfa_status_t status = (bfa_status_t)_status;
+
+	fcomp->status = status;
+	complete(&fcomp->comp);
+}
+
 /*
  * bfa_init callback
  */
@@ -1442,7 +1452,7 @@ bfad_pci_remove(struct pci_dev *pdev)
  * PCI Error Recovery entry, error detected.
  */
 static pci_ers_result_t
-bfad_pci_error_detected(struct pci_dev *pdev, pci_channel_state_t state)
+bfad_pci_error_detected(struct pci_dev *pdev, enum pci_channel_state state)
 {
 	struct bfad_s *bfad = pci_get_drvdata(pdev);
 	unsigned long	flags;

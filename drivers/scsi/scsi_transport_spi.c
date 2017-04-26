@@ -758,7 +758,7 @@ spi_dv_device_compare_inquiry(struct scsi_device *sdev, u8 *buffer,
 static enum spi_compare_returns
 spi_dv_retrain(struct scsi_device *sdev, u8 *buffer, u8 *ptr,
 	       enum spi_compare_returns 
-	       (*compare_fn)(struct scsi_device *, u8 *, u8 *, int))
+	       (*compare_fn)(struct scsi_device *, u8 *, u8 *, const int))
 {
 	struct spi_internal *i = to_spi_internal(sdev->host->transportt);
 	struct scsi_target *starget = sdev->sdev_target;

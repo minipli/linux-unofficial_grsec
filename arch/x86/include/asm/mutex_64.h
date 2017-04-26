@@ -39,7 +39,7 @@ do {								\
 								\
 	asm volatile(LOCK_PREFIX "   decl (%%rdi)\n"		\
 		     "   jns 1f		\n"			\
-		     "   call " #fail_fn "\n"			\
+		     PAX_DIRECT_CALL(#fail_fn)"\n"		\
 		     "1:"					\
 		     : "=D" (dummy)				\
 		     : "D" (v)					\
@@ -94,7 +94,7 @@ do {								\
 								\
 	asm volatile(LOCK_PREFIX "   incl (%%rdi)\n"		\
 		     "   jg 1f\n"				\
-		     "   call " #fail_fn "\n"			\
+		     PAX_DIRECT_CALL(#fail_fn)"\n"		\
 		     "1:"					\
 		     : "=D" (dummy)				\
 		     : "D" (v)					\

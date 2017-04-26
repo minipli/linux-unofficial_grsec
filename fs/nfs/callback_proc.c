@@ -19,10 +19,12 @@
 
 #define NFSDBG_FACILITY NFSDBG_CALLBACK
 
-__be32 nfs4_callback_getattr(struct cb_getattrargs *args,
-			     struct cb_getattrres *res,
+__be32 nfs4_callback_getattr(void *_args,
+			     void *_res,
 			     struct cb_process_state *cps)
 {
+	struct cb_getattrargs *args = _args;
+	struct cb_getattrres *res = _res;
 	struct nfs_delegation *delegation;
 	struct nfs_inode *nfsi;
 	struct inode *inode;
@@ -68,9 +70,10 @@ out:
 	return res->status;
 }
 
-__be32 nfs4_callback_recall(struct cb_recallargs *args, void *dummy,
+__be32 nfs4_callback_recall(void *_args, void *dummy,
 			    struct cb_process_state *cps)
 {
+	struct cb_recallargs *args =  _args;
 	struct inode *inode;
 	__be32 res;
 	
@@ -294,7 +297,7 @@ static u32 do_callback_layoutrecall(struct nfs_client *clp,
 
 }
 
-__be32 nfs4_callback_layoutrecall(struct cb_layoutrecallargs *args,
+__be32 nfs4_callback_layoutrecall(void *args,
 				  void *dummy, struct cb_process_state *cps)
 {
 	u32 res;
@@ -321,9 +324,10 @@ static void pnfs_recall_all_layouts(struct nfs_client *clp)
 	do_callback_layoutrecall(clp, &args);
 }
 
-__be32 nfs4_callback_devicenotify(struct cb_devicenotifyargs *args,
+__be32 nfs4_callback_devicenotify(void *_args,
 				  void *dummy, struct cb_process_state *cps)
 {
+	struct cb_devicenotifyargs *args = _args;
 	int i;
 	__be32 res = 0;
 	struct nfs_client *clp = cps->clp;
@@ -465,10 +469,12 @@ out:
 	return status;
 }
 
-__be32 nfs4_callback_sequence(struct cb_sequenceargs *args,
-			      struct cb_sequenceres *res,
+__be32 nfs4_callback_sequence(void *_args,
+			      void *_res,
 			      struct cb_process_state *cps)
 {
+	struct cb_sequenceargs *args = _args;
+	struct cb_sequenceres *res = _res;
 	struct nfs4_slot_table *tbl;
 	struct nfs4_slot *slot;
 	struct nfs_client *clp;
@@ -569,9 +575,10 @@ validate_bitmap_values(unsigned long mask)
 	return (mask & ~RCA4_TYPE_MASK_ALL) == 0;
 }
 
-__be32 nfs4_callback_recallany(struct cb_recallanyargs *args, void *dummy,
+__be32 nfs4_callback_recallany(void *_args, void *dummy,
 			       struct cb_process_state *cps)
 {
+	struct cb_recallanyargs *args = _args;
 	__be32 status;
 	fmode_t flags = 0;
 
@@ -604,9 +611,10 @@ out:
 }
 
 /* Reduce the fore channel's max_slots to the target value */
-__be32 nfs4_callback_recallslot(struct cb_recallslotargs *args, void *dummy,
+__be32 nfs4_callback_recallslot(void *_args, void *dummy,
 				struct cb_process_state *cps)
 {
+	struct cb_recallslotargs *args = _args;
 	struct nfs4_slot_table *fc_tbl;
 	__be32 status;
 
@@ -629,9 +637,10 @@ out:
 	return status;
 }
 
-__be32 nfs4_callback_notify_lock(struct cb_notify_lock_args *args, void *dummy,
+__be32 nfs4_callback_notify_lock(void *_args, void *dummy,
 				 struct cb_process_state *cps)
 {
+	struct cb_notify_lock_args *args = _args;
 	if (!cps->clp) /* set in cb_sequence */
 		return htonl(NFS4ERR_OP_NOT_IN_SESSION);
 

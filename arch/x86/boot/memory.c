@@ -19,7 +19,7 @@
 
 static int detect_memory_e820(void)
 {
-	int count = 0;
+	unsigned int count = 0;
 	struct biosregs ireg, oreg;
 	struct e820entry *desc = boot_params.e820_map;
 	static struct e820entry buf; /* static so it is zeroed */

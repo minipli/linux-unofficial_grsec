@@ -358,7 +358,7 @@ struct snd_ymfpci {
 	spinlock_t reg_lock;
 	spinlock_t voice_lock;
 	wait_queue_head_t interrupt_sleep;
-	atomic_t interrupt_sleep_count;
+	atomic_unchecked_t interrupt_sleep_count;
 	struct snd_info_entry *proc_entry;
 	const struct firmware *dsp_microcode;
 	const struct firmware *controller_microcode;

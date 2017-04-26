@@ -114,6 +114,13 @@ typedef struct {
 
 #define ELF_ET_DYN_BASE         (TASK_UNMAPPED_BASE)
 
+#ifdef CONFIG_PAX_ASLR
+#define PAX_ELF_ET_DYN_BASE	0x10000UL
+
+#define PAX_DELTA_MMAP_LEN	16
+#define PAX_DELTA_STACK_LEN	16
+#endif
+
 /* This yields a mask that user programs can use to figure out what
    instruction set this cpu supports.  This can NOT be done in userspace
    on Sparc.  */

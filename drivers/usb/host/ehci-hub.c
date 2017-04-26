@@ -777,7 +777,7 @@ static struct urb *request_single_step_set_feature_urb(
 	urb->transfer_flags = URB_DIR_IN;
 	usb_get_urb(urb);
 	atomic_inc(&urb->use_count);
-	atomic_inc(&urb->dev->urbnum);
+	atomic_inc_unchecked(&urb->dev->urbnum);
 	urb->setup_dma = dma_map_single(
 			hcd->self.controller,
 			urb->setup_packet,
@@ -844,7 +844,7 @@ static int ehset_single_step_set_feature(struct usb_hcd *hcd, int port)
 	urb->status = -EINPROGRESS;
 	usb_get_urb(urb);
 	atomic_inc(&urb->use_count);
-	atomic_inc(&urb->dev->urbnum);
+	atomic_inc_unchecked(&urb->dev->urbnum);
 	retval = submit_single_step_set_feature(hcd, urb, 0);
 	if (!retval && !wait_for_completion_timeout(&done,
 						msecs_to_jiffies(2000))) {

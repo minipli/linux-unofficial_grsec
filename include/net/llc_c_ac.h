@@ -87,7 +87,7 @@
 #define LLC_CONN_AC_STOP_SENDACK_TMR			70
 #define LLC_CONN_AC_START_SENDACK_TMR_IF_NOT_RUNNING	71
 
-typedef int (*llc_conn_action_t)(struct sock *sk, struct sk_buff *skb);
+typedef int (* const llc_conn_action_t)(struct sock *sk, struct sk_buff *skb);
 
 int llc_conn_ac_clear_remote_busy(struct sock *sk, struct sk_buff *skb);
 int llc_conn_ac_conn_ind(struct sock *sk, struct sk_buff *skb);

@@ -627,9 +627,9 @@ bool kmemcheck_fault(struct pt_regs *regs, unsigned long address,
 	 * memory (e.g. tracked pages)? For now, we need this to avoid
 	 * invoking kmemcheck for PnP BIOS calls.
 	 */
-	if (regs->flags & X86_VM_MASK)
+	if (v8086_mode(regs))
 		return false;
-	if (regs->cs != __KERNEL_CS)
+	if (regs->cs != __KERNEL_CS && regs->cs != __KERNEXEC_KERNEL_CS)
 		return false;
 
 	pte = kmemcheck_pte_lookup(address);

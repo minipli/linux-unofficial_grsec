@@ -532,7 +532,7 @@ static inline void nlmsg_trim(struct sk_buff *skb, const void *mark)
 {
 	if (mark) {
 		WARN_ON((unsigned char *) mark < skb->data);
-		skb_trim(skb, (unsigned char *) mark - skb->data);
+		skb_trim(skb, (const unsigned char *) mark - skb->data);
 	}
 }
 

@@ -436,7 +436,7 @@ do_sync_free:
 		synchronize_rcu_expedited();
 		dm_stat_free(&s->rcu_head);
 	} else {
-		ACCESS_ONCE(dm_stat_need_rcu_barrier) = 1;
+		ACCESS_ONCE_RW(dm_stat_need_rcu_barrier) = 1;
 		call_rcu(&s->rcu_head, dm_stat_free);
 	}
 	return 0;
@@ -648,8 +648,8 @@ void dm_stats_account_io(struct dm_stats *stats, unsigned long bi_rw,
 				       ((bi_rw == WRITE) ==
 					(ACCESS_ONCE(last->last_rw) == WRITE))
 				       ));
-		ACCESS_ONCE(last->last_sector) = end_sector;
-		ACCESS_ONCE(last->last_rw) = bi_rw;
+		ACCESS_ONCE_RW(last->last_sector) = end_sector;
+		ACCESS_ONCE_RW(last->last_rw) = bi_rw;
 	}
 
 	rcu_read_lock();

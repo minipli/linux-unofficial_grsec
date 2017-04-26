@@ -25,6 +25,13 @@
 #include <linux/perf_event.h>
 #include <linux/pkeys.h>
 #include <linux/ksm.h>
+#include <linux/sched/sysctl.h>
+
+#ifdef CONFIG_PAX_MPROTECT
+#include <linux/elf.h>
+#include <linux/binfmts.h>
+#endif
+
 #include <asm/uaccess.h>
 #include <asm/pgtable.h>
 #include <asm/cacheflush.h>
@@ -259,6 +266,48 @@ unsigned long change_protection(struct vm_area_struct *vma, unsigned long start,
 	return pages;
 }
 
+#ifdef CONFIG_ARCH_TRACK_EXEC_LIMIT
+/* called while holding the mmap semaphor for writing except stack expansion */
+void track_exec_limit(struct mm_struct *mm, unsigned long start, unsigned long end, unsigned long prot)
+{
+	unsigned long oldlimit, newlimit = 0UL;
+
+	if (!(mm->pax_flags & MF_PAX_PAGEEXEC) || (__supported_pte_mask & _PAGE_NX))
+		return;
+
+	spin_lock(&mm->page_table_lock);
+	oldlimit = mm->context.user_cs_limit;
+	if ((prot & VM_EXEC) && oldlimit < end)
+		/* USER_CS limit moved up */
+		newlimit = end;
+	else if (!(prot & VM_EXEC) && start < oldlimit && oldlimit <= end)
+		/* USER_CS limit moved down */
+		newlimit = start;
+
+	if (newlimit) {
+		mm->context.user_cs_limit = newlimit;
+
+#ifdef CONFIG_SMP
+		wmb();
+		cpumask_clear(&mm->context.cpu_user_cs_mask);
+		cpumask_set_cpu(smp_processor_id(), &mm->context.cpu_user_cs_mask);
+#endif
+
+		set_user_cs(mm->context.user_cs_base, mm->context.user_cs_limit, smp_processor_id());
+	}
+	spin_unlock(&mm->page_table_lock);
+	if (newlimit == end) {
+		struct vm_area_struct *vma = find_vma(mm, oldlimit);
+
+		for (; vma && vma->vm_start < end; vma = vma->vm_next)
+			if (is_vm_hugetlb_page(vma))
+				hugetlb_change_protection(vma, vma->vm_start, vma->vm_end, vma->vm_page_prot);
+			else
+				change_protection(vma, vma->vm_start, vma->vm_end, vma->vm_page_prot, vma_wants_writenotify(vma, vma->vm_page_prot), 0);
+	}
+}
+#endif
+
 int
 mprotect_fixup(struct vm_area_struct *vma, struct vm_area_struct **pprev,
 	unsigned long start, unsigned long end, unsigned long newflags)
@@ -271,9 +320,27 @@ mprotect_fixup(struct vm_area_struct *vma, struct vm_area_struct **pprev,
 	int error;
 	int dirty_accountable = 0;
 
+#ifdef CONFIG_PAX_SEGMEXEC
+	struct vm_area_struct *vma_m = NULL;
+	unsigned long start_m, end_m;
+
+	start_m = start + SEGMEXEC_TASK_SIZE;
+	end_m = end + SEGMEXEC_TASK_SIZE;
+#endif
+
 	if (newflags == oldflags) {
 		*pprev = vma;
 		return 0;
+	}
+
+	if (newflags & (VM_READ | VM_WRITE | VM_EXEC)) {
+		struct vm_area_struct *prev = vma->vm_prev, *next = vma->vm_next;
+
+		if (next && (next->vm_flags & VM_GROWSDOWN) && sysctl_heap_stack_gap > next->vm_start - end)
+			return -ENOMEM;
+
+		if (prev && (prev->vm_flags & VM_GROWSUP) && sysctl_heap_stack_gap > start - prev->vm_end)
+			return -ENOMEM;
 	}
 
 	/*
@@ -295,6 +362,42 @@ mprotect_fixup(struct vm_area_struct *vma, struct vm_area_struct **pprev,
 			newflags |= VM_ACCOUNT;
 		}
 	}
+
+#ifdef CONFIG_PAX_SEGMEXEC
+	if ((mm->pax_flags & MF_PAX_SEGMEXEC) && ((oldflags ^ newflags) & VM_EXEC)) {
+		if (start != vma->vm_start) {
+			error = split_vma(mm, vma, start, 1);
+			if (error)
+				goto fail;
+			BUG_ON(!*pprev || (*pprev)->vm_next == vma);
+			*pprev = (*pprev)->vm_next;
+		}
+
+		if (end != vma->vm_end) {
+			error = split_vma(mm, vma, end, 0);
+			if (error)
+				goto fail;
+		}
+
+		if (pax_find_mirror_vma(vma)) {
+			error = __do_munmap(mm, start_m, end_m - start_m);
+			if (error)
+				goto fail;
+		} else {
+			vma_m = kmem_cache_zalloc(vm_area_cachep, GFP_KERNEL);
+			if (!vma_m) {
+				error = -ENOMEM;
+				goto fail;
+			}
+			vma->vm_flags = newflags;
+			error = pax_mirror_vma(vma_m, vma);
+			if (error) {
+				vma->vm_flags = oldflags;
+				goto fail;
+			}
+		}
+	}
+#endif
 
 	/*
 	 * First try to merge with previous and/or next vma.
@@ -328,7 +431,19 @@ success:
 	 * vm_flags and vm_page_prot are protected by the mmap_sem
 	 * held in write mode.
 	 */
+
+#ifdef CONFIG_PAX_SEGMEXEC
+	if ((mm->pax_flags & MF_PAX_SEGMEXEC) && (newflags & VM_EXEC) && ((vma->vm_flags ^ newflags) & VM_READ))
+		pax_find_mirror_vma(vma)->vm_flags ^= VM_READ;
+#endif
+
 	vma->vm_flags = newflags;
+
+#ifdef CONFIG_PAX_MPROTECT
+	if (mm->binfmt && mm->binfmt->handle_mprotect)
+		mm->binfmt->handle_mprotect(vma, newflags);
+#endif
+
 	dirty_accountable = vma_wants_writenotify(vma, vma->vm_page_prot);
 	vma_set_page_prot(vma);
 
@@ -365,7 +480,7 @@ static int do_mprotect_pkey(unsigned long start, size_t len,
 	int error = -EINVAL;
 	const int grows = prot & (PROT_GROWSDOWN|PROT_GROWSUP);
 	const bool rier = (current->personality & READ_IMPLIES_EXEC) &&
-				(prot & PROT_READ);
+				(prot & (PROT_READ | PROT_WRITE));
 
 	prot &= ~(PROT_GROWSDOWN|PROT_GROWSUP);
 	if (grows == (PROT_GROWSDOWN|PROT_GROWSUP)) /* can't be both */
@@ -379,6 +494,17 @@ static int do_mprotect_pkey(unsigned long start, size_t len,
 	end = start + len;
 	if (end <= start)
 		return -ENOMEM;
+
+#ifdef CONFIG_PAX_SEGMEXEC
+	if (current->mm->pax_flags & MF_PAX_SEGMEXEC) {
+		if (end > SEGMEXEC_TASK_SIZE)
+			return -EINVAL;
+	} else
+#endif
+
+	if (end > TASK_SIZE)
+		return -EINVAL;
+
 	if (!arch_validate_prot(prot))
 		return -EINVAL;
 
@@ -420,6 +546,11 @@ static int do_mprotect_pkey(unsigned long start, size_t len,
 	if (start > vma->vm_start)
 		prev = vma;
 
+#ifdef CONFIG_PAX_MPROTECT
+	if (current->mm->binfmt && current->mm->binfmt->handle_mprotect)
+		current->mm->binfmt->handle_mprotect(vma, calc_vm_prot_bits(prot, 0));
+#endif
+
 	for (nstart = start ; ; ) {
 		unsigned long mask_off_old_flags;
 		unsigned long newflags;
@@ -445,6 +576,14 @@ static int do_mprotect_pkey(unsigned long start, size_t len,
 
 		/* newflags >> 4 shift VM_MAY% in place of VM_% */
 		if ((newflags & ~(newflags >> 4)) & (VM_READ | VM_WRITE | VM_EXEC)) {
+			if (prot & (PROT_WRITE | PROT_EXEC))
+				gr_log_rwxmprotect(vma);
+
+			error = -EACCES;
+			goto out;
+		}
+
+		if (!gr_acl_handle_mprotect(vma->vm_file, prot)) {
 			error = -EACCES;
 			goto out;
 		}
@@ -459,6 +598,9 @@ static int do_mprotect_pkey(unsigned long start, size_t len,
 		error = mprotect_fixup(vma, &prev, nstart, tmp, newflags);
 		if (error)
 			goto out;
+
+		track_exec_limit(current->mm, nstart, tmp, newflags);
+
 		nstart = tmp;
 
 		if (nstart < prev->vm_end)

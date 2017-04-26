@@ -354,7 +354,7 @@ int devtmpfs_mount(const char *mntdir)
 	if (!thread)
 		return 0;
 
-	err = sys_mount("devtmpfs", (char *)mntdir, "devtmpfs", MS_SILENT, NULL);
+	err = sys_mount((char __force_user *)"devtmpfs", (char __force_user *)mntdir, (char __force_user *)"devtmpfs", MS_SILENT, NULL);
 	if (err)
 		printk(KERN_INFO "devtmpfs: error mounting %i\n", err);
 	else
@@ -380,11 +380,11 @@ static int devtmpfsd(void *p)
 	*err = sys_unshare(CLONE_NEWNS);
 	if (*err)
 		goto out;
-	*err = sys_mount("devtmpfs", "/", "devtmpfs", MS_SILENT, options);
+	*err = sys_mount((char __force_user *)"devtmpfs", (char __force_user *)"/", (char __force_user *)"devtmpfs", MS_SILENT, (char __force_user *)options);
 	if (*err)
 		goto out;
-	sys_chdir("/.."); /* will traverse into overmounted root */
-	sys_chroot(".");
+	sys_chdir((char __force_user *)"/.."); /* will traverse into overmounted root */
+	sys_chroot((char __force_user *)".");
 	complete(&setup_done);
 	while (1) {
 		spin_lock(&req_lock);

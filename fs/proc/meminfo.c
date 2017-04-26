@@ -136,7 +136,7 @@ static int meminfo_proc_show(struct seq_file *m, void *v)
 
 #ifdef CONFIG_MEMORY_FAILURE
 	seq_printf(m, "HardwareCorrupted: %5lu kB\n",
-		   atomic_long_read(&num_poisoned_pages) << (PAGE_SHIFT - 10));
+		   atomic_long_read_unchecked(&num_poisoned_pages) << (PAGE_SHIFT - 10));
 #endif
 
 #ifdef CONFIG_TRANSPARENT_HUGEPAGE

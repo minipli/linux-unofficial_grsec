@@ -261,7 +261,7 @@ lpfc_rampdown_queue_depth(struct lpfc_hba *phba)
 	unsigned long expires;
 
 	spin_lock_irqsave(&phba->hbalock, flags);
-	atomic_inc(&phba->num_rsrc_err);
+	atomic_inc_unchecked(&phba->num_rsrc_err);
 	phba->last_rsrc_error_time = jiffies;
 
 	expires = phba->last_ramp_down_time + QUEUE_RAMP_DOWN_INTERVAL;
@@ -303,8 +303,8 @@ lpfc_ramp_down_queue_handler(struct lpfc_hba *phba)
 	unsigned long num_rsrc_err, num_cmd_success;
 	int i;
 
-	num_rsrc_err = atomic_read(&phba->num_rsrc_err);
-	num_cmd_success = atomic_read(&phba->num_cmd_success);
+	num_rsrc_err = atomic_read_unchecked(&phba->num_rsrc_err);
+	num_cmd_success = atomic_read_unchecked(&phba->num_cmd_success);
 
 	/*
 	 * The error and success command counters are global per
@@ -331,8 +331,8 @@ lpfc_ramp_down_queue_handler(struct lpfc_hba *phba)
 			}
 		}
 	lpfc_destroy_vport_work_array(phba, vports);
-	atomic_set(&phba->num_rsrc_err, 0);
-	atomic_set(&phba->num_cmd_success, 0);
+	atomic_set_unchecked(&phba->num_rsrc_err, 0);
+	atomic_set_unchecked(&phba->num_cmd_success, 0);
 }
 
 /**

@@ -11,7 +11,7 @@
 
 #include <asm/byteorder.h>
 
-static inline u64
+static inline u64 __intentional_overflow(-1)
 fs64_to_cpu(const struct super_block *sb, fs64 n)
 {
 	if (BEFS_SB(sb)->byte_order == BEFS_BYTESEX_LE)
@@ -29,7 +29,7 @@ cpu_to_fs64(const struct super_block *sb, u64 n)
 		return (__force fs64)cpu_to_be64(n);
 }
 
-static inline u32
+static inline u32 __intentional_overflow(-1)
 fs32_to_cpu(const struct super_block *sb, fs32 n)
 {
 	if (BEFS_SB(sb)->byte_order == BEFS_BYTESEX_LE)
@@ -47,7 +47,7 @@ cpu_to_fs32(const struct super_block *sb, u32 n)
 		return (__force fs32)cpu_to_be32(n);
 }
 
-static inline u16
+static inline u16 __intentional_overflow(-1)
 fs16_to_cpu(const struct super_block *sb, fs16 n)
 {
 	if (BEFS_SB(sb)->byte_order == BEFS_BYTESEX_LE)

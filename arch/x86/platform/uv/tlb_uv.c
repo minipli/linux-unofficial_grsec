@@ -24,7 +24,7 @@
 #include <asm/irq_vectors.h>
 #include <asm/timer.h>
 
-static struct bau_operations ops;
+static struct bau_operations *ops __read_only;
 
 static struct bau_operations uv123_bau_ops = {
 	.bau_gpa_to_offset       = uv_gpa_to_offset,
@@ -239,7 +239,7 @@ static void reply_to_message(struct msg_desc *mdp, struct bau_control *bcp,
 	msg = mdp->msg;
 	if (!msg->canceled && do_acknowledge) {
 		dw = (msg->swack_vec << UV_SW_ACK_NPENDING) | msg->swack_vec;
-		ops.write_l_sw_ack(dw);
+		ops->write_l_sw_ack(dw);
 	}
 	msg->replied_to = 1;
 	msg->swack_vec = 0;
@@ -275,7 +275,7 @@ static void bau_process_retry_msg(struct msg_desc *mdp,
 			msg->swack_vec) == 0) &&
 		    (msg2->sending_cpu == msg->sending_cpu) &&
 		    (msg2->msg_type != MSG_NOOP)) {
-			mmr = ops.read_l_sw_ack();
+			mmr = ops->read_l_sw_ack();
 			msg_res = msg2->swack_vec;
 			/*
 			 * This is a message retry; clear the resources held
@@ -293,7 +293,7 @@ static void bau_process_retry_msg(struct msg_desc *mdp,
 				stat->d_canceled++;
 				cancel_count++;
 				mr = (msg_res << UV_SW_ACK_NPENDING) | msg_res;
-				ops.write_l_sw_ack(mr);
+				ops->write_l_sw_ack(mr);
 			}
 		}
 	}
@@ -426,12 +426,12 @@ static void do_reset(void *ptr)
 			/*
 			 * only reset the resource if it is still pending
 			 */
-			mmr = ops.read_l_sw_ack();
+			mmr = ops->read_l_sw_ack();
 			msg_res = msg->swack_vec;
 			mr = (msg_res << UV_SW_ACK_NPENDING) | msg_res;
 			if (mmr & msg_res) {
 				stat->d_rcanceled++;
-				ops.write_l_sw_ack(mr);
+				ops->write_l_sw_ack(mr);
 			}
 		}
 	}
@@ -1221,7 +1221,7 @@ void process_uv2_message(struct msg_desc *mdp, struct bau_control *bcp)
 	struct bau_pq_entry *msg = mdp->msg;
 	struct bau_pq_entry *other_msg;
 
-	mmr_image = ops.read_l_sw_ack();
+	mmr_image = ops->read_l_sw_ack();
 	swack_vec = msg->swack_vec;
 
 	if ((swack_vec & mmr_image) == 0) {
@@ -1450,7 +1450,7 @@ static int ptc_seq_show(struct seq_file *file, void *data)
 		/* destination side statistics */
 		seq_printf(file,
 			"%lx %ld %ld %ld %ld %ld %ld %ld %ld %ld %ld %ld\n",
-			   ops.read_g_sw_ack(uv_cpu_to_pnode(cpu)),
+			   ops->read_g_sw_ack(uv_cpu_to_pnode(cpu)),
 			   stat->d_requestee, cycles_2_us(stat->d_time),
 			   stat->d_alltlb, stat->d_onetlb, stat->d_multmsg,
 			   stat->d_nomsg, stat->d_retries, stat->d_canceled,
@@ -1744,7 +1744,7 @@ static void activation_descriptor_init(int node, int pnode, int base_pnode)
 
 	gpa = uv_gpa(bau_desc);
 	n = uv_gpa_to_gnode(gpa);
-	m = ops.bau_gpa_to_offset(gpa);
+	m = ops->bau_gpa_to_offset(gpa);
 	if (is_uv1_hub())
 		uv1 = 1;
 
@@ -1831,8 +1831,8 @@ static void pq_init(int node, int pnode)
 		bcp->queue_last		= pqp + (DEST_Q_SIZE - 1);
 	}
 
-	first = ops.bau_gpa_to_offset(uv_gpa(pqp));
-	last = ops.bau_gpa_to_offset(uv_gpa(pqp + (DEST_Q_SIZE - 1)));
+	first = ops->bau_gpa_to_offset(uv_gpa(pqp));
+	last = ops->bau_gpa_to_offset(uv_gpa(pqp + (DEST_Q_SIZE - 1)));
 
 	/*
 	 * Pre UV4, the gnode is required to locate the payload queue
@@ -1846,9 +1846,9 @@ static void pq_init(int node, int pnode)
 		write_mmr_payload_tail(pnode, tail);
 	}
 
-	ops.write_payload_first(pnode, first);
-	ops.write_payload_last(pnode, last);
-	ops.write_g_sw_ack(pnode, 0xffffUL);
+	ops->write_payload_first(pnode, first);
+	ops->write_payload_last(pnode, last);
+	ops->write_g_sw_ack(pnode, 0xffffUL);
 
 	/* in effect, all msg_type's are set to MSG_NOOP */
 	memset(pqp, 0, sizeof(struct bau_pq_entry) * DEST_Q_SIZE);
@@ -2166,13 +2166,13 @@ static int __init uv_bau_init(void)
 		return 0;
 
 	if (is_uv4_hub())
-		ops = uv4_bau_ops;
+		ops = &uv4_bau_ops;
 	else if (is_uv3_hub())
-		ops = uv123_bau_ops;
+		ops = &uv123_bau_ops;
 	else if (is_uv2_hub())
-		ops = uv123_bau_ops;
+		ops = &uv123_bau_ops;
 	else if (is_uv1_hub())
-		ops = uv123_bau_ops;
+		ops = &uv123_bau_ops;
 
 	for_each_possible_cpu(cur_cpu) {
 		mask = &per_cpu(uv_flush_tlb_mask, cur_cpu);

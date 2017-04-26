@@ -138,7 +138,7 @@ static void sbc_gxx_copy_from(struct map_info *map, void *to, unsigned long from
 	}
 }
 
-static void sbc_gxx_write8(struct map_info *map, map_word d, unsigned long adr)
+static void sbc_gxx_write8(struct map_info *map, const map_word d, unsigned long adr)
 {
 	spin_lock(&sbc_gxx_spin);
 	sbc_gxx_page(map, adr);

@@ -798,9 +798,11 @@ static int m41t80_probe(struct i2c_client *client,
 			dev_warn(&client->dev, "unable to request IRQ, alarms disabled\n");
 			client->irq = 0;
 		} else {
-			m41t80_rtc_ops.read_alarm = m41t80_read_alarm;
-			m41t80_rtc_ops.set_alarm = m41t80_set_alarm;
-			m41t80_rtc_ops.alarm_irq_enable = m41t80_alarm_irq_enable;
+			pax_open_kernel();
+			const_cast(m41t80_rtc_ops.read_alarm) = m41t80_read_alarm;
+			const_cast(m41t80_rtc_ops.set_alarm) = m41t80_set_alarm;
+			const_cast(m41t80_rtc_ops.alarm_irq_enable) = m41t80_alarm_irq_enable;
+			pax_close_kernel();
 			/* Enable the wakealarm */
 			device_init_wakeup(&client->dev, true);
 		}

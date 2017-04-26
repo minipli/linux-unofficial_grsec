@@ -691,11 +691,11 @@ static ssize_t fill_readbuf(struct port *port, char __user *out_buf,
 	if (to_user) {
 		ssize_t ret;
 
-		ret = copy_to_user(out_buf, buf->buf + buf->offset, out_count);
+		ret = copy_to_user((char __force_user *)out_buf, buf->buf + buf->offset, out_count);
 		if (ret)
 			return -EFAULT;
 	} else {
-		memcpy((__force char *)out_buf, buf->buf + buf->offset,
+		memcpy((__force_kernel char *)out_buf, buf->buf + buf->offset,
 		       out_count);
 	}
 
@@ -1178,7 +1178,7 @@ static int get_chars(u32 vtermno, char *buf, int count)
 	/* If we don't have an input queue yet, we can't get input. */
 	BUG_ON(!port->in_vq);
 
-	return fill_readbuf(port, (__force char __user *)buf, count, false);
+	return fill_readbuf(port, (char __force_user *)buf, count, false);
 }
 
 static void resize_console(struct port *port)

@@ -227,8 +227,8 @@ static int shdma_alloc_chan_resources(struct dma_chan *chan)
 		schan->slave_id = -EINVAL;
 	}
 
-	schan->desc = kcalloc(NR_DESCS_PER_CHANNEL,
-			      sdev->desc_size, GFP_KERNEL);
+	schan->desc = kcalloc(sdev->desc_size,
+			      NR_DESCS_PER_CHANNEL, GFP_KERNEL);
 	if (!schan->desc) {
 		ret = -ENOMEM;
 		goto edescalloc;

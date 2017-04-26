@@ -24,7 +24,12 @@ static int xsd_release(struct inode *inode, struct file *file)
 static int xsd_kva_open(struct inode *inode, struct file *file)
 {
 	file->private_data = (void *)kasprintf(GFP_KERNEL, "0x%p",
+#ifdef CONFIG_GRKERNSEC_HIDESYM
+					       NULL);
+#else
 					       xen_store_interface);
+#endif
+
 	if (!file->private_data)
 		return -ENOMEM;
 	return 0;

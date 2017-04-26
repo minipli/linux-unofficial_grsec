@@ -692,7 +692,7 @@ err_close:
 	return err;
 }
 
-static int mthca_setup_hca(struct mthca_dev *dev)
+static int __intentional_overflow(-1) mthca_setup_hca(struct mthca_dev *dev)
 {
 	int err;
 

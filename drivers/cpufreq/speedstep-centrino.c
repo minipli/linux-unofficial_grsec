@@ -352,8 +352,11 @@ static int centrino_cpu_init(struct cpufreq_policy *policy)
 	    !cpu_has(cpu, X86_FEATURE_EST))
 		return -ENODEV;
 
-	if (cpu_has(cpu, X86_FEATURE_CONSTANT_TSC))
-		centrino_driver.flags |= CPUFREQ_CONST_LOOPS;
+	if (cpu_has(cpu, X86_FEATURE_CONSTANT_TSC)) {
+		pax_open_kernel();
+		const_cast(centrino_driver.flags) |= CPUFREQ_CONST_LOOPS;
+		pax_close_kernel();
+	}
 
 	if (policy->cpu != 0)
 		return -ENODEV;

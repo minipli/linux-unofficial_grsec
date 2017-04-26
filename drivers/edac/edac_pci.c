@@ -29,7 +29,7 @@
 
 static DEFINE_MUTEX(edac_pci_ctls_mutex);
 static LIST_HEAD(edac_pci_list);
-static atomic_t pci_indexes = ATOMIC_INIT(0);
+static atomic_unchecked_t pci_indexes = ATOMIC_INIT(0);
 
 /*
  * edac_pci_alloc_ctl_info
@@ -224,7 +224,7 @@ static void edac_pci_workq_function(struct work_struct *work_req)
  */
 int edac_pci_alloc_index(void)
 {
-	return atomic_inc_return(&pci_indexes) - 1;
+	return atomic_inc_return_unchecked(&pci_indexes) - 1;
 }
 EXPORT_SYMBOL_GPL(edac_pci_alloc_index);
 

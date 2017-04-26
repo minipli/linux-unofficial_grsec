@@ -334,7 +334,7 @@ static ssize_t blk_dropped_read(struct file *filp, char __user *buffer,
 	struct blk_trace *bt = filp->private_data;
 	char buf[16];
 
-	snprintf(buf, sizeof(buf), "%u\n", atomic_read(&bt->dropped));
+	snprintf(buf, sizeof(buf), "%u\n", atomic_read_unchecked(&bt->dropped));
 
 	return simple_read_from_buffer(buffer, count, ppos, buf, strlen(buf));
 }
@@ -386,7 +386,7 @@ static int blk_subbuf_start_callback(struct rchan_buf *buf, void *subbuf,
 		return 1;
 
 	bt = buf->chan->private_data;
-	atomic_inc(&bt->dropped);
+	atomic_inc_unchecked(&bt->dropped);
 	return 0;
 }
 
@@ -485,7 +485,7 @@ int do_blk_trace_setup(struct request_queue *q, char *name, dev_t dev,
 
 	bt->dir = dir;
 	bt->dev = dev;
-	atomic_set(&bt->dropped, 0);
+	atomic_set_unchecked(&bt->dropped, 0);
 	INIT_LIST_HEAD(&bt->running_list);
 
 	ret = -EIO;

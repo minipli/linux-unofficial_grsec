@@ -2460,7 +2460,7 @@ static int dummy_setup(struct usb_hcd *hcd)
 	struct dummy *dum;
 
 	dum = *((void **)dev_get_platdata(hcd->self.controller));
-	hcd->self.sg_tablesize = ~0;
+	hcd->self.sg_tablesize = SG_ALL;
 	if (usb_hcd_is_primary_hcd(hcd)) {
 		dum->hs_hcd = hcd_to_dummy_hcd(hcd);
 		dum->hs_hcd->dum = dum;

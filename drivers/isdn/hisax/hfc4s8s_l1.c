@@ -299,8 +299,9 @@ Read_hfc16_stable(hfc4s8s_hw *hw, int reg)
 /* D-channel call from HiSax */
 /*****************************/
 static void
-dch_l2l1(struct hisax_d_if *iface, int pr, void *arg)
+dch_l2l1(struct hisax_if *_iface, int pr, void *arg)
 {
+	struct hisax_d_if *iface = container_of(_iface, struct hisax_d_if, ifc);
 	struct hfc4s8s_l1 *l1 = iface->ifc.priv;
 	struct sk_buff *skb = (struct sk_buff *) arg;
 	u_long flags;
@@ -591,8 +592,9 @@ bch_l2l1(struct hisax_if *ifc, int pr, void *arg)
 /* layer 1 timer function */
 /**************************/
 static void
-hfc_l1_timer(struct hfc4s8s_l1 *l1)
+hfc_l1_timer(unsigned long _l1)
 {
+	struct hfc4s8s_l1 *l1 = (struct hfc4s8s_l1 *)_l1;
 	u_long flags;
 
 	if (!l1->enabled)
@@ -1396,16 +1398,16 @@ setup_instance(hfc4s8s_hw *hw)
 		l1p = hw->l1 + i;
 		spin_lock_init(&l1p->lock);
 		l1p->hw = hw;
-		l1p->l1_timer.function = (void *) hfc_l1_timer;
+		l1p->l1_timer.function = hfc_l1_timer;
 		l1p->l1_timer.data = (long) (l1p);
 		init_timer(&l1p->l1_timer);
 		l1p->st_num = i;
 		skb_queue_head_init(&l1p->d_tx_queue);
 		l1p->d_if.ifc.priv = hw->l1 + i;
-		l1p->d_if.ifc.l2l1 = (void *) dch_l2l1;
+		l1p->d_if.ifc.l2l1 = dch_l2l1;
 
 		spin_lock_init(&l1p->b_ch[0].lock);
-		l1p->b_ch[0].b_if.ifc.l2l1 = (void *) bch_l2l1;
+		l1p->b_ch[0].b_if.ifc.l2l1 = bch_l2l1;
 		l1p->b_ch[0].b_if.ifc.priv = (void *) &l1p->b_ch[0];
 		l1p->b_ch[0].l1p = hw->l1 + i;
 		l1p->b_ch[0].bchan = 1;
@@ -1413,7 +1415,7 @@ setup_instance(hfc4s8s_hw *hw)
 		skb_queue_head_init(&l1p->b_ch[0].tx_queue);
 
 		spin_lock_init(&l1p->b_ch[1].lock);
-		l1p->b_ch[1].b_if.ifc.l2l1 = (void *) bch_l2l1;
+		l1p->b_ch[1].b_if.ifc.l2l1 = bch_l2l1;
 		l1p->b_ch[1].b_if.ifc.priv = (void *) &l1p->b_ch[1];
 		l1p->b_ch[1].l1p = hw->l1 + i;
 		l1p->b_ch[1].bchan = 2;

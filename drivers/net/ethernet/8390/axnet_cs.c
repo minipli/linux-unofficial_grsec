@@ -96,7 +96,7 @@ static void get_8390_hdr(struct net_device *,
 static void block_input(struct net_device *dev, int count,
 			struct sk_buff *skb, int ring_offset);
 static void block_output(struct net_device *dev, int count,
-			 const u_char *buf, const int start_page);
+			 const u_char *buf, int start_page);
 
 static void axnet_detach(struct pcmcia_device *p_dev);
 
@@ -667,7 +667,7 @@ static void block_input(struct net_device *dev, int count,
 /*====================================================================*/
 
 static void block_output(struct net_device *dev, int count,
-			 const u_char *buf, const int start_page)
+			 const u_char *buf, int start_page)
 {
     unsigned int nic_base = dev->base_addr;
 

@@ -9,7 +9,7 @@
 
 unsigned int __read_mostly sysctl_sched_autogroup_enabled = 1;
 static struct autogroup autogroup_default;
-static atomic_t autogroup_seq_nr;
+static atomic_unchecked_t autogroup_seq_nr;
 
 void __init autogroup_init(struct task_struct *init_task)
 {
@@ -77,7 +77,7 @@ static inline struct autogroup *autogroup_create(void)
 
 	kref_init(&ag->kref);
 	init_rwsem(&ag->lock);
-	ag->id = atomic_inc_return(&autogroup_seq_nr);
+	ag->id = atomic_inc_return_unchecked(&autogroup_seq_nr);
 	ag->tg = tg;
 #ifdef CONFIG_RT_GROUP_SCHED
 	/*

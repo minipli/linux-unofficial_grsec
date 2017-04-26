@@ -56,7 +56,7 @@ static const u32 sbp_unit_directory_template[] = {
 
 #define SESSION_MAINTENANCE_INTERVAL HZ
 
-static atomic_t login_id = ATOMIC_INIT(0);
+static atomic_unchecked_t login_id = ATOMIC_INIT(0);
 
 static void session_maintenance_work(struct work_struct *);
 static int sbp_run_transaction(struct fw_card *, int, int, int, int,
@@ -422,7 +422,7 @@ static void sbp_management_request_login(
 	login->login_lun = unpacked_lun;
 	login->status_fifo_addr = sbp2_pointer_to_addr(&req->orb.status_fifo);
 	login->exclusive = LOGIN_ORB_EXCLUSIVE(be32_to_cpu(req->orb.misc));
-	login->login_id = atomic_inc_return(&login_id);
+	login->login_id = atomic_inc_return_unchecked(&login_id);
 
 	login->tgt_agt = sbp_target_agent_register(login);
 	if (IS_ERR(login->tgt_agt)) {

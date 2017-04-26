@@ -876,7 +876,7 @@ struct qla_tgt {
 	struct list_head srr_imm_list;
 	struct work_struct srr_work;
 
-	atomic_t tgt_global_resets_count;
+	atomic_unchecked_t tgt_global_resets_count;
 
 	struct list_head tgt_list_entry;
 };

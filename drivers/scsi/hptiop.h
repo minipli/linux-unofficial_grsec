@@ -330,7 +330,6 @@ struct hptiop_hba {
 	void        *dma_coherent[HPTIOP_MAX_REQUESTS];
 	dma_addr_t  dma_coherent_handle[HPTIOP_MAX_REQUESTS];
 
-	atomic_t    reset_count;
 	atomic_t    resetting;
 
 	wait_queue_head_t reset_wq;

@@ -258,7 +258,7 @@ struct mem_cgroup {
 	int last_scanned_node;
 #if MAX_NUMNODES > 1
 	nodemask_t	scan_nodes;
-	atomic_t	numainfo_events;
+	atomic64_t	numainfo_events;
 	atomic_t	numainfo_updating;
 #endif
 

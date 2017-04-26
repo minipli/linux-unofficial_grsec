@@ -570,7 +570,7 @@ static ssize_t hidma_show_values(struct device *dev,
 static int hidma_create_sysfs_entry(struct hidma_dev *dev, char *name,
 				    int mode)
 {
-	struct device_attribute *attrs;
+	device_attribute_no_const *attrs;
 	char *name_copy;
 
 	attrs = devm_kmalloc(dev->ddev.dev, sizeof(struct device_attribute),

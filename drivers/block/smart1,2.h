@@ -108,11 +108,11 @@ static unsigned long smart4_intr_pending(ctlr_info_t *h)
 }
 
 static struct access_method smart4_access = {
-	smart4_submit_command,
-	smart4_intr_mask,
-	smart4_fifo_full,
-	smart4_intr_pending,
-	smart4_completed,
+	.submit_command = smart4_submit_command,
+	.set_intr_mask = smart4_intr_mask,
+	.fifo_full = smart4_fifo_full,
+	.intr_pending = smart4_intr_pending,
+	.command_completed = smart4_completed,
 };
 
 /*
@@ -144,11 +144,11 @@ static unsigned long smart2_intr_pending(ctlr_info_t *h)
 }
 
 static struct access_method smart2_access = {
-	smart2_submit_command,
-	smart2_intr_mask,
-	smart2_fifo_full,
-	smart2_intr_pending,
-	smart2_completed,
+	.submit_command = smart2_submit_command,
+	.set_intr_mask = smart2_intr_mask,
+	.fifo_full = smart2_fifo_full,
+	.intr_pending = smart2_intr_pending,
+	.command_completed = smart2_completed,
 };
 
 /*
@@ -180,11 +180,11 @@ static unsigned long smart2e_intr_pending(ctlr_info_t *h)
 }
 
 static struct access_method smart2e_access = {
-	smart2e_submit_command,
-	smart2e_intr_mask,
-	smart2e_fifo_full,
-	smart2e_intr_pending,
-	smart2e_completed,
+	.submit_command = smart2e_submit_command,
+	.set_intr_mask = smart2e_intr_mask,
+	.fifo_full = smart2e_fifo_full,
+	.intr_pending = smart2e_intr_pending,
+	.command_completed = smart2e_completed,
 };
 
 /*
@@ -270,9 +270,9 @@ static unsigned long smart1_intr_pending(ctlr_info_t *h)
 }
 
 static struct access_method smart1_access = {
-	smart1_submit_command,
-	smart1_intr_mask,
-	smart1_fifo_full,
-	smart1_intr_pending,
-	smart1_completed,
+	.submit_command = smart1_submit_command,
+	.set_intr_mask = smart1_intr_mask,
+	.fifo_full = smart1_fifo_full,
+	.intr_pending = smart1_intr_pending,
+	.command_completed = smart1_completed,
 };

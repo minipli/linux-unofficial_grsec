@@ -20,9 +20,11 @@
 #include <linux/export.h>
 #include <linux/extable.h>	/* only as arch move module.h -> extable.h */
 #include <linux/rbtree_latch.h>
+#include <linux/fs.h>
 
 #include <linux/percpu.h>
 #include <asm/module.h>
+#include <asm/pgtable.h>
 
 /* In stripped ARM and x86-64 modules, ~ is surprisingly rare. */
 #define MODULE_SIG_STRING "~Module signature appended~\n"
@@ -46,7 +48,7 @@ struct module_kobject {
 	struct kobject *drivers_dir;
 	struct module_param_attrs *mp;
 	struct completion *kobj_completion;
-};
+} __randomize_layout;
 
 struct module_attribute {
 	struct attribute attr;
@@ -58,12 +60,13 @@ struct module_attribute {
 	int (*test)(struct module *);
 	void (*free)(struct module *);
 };
+typedef struct module_attribute __no_const module_attribute_no_const;
 
 struct module_version_attribute {
 	struct module_attribute mattr;
 	const char *module_name;
 	const char *version;
-} __attribute__ ((__aligned__(sizeof(void *))));
+} __do_const __attribute__ ((__aligned__(sizeof(void *))));
 
 extern ssize_t __modver_version_show(struct module_attribute *,
 				     struct module_kobject *, char *);
@@ -290,19 +293,18 @@ struct mod_tree_node {
 };
 
 struct module_layout {
-	/* The actual code + data. */
-	void *base;
-	/* Total size. */
-	unsigned int size;
-	/* The size of the executable code.  */
-	unsigned int text_size;
-	/* Size of RO section of the module (text+rodata) */
-	unsigned int ro_size;
-	/* Size of RO after init section */
-	unsigned int ro_after_init_size;
+	/* The actual code. */
+	void *base_rx;
+	/* The actual data. */
+	void *base_rw;
+	/* Code size. */
+	unsigned int size_rx;
+	/* Data size. */
+	unsigned int size_rw;
 
 #ifdef CONFIG_MODULES_TREE_LOOKUP
-	struct mod_tree_node mtn;
+	struct mod_tree_node mtn_rx;
+	struct mod_tree_node mtn_rw;
 #endif
 };
 
@@ -339,7 +341,7 @@ struct module {
 
 	/* Sysfs stuff. */
 	struct module_kobject mkobj;
-	struct module_attribute *modinfo_attrs;
+	module_attribute_no_const *modinfo_attrs;
 	const char *version;
 	const char *srcversion;
 	struct kobject *holders_dir;
@@ -447,6 +449,10 @@ struct module {
 	unsigned int num_trace_events;
 	struct trace_enum_map **trace_enums;
 	unsigned int num_trace_enums;
+	struct file_operations trace_id;
+	struct file_operations trace_enable;
+	struct file_operations trace_format;
+	struct file_operations trace_filter;
 #endif
 #ifdef CONFIG_FTRACE_MCOUNT_RECORD
 	unsigned int num_ftrace_callsites;
@@ -478,7 +484,8 @@ struct module {
 	ctor_fn_t *ctors;
 	unsigned int num_ctors;
 #endif
-} ____cacheline_aligned;
+} ____cacheline_aligned __randomize_layout;
+
 #ifndef MODULE_ARCH_INIT
 #define MODULE_ARCH_INIT {}
 #endif
@@ -499,18 +506,38 @@ bool is_module_address(unsigned long addr);
 bool is_module_percpu_address(unsigned long addr);
 bool is_module_text_address(unsigned long addr);
 
+static inline int within_module_range(unsigned long addr, void *start, unsigned long size)
+{
+
+#ifdef CONFIG_PAX_KERNEXEC
+	if (ktla_ktva(addr) >= (unsigned long)start &&
+	    ktla_ktva(addr) < (unsigned long)start + size)
+		return 1;
+#endif
+
+	return ((void *)addr >= start && (void *)addr < start + size);
+}
+
+static inline int within_module_rx(unsigned long addr, const struct module_layout *layout)
+{
+	return within_module_range(addr, layout->base_rx, layout->size_rx);
+}
+
+static inline int within_module_rw(unsigned long addr, const struct module_layout *layout)
+{
+	return within_module_range(addr, layout->base_rw, layout->size_rw);
+}
+
 static inline bool within_module_core(unsigned long addr,
 				      const struct module *mod)
 {
-	return (unsigned long)mod->core_layout.base <= addr &&
-	       addr < (unsigned long)mod->core_layout.base + mod->core_layout.size;
+	return within_module_rx(addr, &mod->core_layout) || within_module_rw(addr, &mod->core_layout);
 }
 
 static inline bool within_module_init(unsigned long addr,
 				      const struct module *mod)
 {
-	return (unsigned long)mod->init_layout.base <= addr &&
-	       addr < (unsigned long)mod->init_layout.base + mod->init_layout.size;
+	return within_module_rx(addr, &mod->init_layout) || within_module_rw(addr, &mod->init_layout);
 }
 
 static inline bool within_module(unsigned long addr, const struct module *mod)

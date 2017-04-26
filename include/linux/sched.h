@@ -7,7 +7,7 @@
 
 
 struct sched_param {
-	int sched_priority;
+	unsigned int sched_priority;
 };
 
 #include <asm/param.h>	/* for HZ */
@@ -134,6 +134,7 @@ struct perf_event_context;
 struct blk_plug;
 struct filename;
 struct nameidata;
+struct linux_binprm;
 
 #define VMACACHE_BITS 2
 #define VMACACHE_SIZE (1U << VMACACHE_BITS)
@@ -454,6 +455,18 @@ struct nsproxy;
 struct user_namespace;
 
 #ifdef CONFIG_MMU
+
+#ifdef CONFIG_GRKERNSEC_RAND_THREADSTACK
+extern unsigned long gr_rand_threadstack_offset(const struct mm_struct *mm, const struct file *filp, unsigned long flags);
+#else
+static inline unsigned long gr_rand_threadstack_offset(const struct mm_struct *mm, const struct file *filp, unsigned long flags)
+{
+	return 0;
+}
+#endif
+
+extern bool check_heap_stack_gap(const struct vm_area_struct *vma, unsigned long addr, unsigned long len, unsigned long offset);
+
 extern void arch_pick_mmap_layout(struct mm_struct *mm);
 extern unsigned long
 arch_get_unmapped_area(struct file *, unsigned long, unsigned long,
@@ -793,6 +806,17 @@ struct signal_struct {
 #ifdef CONFIG_TASKSTATS
 	struct taskstats *stats;
 #endif
+
+#ifdef CONFIG_GRKERNSEC
+	u32 curr_ip;
+	u32 saved_ip;
+	u32 gr_saddr;
+	u32 gr_daddr;
+	u16 gr_sport;
+	u16 gr_dport;
+	u8 used_accept:1;
+#endif
+
 #ifdef CONFIG_AUDIT
 	unsigned audit_tty;
 	struct tty_audit_buf *tty_audit_buf;
@@ -812,7 +836,7 @@ struct signal_struct {
 	struct mutex cred_guard_mutex;	/* guard against foreign influences on
 					 * credential calculations
 					 * (notably. ptrace) */
-};
+} __randomize_layout;
 
 /*
  * Bits in flags field of signal_struct.
@@ -867,6 +891,14 @@ struct user_struct {
 	struct key *session_keyring;	/* UID's default session keyring */
 #endif
 
+#ifdef CONFIG_GRKERNSEC_KERN_LOCKOUT
+	unsigned char kernel_banned;
+#endif
+#ifdef CONFIG_GRKERNSEC_BRUTE
+	unsigned char sugid_banned;
+	unsigned long sugid_ban_expires;
+#endif
+
 	/* Hash table maintenance information */
 	struct hlist_node uidhash_node;
 	kuid_t uid;
@@ -874,7 +906,7 @@ struct user_struct {
 #if defined(CONFIG_PERF_EVENTS) || defined(CONFIG_BPF_SYSCALL)
 	atomic_long_t locked_vm;
 #endif
-};
+} __randomize_layout;
 
 extern int uids_sysfs_init(void);
 
@@ -1482,6 +1514,9 @@ struct task_struct {
 #endif
 	volatile long state;	/* -1 unrunnable, 0 runnable, >0 stopped */
 	void *stack;
+#ifdef CONFIG_GRKERNSEC_KSTACKOVERFLOW
+	void *lowmem_stack;
+#endif
 	atomic_t usage;
 	unsigned int flags;	/* per process flags, defined below */
 	unsigned int ptrace;
@@ -1614,6 +1649,8 @@ struct task_struct {
 	struct list_head sibling;	/* linkage in my parent's children list */
 	struct task_struct *group_leader;	/* threadgroup leader */
 
+	const struct cred __rcu *ptracer_cred; /* Tracer's credentials at attach */
+
 	/*
 	 * ptraced is the list of tasks this task is using ptrace on.
 	 * This includes both natural children and PTRACE_ATTACH targets.
@@ -1628,8 +1665,8 @@ struct task_struct {
 	struct list_head thread_node;
 
 	struct completion *vfork_done;		/* for vfork() */
-	int __user *set_child_tid;		/* CLONE_CHILD_SETTID */
-	int __user *clear_child_tid;		/* CLONE_CHILD_CLEARTID */
+	pid_t __user *set_child_tid;		/* CLONE_CHILD_SETTID */
+	pid_t __user *clear_child_tid;		/* CLONE_CHILD_CLEARTID */
 
 	cputime_t utime, stime, utimescaled, stimescaled;
 	cputime_t gtime;
@@ -1659,12 +1696,6 @@ struct task_struct {
 	struct task_cputime cputime_expires;
 	struct list_head cpu_timers[3];
 
-/* process credentials */
-	const struct cred __rcu *ptracer_cred; /* Tracer's credentials at attach */
-	const struct cred __rcu *real_cred; /* objective and real subjective task
-					 * credentials (COW) */
-	const struct cred __rcu *cred;	/* effective (overridable) subjective task
-					 * credentials (COW) */
 	char comm[TASK_COMM_LEN]; /* executable name excluding path
 				     - access with [gs]et_task_comm (which lock
 				       it with task_lock())
@@ -1680,6 +1711,8 @@ struct task_struct {
 /* hung task detection */
 	unsigned long last_switch_count;
 #endif
+/* CPU-specific state of this task */
+	struct thread_struct thread;
 /* filesystem information */
 	struct fs_struct *fs;
 /* open file information */
@@ -1690,8 +1723,11 @@ struct task_struct {
 	struct signal_struct *signal;
 	struct sighand_struct *sighand;
 
-	sigset_t blocked, real_blocked;
-	sigset_t saved_sigmask;	/* restored if set_restore_sigmask() was used */
+	sigset_t real_blocked;
+	struct {
+		sigset_t blocked;
+		sigset_t saved_sigmask;	/* restored if set_restore_sigmask() was used */
+	};
 	struct sigpending pending;
 
 	unsigned long sas_ss_sp;
@@ -1758,6 +1794,10 @@ struct task_struct {
 	unsigned int in_ubsan;
 #endif
 
+/* process credentials */
+	const struct cred __rcu *real_cred; /* objective and real subjective task
+					 * credentials (COW) */
+
 /* journalling filesystem info */
 	void *journal_info;
 
@@ -1796,6 +1836,10 @@ struct task_struct {
 	/* cg_list protected by css_set_lock and tsk->alloc_lock */
 	struct list_head cg_list;
 #endif
+
+	const struct cred __rcu *cred;	/* effective (overridable) subjective task
+					 * credentials (COW) */
+
 #ifdef CONFIG_FUTEX
 	struct robust_list_head __user *robust_list;
 #ifdef CONFIG_COMPAT
@@ -1911,7 +1955,7 @@ struct task_struct {
 	 * Number of functions that haven't been traced
 	 * because of depth overrun.
 	 */
-	atomic_t trace_overrun;
+	atomic_unchecked_t trace_overrun;
 	/* Pause for the tracing */
 	atomic_t tracing_graph_pause;
 #endif
@@ -1959,22 +2003,100 @@ struct task_struct {
 #ifdef CONFIG_THREAD_INFO_IN_TASK
 	/* A live task holds one reference. */
 	atomic_t stack_refcount;
+
+/* thread_info moved to task_struct */
+#ifdef CONFIG_X86
+	struct thread_info tinfo;
 #endif
-/* CPU-specific state of this task */
-	struct thread_struct thread;
-/*
- * WARNING: on x86, 'thread_struct' contains a variable-sized
- * structure.  It *MUST* be at the end of 'task_struct'.
- *
- * Do not put anything below here!
- */
-};
+#endif
+
+#ifdef CONFIG_GRKERNSEC
+	/* grsecurity */
+#ifdef CONFIG_GRKERNSEC_PROC_MEMMAP
+	u64 exec_id;
+#endif
+#ifdef CONFIG_GRKERNSEC_SETXID
+	const struct cred *delayed_cred;
+#endif
+	struct dentry *gr_chroot_dentry;
+	struct acl_subject_label *acl;
+	struct acl_subject_label *tmpacl;
+	struct acl_role_label *role;
+	struct file *exec_file;
+	unsigned long brute_expires;
+	u16 acl_role_id;
+	u8 inherited;
+	/* is this the task that authenticated to the special role */
+	u8 acl_sp_role;
+	u8 is_writable;
+	u8 brute;
+	u8 gr_is_chrooted;
+#endif
+
+} __randomize_layout;
+
+#ifdef CONFIG_THREAD_INFO_IN_TASK
+#ifndef current_thread_info
+# define current_thread_info() (&current->thread_info)
+#endif
+#endif
 
 #ifdef CONFIG_ARCH_WANTS_DYNAMIC_TASK_STRUCT
-extern int arch_task_struct_size __read_mostly;
+extern size_t arch_task_struct_size __read_mostly;
 #else
 # define arch_task_struct_size (sizeof(struct task_struct))
 #endif
+
+#define MF_PAX_PAGEEXEC		0x01000000	/* Paging based non-executable pages */
+#define MF_PAX_EMUTRAMP		0x02000000	/* Emulate trampolines */
+#define MF_PAX_MPROTECT		0x04000000	/* Restrict mprotect() */
+#define MF_PAX_RANDMMAP		0x08000000	/* Randomize mmap() base */
+/*#define MF_PAX_RANDEXEC		0x10000000*/	/* Randomize ET_EXEC base */
+#define MF_PAX_SEGMEXEC		0x20000000	/* Segmentation based non-executable pages */
+
+#ifdef CONFIG_PAX_SOFTMODE
+extern int pax_softmode;
+#endif
+
+extern int pax_check_flags(unsigned long *);
+#define PAX_PARSE_FLAGS_FALLBACK	(~0UL)
+
+/* if tsk != current then task_lock must be held on it */
+#if defined(CONFIG_PAX_NOEXEC) || defined(CONFIG_PAX_ASLR)
+static inline unsigned long pax_get_flags(struct task_struct *tsk)
+{
+	if (likely(tsk->mm))
+		return tsk->mm->pax_flags;
+	else
+		return 0UL;
+}
+
+/* if tsk != current then task_lock must be held on it */
+static inline long pax_set_flags(struct task_struct *tsk, unsigned long flags)
+{
+	if (likely(tsk->mm)) {
+		tsk->mm->pax_flags = flags;
+		return 0;
+	}
+	return -EINVAL;
+}
+#endif
+
+#ifdef CONFIG_PAX_HAVE_ACL_FLAGS
+extern void pax_set_initial_flags(struct linux_binprm *bprm);
+#elif defined(CONFIG_PAX_HOOK_ACL_FLAGS)
+extern void (*pax_set_initial_flags_func)(struct linux_binprm *bprm);
+#endif
+
+#ifdef CONFIG_PAX_SIZE_OVERFLOW
+extern bool pax_size_overflow_report_only;
+#endif
+
+struct path;
+extern char *pax_get_path(const struct path *path, char *buf, int buflen);
+extern void pax_report_fault(struct pt_regs *regs, void *pc, void *sp);
+extern void pax_report_insns(struct pt_regs *regs, void *pc, void *sp);
+extern void pax_report_refcount_error(struct pt_regs *regs, const char *kind);
 
 #ifdef CONFIG_VMAP_STACK
 static inline struct vm_struct *task_stack_vm_area(const struct task_struct *t)
@@ -2100,7 +2222,7 @@ struct pid_namespace;
 pid_t __task_pid_nr_ns(struct task_struct *task, enum pid_type type,
 			struct pid_namespace *ns);
 
-static inline pid_t task_pid_nr(struct task_struct *tsk)
+static inline pid_t task_pid_nr(const struct task_struct *tsk)
 {
 	return tsk->pid;
 }
@@ -2467,6 +2589,50 @@ extern u64 sched_clock_cpu(int cpu);
 
 extern void sched_clock_init(void);
 
+#ifdef CONFIG_GRKERNSEC_KSTACKOVERFLOW
+static inline void populate_stack(void *stack, unsigned int size)
+{
+	int c;
+	int *ptr = stack;
+	int *end = stack + size;
+
+	while (ptr < end) {
+		c = *(volatile int *)ptr;
+		(void)c;
+		ptr += PAGE_SIZE/sizeof(int);
+	}
+}
+#else
+static inline void populate_stack(void *stack, unsigned int size)
+{
+}
+#endif
+
+const void *gr_convert_stack_address_to_lowmem(const void *buf);
+
+#ifdef CONFIG_GRKERNSEC
+static inline bool current_is_ptracer(struct task_struct *task, u64 *exec_id)
+{
+	bool ret = false;
+        if (!task->ptrace)
+		return ret;
+
+	rcu_read_lock();
+	read_lock(&tasklist_lock);
+	if (task->parent && task->parent == current) {
+		ret = true;
+#ifdef CONFIG_GRKERNSEC_PROC_MEMMAP
+		if (exec_id)
+			*exec_id = task->parent->exec_id;
+#endif
+	}
+	read_unlock(&tasklist_lock);
+	rcu_read_unlock();
+
+	return ret;
+}
+#endif
+
 #ifndef CONFIG_HAVE_UNSTABLE_SCHED_CLOCK
 static inline void sched_clock_tick(void)
 {
@@ -2659,6 +2825,7 @@ extern struct pid_namespace init_pid_ns;
  */
 
 extern struct task_struct *find_task_by_vpid(pid_t nr);
+extern struct task_struct *find_task_by_vpid_unrestricted(pid_t nr);
 extern struct task_struct *find_task_by_pid_ns(pid_t nr,
 		struct pid_namespace *ns);
 
@@ -2690,7 +2857,7 @@ extern void proc_caches_init(void);
 extern void flush_signals(struct task_struct *);
 extern void ignore_signals(struct task_struct *);
 extern void flush_signal_handlers(struct task_struct *, int force_default);
-extern int dequeue_signal(struct task_struct *tsk, sigset_t *mask, siginfo_t *info);
+extern int dequeue_signal(struct task_struct *tsk, sigset_t *mask, siginfo_t *info) __must_hold(&tsk->sighand->siglock);
 
 static inline int kernel_dequeue_signal(siginfo_t *info)
 {
@@ -2956,7 +3123,7 @@ extern void __cleanup_sighand(struct sighand_struct *);
 extern void exit_itimers(struct signal_struct *);
 extern void flush_itimer_signals(void);
 
-extern void do_group_exit(int);
+extern __noreturn void do_group_exit(int);
 
 extern int do_execve(struct filename *,
 		     const char __user * const __user *,
@@ -3071,11 +3238,13 @@ static inline int thread_group_empty(struct task_struct *p)
  * It must not be nested with write_lock_irq(&tasklist_lock),
  * neither inside nor outside.
  */
+static inline void task_lock(struct task_struct *p) __acquires(&p->alloc_lock);
 static inline void task_lock(struct task_struct *p)
 {
 	spin_lock(&p->alloc_lock);
 }
 
+static inline void task_unlock(struct task_struct *p) __releases(&p->alloc_lock);
 static inline void task_unlock(struct task_struct *p)
 {
 	spin_unlock(&p->alloc_lock);
@@ -3149,7 +3318,7 @@ static inline void *task_stack_page(const struct task_struct *task)
 
 static inline unsigned long *end_of_stack(const struct task_struct *task)
 {
-	return task->stack;
+	return (unsigned long *)task->stack + 1;
 }
 
 #elif !defined(__HAVE_THREAD_FUNCTIONS)
@@ -3203,12 +3372,23 @@ static inline void put_task_stack(struct task_struct *tsk) {}
 #define task_stack_end_corrupted(task) \
 		(*(end_of_stack(task)) != STACK_END_MAGIC)
 
-static inline int object_is_on_stack(void *obj)
+static inline int object_starts_on_stack(const void *obj)
 {
-	void *stack = task_stack_page(current);
+	const void *stack = task_stack_page(current);
 
 	return (obj >= stack) && (obj < (stack + THREAD_SIZE));
 }
+
+#if defined(CONFIG_GRKERNSEC_KSTACKOVERFLOW) && defined(CONFIG_X86_64)
+static inline int object_starts_on_irq_stack(const void *obj)
+{
+	const void *stack = this_cpu_read(irq_stack_ptr);
+
+	return (obj >= stack) && (obj < (stack + IRQ_STACK_SIZE));
+}
+#else
+static inline int object_starts_on_irq_stack(const void *obj) { return 0; }
+#endif
 
 extern void thread_stack_cache_init(void);
 
@@ -3604,7 +3784,7 @@ static inline unsigned long rlimit_max(unsigned int limit)
 #ifdef CONFIG_CPU_FREQ
 struct update_util_data {
        void (*func)(struct update_util_data *data, u64 time, unsigned int flags);
-};
+} __no_const;
 
 void cpufreq_add_update_util_hook(int cpu, struct update_util_data *data,
                        void (*func)(struct update_util_data *data, u64 time,

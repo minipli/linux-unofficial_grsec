@@ -38,6 +38,9 @@ struct device_node;
 struct irq_domain;
 struct of_device_id;
 struct irq_chip;
+#ifndef _LINUX_IRQ_H
+typedef struct irq_chip __no_const irq_chip_no_const;
+#endif
 struct irq_data;
 struct cpumask;
 

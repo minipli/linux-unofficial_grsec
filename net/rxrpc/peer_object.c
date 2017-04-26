@@ -229,7 +229,7 @@ struct rxrpc_peer *rxrpc_alloc_peer(struct rxrpc_local *local, gfp_t gfp)
 		peer->service_conns = RB_ROOT;
 		seqlock_init(&peer->service_conn_lock);
 		spin_lock_init(&peer->lock);
-		peer->debug_id = atomic_inc_return(&rxrpc_debug_id);
+		peer->debug_id = atomic_inc_return_unchecked(&rxrpc_debug_id);
 	}
 
 	_leave(" = %p", peer);

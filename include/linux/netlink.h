@@ -150,19 +150,19 @@ struct netlink_dump_control {
 	void *data;
 	struct module *module;
 	u16 min_dump_alloc;
-};
+} __do_const;
+typedef struct netlink_dump_control __no_const netlink_dump_control_no_const;
 
 extern int __netlink_dump_start(struct sock *ssk, struct sk_buff *skb,
 				const struct nlmsghdr *nlh,
-				struct netlink_dump_control *control);
+				struct netlink_dump_control *control,
+				void *data,
+				struct module *module);
 static inline int netlink_dump_start(struct sock *ssk, struct sk_buff *skb,
 				     const struct nlmsghdr *nlh,
 				     struct netlink_dump_control *control)
 {
-	if (!control->module)
-		control->module = THIS_MODULE;
-
-	return __netlink_dump_start(ssk, skb, nlh, control);
+	return __netlink_dump_start(ssk, skb, nlh, control, control->data, control->module ? : THIS_MODULE);
 }
 
 struct netlink_tap {

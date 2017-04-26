@@ -128,7 +128,7 @@ struct genl_ops {
 	u8			cmd;
 	u8			internal_flags;
 	u8			flags;
-};
+} __do_const;
 
 int __genl_register_family(struct genl_family *family);
 

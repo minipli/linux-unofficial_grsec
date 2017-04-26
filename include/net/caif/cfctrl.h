@@ -52,7 +52,7 @@ struct cfctrl_rsp {
 	void (*radioset_rsp)(void);
 	void (*reject_rsp)(struct cflayer *layer, u8 linkid,
 				struct cflayer *client_layer);
-};
+} __no_const;
 
 /* Link Setup Parameters for CAIF-Links. */
 struct cfctrl_link_param {
@@ -101,8 +101,8 @@ struct cfctrl_request_info {
 struct cfctrl {
 	struct cfsrvl serv;
 	struct cfctrl_rsp res;
-	atomic_t req_seq_no;
-	atomic_t rsp_seq_no;
+	atomic_unchecked_t req_seq_no;
+	atomic_unchecked_t rsp_seq_no;
 	struct list_head list;
 	/* Protects from simultaneous access to first_req list */
 	spinlock_t info_list_lock;

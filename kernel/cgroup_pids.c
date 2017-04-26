@@ -54,7 +54,7 @@ struct pids_cgroup {
 	struct cgroup_file		events_file;
 
 	/* Number of times fork failed because limit was hit. */
-	atomic64_t			events_limit;
+	atomic64_unchecked_t		events_limit;
 };
 
 static struct pids_cgroup *css_pids(struct cgroup_subsys_state *css)
@@ -78,7 +78,7 @@ pids_css_alloc(struct cgroup_subsys_state *parent)
 
 	pids->limit = PIDS_MAX;
 	atomic64_set(&pids->counter, 0);
-	atomic64_set(&pids->events_limit, 0);
+	atomic64_set_unchecked(&pids->events_limit, 0);
 	return &pids->css;
 }
 
@@ -227,7 +227,7 @@ static int pids_can_fork(struct task_struct *task)
 	err = pids_try_charge(pids, 1);
 	if (err) {
 		/* Only log the first time events_limit is incremented. */
-		if (atomic64_inc_return(&pids->events_limit) == 1) {
+		if (atomic64_inc_return_unchecked(&pids->events_limit) == 1) {
 			pr_info("cgroup: fork rejected by pids controller in ");
 			pr_cont_cgroup_path(css->cgroup);
 			pr_cont("\n");
@@ -310,7 +310,7 @@ static int pids_events_show(struct seq_file *sf, void *v)
 {
 	struct pids_cgroup *pids = css_pids(seq_css(sf));
 
-	seq_printf(sf, "max %lld\n", (s64)atomic64_read(&pids->events_limit));
+	seq_printf(sf, "max %lld\n", (s64)atomic64_read_unchecked(&pids->events_limit));
 	return 0;
 }
 

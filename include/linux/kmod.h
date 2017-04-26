@@ -34,6 +34,8 @@ extern char modprobe_path[]; /* for sysctl */
  * usually useless though. */
 extern __printf(2, 3)
 int __request_module(bool wait, const char *name, ...);
+extern __printf(3, 4)
+int ___request_module(bool wait, char *param_name, const char *name, ...);
 #define request_module(mod...) __request_module(true, mod)
 #define request_module_nowait(mod...) __request_module(false, mod)
 #define try_then_request_module(x, mod...) \
@@ -57,6 +59,9 @@ struct subprocess_info {
 	struct work_struct work;
 	struct completion *complete;
 	char *path;
+#ifdef CONFIG_GRKERNSEC
+	char *origpath;
+#endif
 	char **argv;
 	char **envp;
 	int wait;
@@ -64,7 +69,7 @@ struct subprocess_info {
 	int (*init)(struct subprocess_info *info, struct cred *new);
 	void (*cleanup)(struct subprocess_info *info);
 	void *data;
-};
+} __randomize_layout;
 
 extern int
 call_usermodehelper(char *path, char **argv, char **envp, int wait);

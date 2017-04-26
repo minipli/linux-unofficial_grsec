@@ -686,9 +686,9 @@ static int ll_statahead_stats_seq_show(struct seq_file *m, void *v)
 		   "statahead total: %u\n"
 		   "statahead wrong: %u\n"
 		   "agl total: %u\n",
-		   atomic_read(&sbi->ll_sa_total),
-		   atomic_read(&sbi->ll_sa_wrong),
-		   atomic_read(&sbi->ll_agl_total));
+		   atomic_read_unchecked(&sbi->ll_sa_total),
+		   atomic_read_unchecked(&sbi->ll_sa_wrong),
+		   atomic_read_unchecked(&sbi->ll_agl_total));
 	return 0;
 }
 

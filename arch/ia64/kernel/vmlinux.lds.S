@@ -172,7 +172,7 @@ SECTIONS {
 	/* Per-cpu data: */
 	. = ALIGN(PERCPU_PAGE_SIZE);
 	PERCPU_VADDR(SMP_CACHE_BYTES, PERCPU_ADDR, :percpu)
-	__phys_per_cpu_start = __per_cpu_load;
+	__phys_per_cpu_start = per_cpu_load;
 	/*
 	 * ensure percpu data fits
 	 * into percpu page size

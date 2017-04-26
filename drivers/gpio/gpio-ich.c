@@ -95,7 +95,7 @@ struct ichx_desc {
 	 * this option allows driver caching written output values
 	 */
 	bool use_outlvl_cache;
-};
+} __do_const;
 
 static struct {
 	spinlock_t lock;

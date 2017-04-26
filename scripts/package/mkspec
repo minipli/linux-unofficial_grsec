@@ -120,22 +120,33 @@ echo 'rm -f $RPM_BUILD_ROOT'"/lib/modules/$KERNELRELEASE/{build,source}"
 echo "mkdir -p "'$RPM_BUILD_ROOT'"/usr/src/kernels/$KERNELRELEASE"
 echo "EXCLUDES=\"$RCS_TAR_IGNORE --exclude .tmp_versions --exclude=*vmlinux* --exclude=*.o --exclude=*.ko --exclude=*.cmd --exclude=Documentation --exclude=firmware --exclude .config.old --exclude .missing-syscalls.d\""
 echo "tar "'$EXCLUDES'" -cf- . | (cd "'$RPM_BUILD_ROOT'"/usr/src/kernels/$KERNELRELEASE;tar xvf -)"
-echo 'cd $RPM_BUILD_ROOT'"/lib/modules/$KERNELRELEASE"
-echo "ln -sf /usr/src/kernels/$KERNELRELEASE build"
-echo "ln -sf /usr/src/kernels/$KERNELRELEASE source"
 fi
 
 echo ""
 echo "%clean"
 echo 'rm -rf $RPM_BUILD_ROOT'
 echo ""
+echo "%pre"
+echo 'chmod -f 0500 /boot'
+echo 'if [ -d /lib/modules ]; then'
+echo 'chmod -f 0500 /lib/modules'
+echo 'fi'
+echo 'if [ -d /lib32/modules ]; then'
+echo 'chmod -f 0500 /lib32/modules'
+echo 'fi'
+echo 'if [ -d /lib64/modules ]; then'
+echo 'chmod -f 0500 /lib64/modules'
+echo 'fi'
+echo ""
+echo "%post devel"
+echo "ln -sf /usr/src/kernels/$KERNELRELEASE /lib/modules/$KERNELRELEASE/build"
+echo "ln -sf /usr/src/kernels/$KERNELRELEASE /lib/modules/$KERNELRELEASE/source"
+echo ""
 echo "%post"
-echo "if [ -x /sbin/installkernel -a -r /boot/vmlinuz-$KERNELRELEASE -a -r /boot/System.map-$KERNELRELEASE ]; then"
-echo "cp /boot/vmlinuz-$KERNELRELEASE /boot/.vmlinuz-$KERNELRELEASE-rpm"
-echo "cp /boot/System.map-$KERNELRELEASE /boot/.System.map-$KERNELRELEASE-rpm"
-echo "rm -f /boot/vmlinuz-$KERNELRELEASE /boot/System.map-$KERNELRELEASE"
-echo "/sbin/installkernel $KERNELRELEASE /boot/.vmlinuz-$KERNELRELEASE-rpm /boot/.System.map-$KERNELRELEASE-rpm"
-echo "rm -f /boot/.vmlinuz-$KERNELRELEASE-rpm /boot/.System.map-$KERNELRELEASE-rpm"
+echo "if [ -x /sbin/dracut ]; then"
+echo '/sbin/new-kernel-pkg --dracut --mkinitrd --depmod --install --make-default '"$KERNELRELEASE"' || exit $?'
+echo "else"
+echo '/sbin/new-kernel-pkg --mkinitrd --depmod --install --make-default '"$KERNELRELEASE"' || exit $?'
 echo "fi"
 echo ""
 echo "%preun"
@@ -149,10 +160,10 @@ echo "/sbin/update-bootloader --remove $KERNELRELEASE"
 echo "fi"
 echo ""
 echo "%files"
-echo '%defattr (-, root, root)'
-echo "/lib/modules/$KERNELRELEASE"
+echo '%defattr (400, root, root, 500)'
 echo "%exclude /lib/modules/$KERNELRELEASE/build"
 echo "%exclude /lib/modules/$KERNELRELEASE/source"
+echo "/lib/modules/$KERNELRELEASE"
 echo "/lib/firmware/$KERNELRELEASE"
 echo "/boot/*"
 echo ""
@@ -162,9 +173,11 @@ echo "/usr/include"
 echo ""
 if ! $PREBUILT; then
 echo "%files devel"
-echo '%defattr (-, root, root)'
+echo '%defattr (400, root, root, 500)'
+echo "%dir /lib/modules/$KERNELRELEASE"
 echo "/usr/src/kernels/$KERNELRELEASE"
-echo "/lib/modules/$KERNELRELEASE/build"
-echo "/lib/modules/$KERNELRELEASE/source"
+echo "%attr (500, root, root) /usr/src/kernels/$KERNELRELEASE/scripts/recordmcount"
+echo "%attr (500, root, root) /usr/src/kernels/$KERNELRELEASE/scripts/basic/fixdep"
+echo "%attr (500, root, root) /usr/src/kernels/$KERNELRELEASE/scripts/mod/modpost"
 echo ""
 fi

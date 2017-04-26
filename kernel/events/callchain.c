@@ -251,7 +251,7 @@ int perf_event_max_stack_handler(struct ctl_table *table, int write,
 {
 	int *value = table->data;
 	int new_value = *value, ret;
-	struct ctl_table new_table = *table;
+	ctl_table_no_const new_table = *table;
 
 	new_table.data = &new_value;
 	ret = proc_dointvec_minmax(&new_table, write, buffer, lenp, ppos);

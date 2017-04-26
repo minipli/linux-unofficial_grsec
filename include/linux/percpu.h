@@ -28,7 +28,7 @@
  * preallocate for this.  Keep PERCPU_DYNAMIC_RESERVE equal to or
  * larger than PERCPU_DYNAMIC_EARLY_SIZE.
  */
-#define PERCPU_DYNAMIC_EARLY_SLOTS	128
+#define PERCPU_DYNAMIC_EARLY_SLOTS	256
 #define PERCPU_DYNAMIC_EARLY_SIZE	(12 << 10)
 
 /*

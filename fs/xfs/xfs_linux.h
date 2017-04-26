@@ -219,7 +219,7 @@ static inline kgid_t xfs_gid_to_kgid(__uint32_t gid)
  * of the compiler which do not like us using do_div in the middle
  * of large functions.
  */
-static inline __u32 xfs_do_div(void *a, __u32 b, int n)
+static inline __u32 __intentional_overflow(-1) xfs_do_div(void *a, __u32 b, int n)
 {
 	__u32	mod;
 
@@ -275,7 +275,7 @@ static inline __u32 xfs_do_mod(void *a, __u32 b, int n)
 	return 0;
 }
 #else
-static inline __u32 xfs_do_div(void *a, __u32 b, int n)
+static inline __u32 __intentional_overflow(-1) xfs_do_div(void *a, __u32 b, int n)
 {
 	__u32	mod;
 

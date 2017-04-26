@@ -14,6 +14,9 @@
 #define PAGE_SIZE	(_AC(1, UL) << PAGE_SHIFT)
 #define PAGE_MASK	(~(PAGE_SIZE-1))
 
+#define ktla_ktva(addr)			(addr)
+#define ktva_ktla(addr)			(addr)
+
 #ifndef __ASSEMBLY__
 
 struct page;

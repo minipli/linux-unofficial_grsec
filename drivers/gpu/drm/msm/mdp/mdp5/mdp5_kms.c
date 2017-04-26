@@ -647,9 +647,12 @@ struct msm_kms *mdp5_kms_init(struct drm_device *dev)
 	dev->mode_config.max_width = config->hw->lm.max_width;
 	dev->mode_config.max_height = config->hw->lm.max_height;
 
-	dev->driver->get_vblank_timestamp = mdp5_get_vblank_timestamp;
-	dev->driver->get_scanout_position = mdp5_get_scanoutpos;
-	dev->driver->get_vblank_counter = mdp5_get_vblank_counter;
+	pax_open_kernel();
+	const_cast(dev->driver->get_vblank_timestamp) = mdp5_get_vblank_timestamp;
+	const_cast(dev->driver->get_scanout_position) = mdp5_get_scanoutpos;
+	const_cast(dev->driver->get_vblank_counter) = mdp5_get_vblank_counter;
+	pax_close_kernel();
+
 	dev->max_vblank_count = 0xffffffff;
 	dev->vblank_disable_immediate = true;
 

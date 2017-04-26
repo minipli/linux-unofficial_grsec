@@ -514,7 +514,7 @@ static void can_remove_proc_readentry(const char *name)
 void can_init_proc(void)
 {
 	/* create /proc/net/can directory */
-	can_dir = proc_mkdir("can", init_net.proc_net);
+	can_dir = proc_mkdir_restrict("can", init_net.proc_net);
 
 	if (!can_dir) {
 		pr_info("can: failed to create /proc/net/can.\n");

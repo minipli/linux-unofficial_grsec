@@ -44,7 +44,7 @@ struct l2c_init_data {
 	void (*configure)(void __iomem *);
 	void (*unlock)(void __iomem *, unsigned);
 	struct outer_cache_fns outer_cache;
-};
+} __do_const;
 
 #define CACHE_LINE_SIZE		32
 

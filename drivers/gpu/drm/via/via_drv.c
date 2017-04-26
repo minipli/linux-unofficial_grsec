@@ -107,7 +107,10 @@ static struct pci_driver via_pci_driver = {
 
 static int __init via_init(void)
 {
-	driver.num_ioctls = via_max_ioctl;
+	pax_open_kernel();
+	const_cast(driver.num_ioctls) = via_max_ioctl;
+	pax_close_kernel();
+
 	via_init_command_verifier();
 	return drm_pci_init(&driver, &via_pci_driver);
 }

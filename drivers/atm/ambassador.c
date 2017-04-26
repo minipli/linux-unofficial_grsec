@@ -454,7 +454,7 @@ static void tx_complete (amb_dev * dev, tx_out * tx) {
   PRINTD (DBG_FLOW|DBG_TX, "tx_complete %p %p", dev, tx);
   
   // VC layer stats
-  atomic_inc(&ATM_SKB(skb)->vcc->stats->tx);
+  atomic_inc_unchecked(&ATM_SKB(skb)->vcc->stats->tx);
   
   // free the descriptor
   kfree (tx_descr);
@@ -495,7 +495,7 @@ static void rx_complete (amb_dev * dev, rx_out * rx) {
 	  dump_skb ("<<<", vc, skb);
 	  
 	  // VC layer stats
-	  atomic_inc(&atm_vcc->stats->rx);
+	  atomic_inc_unchecked(&atm_vcc->stats->rx);
 	  __net_timestamp(skb);
 	  // end of our responsibility
 	  atm_vcc->push (atm_vcc, skb);
@@ -510,7 +510,7 @@ static void rx_complete (amb_dev * dev, rx_out * rx) {
       } else {
       	PRINTK (KERN_INFO, "dropped over-size frame");
 	// should we count this?
-	atomic_inc(&atm_vcc->stats->rx_drop);
+	atomic_inc_unchecked(&atm_vcc->stats->rx_drop);
       }
       
     } else {
@@ -1338,7 +1338,7 @@ static int amb_send (struct atm_vcc * atm_vcc, struct sk_buff * skb) {
   }
   
   if (check_area (skb->data, skb->len)) {
-    atomic_inc(&atm_vcc->stats->tx_err);
+    atomic_inc_unchecked(&atm_vcc->stats->tx_err);
     return -ENOMEM; // ?
   }
   

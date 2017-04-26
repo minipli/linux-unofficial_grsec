@@ -99,7 +99,7 @@ module_param(mpt_channel_mapping, int, 0);
 MODULE_PARM_DESC(mpt_channel_mapping, " Mapping id's to channels (default=0)");
 
 static int mpt_debug_level;
-static int mpt_set_debug_level(const char *val, struct kernel_param *kp);
+static int mpt_set_debug_level(const char *val, const struct kernel_param *kp);
 module_param_call(mpt_debug_level, mpt_set_debug_level, param_get_int,
 		  &mpt_debug_level, 0600);
 MODULE_PARM_DESC(mpt_debug_level,
@@ -242,7 +242,7 @@ pci_enable_io_access(struct pci_dev *pdev)
 	pci_write_config_word(pdev, PCI_COMMAND, command_reg);
 }
 
-static int mpt_set_debug_level(const char *val, struct kernel_param *kp)
+static int mpt_set_debug_level(const char *val, const struct kernel_param *kp)
 {
 	int ret = param_set_int(val, kp);
 	MPT_ADAPTER *ioc;
@@ -6749,8 +6749,13 @@ static int mpt_iocinfo_proc_show(struct seq_file *m, void *v)
 	seq_printf(m, "  MaxChainDepth = 0x%02x frames\n", ioc->facts.MaxChainDepth);
 	seq_printf(m, "  MinBlockSize = 0x%02x bytes\n", 4*ioc->facts.BlockSize);
 
+#ifdef CONFIG_GRKERNSEC_HIDESYM
+	seq_printf(m, "  RequestFrames @ 0x%p (Dma @ 0x%p)\n", NULL, NULL);
+#else
 	seq_printf(m, "  RequestFrames @ 0x%p (Dma @ 0x%p)\n",
 					(void *)ioc->req_frames, (void *)(ulong)ioc->req_frames_dma);
+#endif
+
 	/*
 	 *  Rounding UP to nearest 4-kB boundary here...
 	 */
@@ -6763,7 +6768,11 @@ static int mpt_iocinfo_proc_show(struct seq_file *m, void *v)
 					ioc->facts.GlobalCredits);
 
 	seq_printf(m, "  Frames   @ 0x%p (Dma @ 0x%p)\n",
+#ifdef CONFIG_GRKERNSEC_HIDESYM
+					NULL, NULL);
+#else
 					(void *)ioc->alloc, (void *)(ulong)ioc->alloc_dma);
+#endif
 	sz = (ioc->reply_sz * ioc->reply_depth) + 128;
 	seq_printf(m, "    {CurRepSz=%d} x {CurRepDepth=%d} = %d bytes ^= 0x%x\n",
 					ioc->reply_sz, ioc->reply_depth, ioc->reply_sz*ioc->reply_depth, sz);

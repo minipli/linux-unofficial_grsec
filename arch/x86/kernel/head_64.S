@@ -20,6 +20,8 @@
 #include <asm/processor-flags.h>
 #include <asm/percpu.h>
 #include <asm/nops.h>
+#include <asm/cpufeatures.h>
+#include <asm/alternative-asm.h>
 #include "../entry/calling.h"
 #include <asm/export.h>
 
@@ -42,6 +44,12 @@
 L4_PAGE_OFFSET = pgd_index(__PAGE_OFFSET_BASE)
 L4_START_KERNEL = pgd_index(__START_KERNEL_map)
 L3_START_KERNEL = pud_index(__START_KERNEL_map)
+L4_VMALLOC_START = pgd_index(VMALLOC_START)
+L3_VMALLOC_START = pud_index(VMALLOC_START)
+L4_VMALLOC_END = pgd_index(VMALLOC_END)
+L3_VMALLOC_END = pud_index(VMALLOC_END)
+L4_VMEMMAP_START = pgd_index(VMEMMAP_START)
+L3_VMEMMAP_START = pud_index(VMEMMAP_START)
 
 	.text
 	__HEAD
@@ -99,11 +107,36 @@ startup_64:
 	 * Fixup the physical addresses in the page table
 	 */
 	addq	%rbp, early_level4_pgt + (L4_START_KERNEL*8)(%rip)
+	addq	%rbp, init_level4_pgt + (L4_PAGE_OFFSET*8)(%rip)
+	addq	%rbp, init_level4_pgt + (L4_VMALLOC_START*8)(%rip)
+	addq	%rbp, init_level4_pgt + (L4_VMALLOC_START*8) + 8(%rip)
+	addq	%rbp, init_level4_pgt + (L4_VMALLOC_START*8) + 16(%rip)
+	addq	%rbp, init_level4_pgt + (L4_VMALLOC_START*8) + 24(%rip)
+	addq	%rbp, init_level4_pgt + (L4_VMALLOC_END*8)(%rip)
+	addq	%rbp, init_level4_pgt + (L4_VMEMMAP_START*8)(%rip)
+	addq	%rbp, init_level4_pgt + (L4_START_KERNEL*8)(%rip)
 
-	addq	%rbp, level3_kernel_pgt + (510*8)(%rip)
-	addq	%rbp, level3_kernel_pgt + (511*8)(%rip)
+	addq	%rbp, level3_ident_pgt + (0*8)(%rip)
+#ifndef CONFIG_XEN
+	addq	%rbp, level3_ident_pgt + (1*8)(%rip)
+#endif
 
+	addq	%rbp, level3_vmemmap_pgt + (L3_VMEMMAP_START*8)(%rip)
+
+	addq	%rbp, level3_kernel_pgt + (L3_START_KERNEL*8)(%rip)
+	addq	%rbp, level3_kernel_pgt + ((L3_START_KERNEL+1)*8)(%rip)
+
+	addq	%rbp, level2_ident_pgt + (0*8)(%rip)
+
+	addq	%rbp, level2_fixmap_pgt + (0*8)(%rip)
+	addq	%rbp, level2_fixmap_pgt + (1*8)(%rip)
+	addq	%rbp, level2_fixmap_pgt + (2*8)(%rip)
+	addq	%rbp, level2_fixmap_pgt + (3*8)(%rip)
+
+	addq	%rbp, level2_fixmap_pgt + (504*8)(%rip)
+	addq	%rbp, level2_fixmap_pgt + (505*8)(%rip)
 	addq	%rbp, level2_fixmap_pgt + (506*8)(%rip)
+	addq	%rbp, level2_fixmap_pgt + (507*8)(%rip)
 
 	/*
 	 * Set up the identity mapping for the switchover.  These
@@ -187,11 +220,12 @@ ENTRY(secondary_startup_64)
 	/* Sanitize CPU configuration */
 	call verify_cpu
 
+	orq	$-1, %rbp
 	movq	$(init_level4_pgt - __START_KERNEL_map), %rax
 1:
 
-	/* Enable PAE mode and PGE */
-	movl	$(X86_CR4_PAE | X86_CR4_PGE), %ecx
+	/* Enable PAE mode and PSE/PGE */
+	movl	$(X86_CR4_PSE | X86_CR4_PAE | X86_CR4_PGE), %ecx
 	movq	%rcx, %cr4
 
 	/* Setup early boot stage 4 level pagetables. */
@@ -212,10 +246,24 @@ ENTRY(secondary_startup_64)
 	movl	$MSR_EFER, %ecx
 	rdmsr
 	btsl	$_EFER_SCE, %eax	/* Enable System Call */
-	btl	$20,%edi		/* No Execute supported? */
+	btl	$(X86_FEATURE_NX & 31),%edi	/* No Execute supported? */
 	jnc     1f
 	btsl	$_EFER_NX, %eax
+	cmpq	$-1, %rbp
+	je	1f
 	btsq	$_PAGE_BIT_NX,early_pmd_flags(%rip)
+	btsq	$_PAGE_BIT_NX, init_level4_pgt + 8*L4_PAGE_OFFSET(%rip)
+	btsq	$_PAGE_BIT_NX, init_level4_pgt + (8*L4_VMALLOC_START)(%rip)
+	btsq	$_PAGE_BIT_NX, init_level4_pgt + (8*L4_VMALLOC_START) + 8(%rip)
+	btsq	$_PAGE_BIT_NX, init_level4_pgt + (8*L4_VMALLOC_START) + 16(%rip)
+	btsq	$_PAGE_BIT_NX, init_level4_pgt + (8*L4_VMALLOC_START) + 24(%rip)
+	btsq	$_PAGE_BIT_NX, init_level4_pgt + 8*L4_VMALLOC_END(%rip)
+	btsq	$_PAGE_BIT_NX, init_level4_pgt + 8*L4_VMEMMAP_START(%rip)
+	btsq	$_PAGE_BIT_NX, level2_fixmap_pgt + 8*504(%rip)
+	btsq	$_PAGE_BIT_NX, level2_fixmap_pgt + 8*505(%rip)
+	btsq	$_PAGE_BIT_NX, level2_fixmap_pgt + 8*506(%rip)
+	btsq	$_PAGE_BIT_NX, level2_fixmap_pgt + 8*507(%rip)
+	btsq	$_PAGE_BIT_NX, __supported_pte_mask(%rip)
 1:	wrmsr				/* Make changes effective */
 
 	/* Setup cr0 */
@@ -295,10 +343,10 @@ ENTRY(secondary_startup_64)
 	 *	REX.W + FF /5 JMP m16:64 Jump far, absolute indirect,
 	 *		address given in m16:64.
 	 */
-	movq	initial_code(%rip),%rax
+	pax_set_fptr_mask
 	pushq	$0		# fake return address to stop unwinder
 	pushq	$__KERNEL_CS	# set correct cs
-	pushq	%rax		# target address in negative space
+	pushq	initial_code(%rip) # target address in negative space
 	lretq
 ENDPROC(secondary_startup_64)
 
@@ -312,10 +360,9 @@ ENDPROC(secondary_startup_64)
  */
 ENTRY(start_cpu0)
 	movq initial_stack(%rip),%rsp
-	movq	initial_code(%rip),%rax
 	pushq	$0		# fake return address to stop unwinder
 	pushq	$__KERNEL_CS	# set correct cs
-	pushq	%rax		# target address in negative space
+	pushq	initial_code(%rip) # target address in negative space
 	lretq
 ENDPROC(start_cpu0)
 #endif
@@ -328,7 +375,7 @@ ENDPROC(start_cpu0)
 	GLOBAL(initial_gs)
 	.quad	INIT_PER_CPU_VAR(irq_stack_union)
 	GLOBAL(initial_stack)
-	.quad  init_thread_union+THREAD_SIZE-8
+	.quad  init_thread_union+THREAD_SIZE-16
 	__FINITDATA
 
 bad_address:
@@ -382,13 +429,13 @@ early_idt_handler_common:
 	cmpq $14,%rsi		/* Page fault? */
 	jnz 10f
 	GET_CR2_INTO(%rdi)	/* Can clobber any volatile register if pv */
-	call early_make_pgtable
+	pax_direct_call early_make_pgtable
 	andl %eax,%eax
 	jz 20f			/* All good */
 
 10:
 	movq %rsp,%rdi		/* RDI = pt_regs; RSI is already trapnr */
-	call early_fixup_exception
+	pax_direct_call early_fixup_exception
 
 20:
 	decl early_recursion_flag(%rip)
@@ -416,40 +463,71 @@ GLOBAL(name)
 	__INITDATA
 NEXT_PAGE(early_level4_pgt)
 	.fill	511,8,0
-	.quad	level3_kernel_pgt - __START_KERNEL_map + _PAGE_TABLE
+	.quad	level3_kernel_pgt - __START_KERNEL_map + _KERNPG_TABLE
 
 NEXT_PAGE(early_dynamic_pgts)
 	.fill	512*EARLY_DYNAMIC_PAGE_TABLES,8,0
 
-	.data
+	__READ_ONLY
 
-#ifndef CONFIG_XEN
 NEXT_PAGE(init_level4_pgt)
-	.fill	512,8,0
-#else
-NEXT_PAGE(init_level4_pgt)
-	.quad   level3_ident_pgt - __START_KERNEL_map + _KERNPG_TABLE
 	.org    init_level4_pgt + L4_PAGE_OFFSET*8, 0
 	.quad   level3_ident_pgt - __START_KERNEL_map + _KERNPG_TABLE
+	.org	init_level4_pgt + L4_VMALLOC_START*8, 0
+	.quad	level3_vmalloc_start_pgt - __START_KERNEL_map + PAGE_SIZE*0 + _KERNPG_TABLE
+	.quad	level3_vmalloc_start_pgt - __START_KERNEL_map + PAGE_SIZE*1 + _KERNPG_TABLE
+	.quad	level3_vmalloc_start_pgt - __START_KERNEL_map + PAGE_SIZE*2 + _KERNPG_TABLE
+	.quad	level3_vmalloc_start_pgt - __START_KERNEL_map + PAGE_SIZE*3 + _KERNPG_TABLE
+	.org	init_level4_pgt + L4_VMALLOC_END*8, 0
+	.quad	level3_vmalloc_end_pgt - __START_KERNEL_map + _KERNPG_TABLE
+	.org	init_level4_pgt + L4_VMEMMAP_START*8, 0
+	.quad	level3_vmemmap_pgt - __START_KERNEL_map + _KERNPG_TABLE
 	.org    init_level4_pgt + L4_START_KERNEL*8, 0
 	/* (2^48-(2*1024*1024*1024))/(2^39) = 511 */
-	.quad   level3_kernel_pgt - __START_KERNEL_map + _PAGE_TABLE
+	.quad   level3_kernel_pgt - __START_KERNEL_map + _KERNPG_TABLE
+
+#ifdef CONFIG_PAX_PER_CPU_PGD
+NEXT_PAGE(cpu_pgd)
+	.rept 2*NR_CPUS
+	.fill	512,8,0
+	.endr
+EXPORT_SYMBOL(cpu_pgd)
+#endif
 
 NEXT_PAGE(level3_ident_pgt)
 	.quad	level2_ident_pgt - __START_KERNEL_map + _KERNPG_TABLE
+#ifdef CONFIG_XEN
 	.fill	511, 8, 0
+#else
+	.quad	level2_ident_pgt + PAGE_SIZE - __START_KERNEL_map + _KERNPG_TABLE
+	.fill	510,8,0
+#endif
+
+NEXT_PAGE(level3_vmalloc_start_pgt)
+	.fill	4*512,8,0
+
+NEXT_PAGE(level3_vmalloc_end_pgt)
+	.fill	512,8,0
+
+NEXT_PAGE(level3_vmemmap_pgt)
+	.fill	L3_VMEMMAP_START,8,0
+	.quad	level2_vmemmap_pgt - __START_KERNEL_map + _KERNPG_TABLE
+
 NEXT_PAGE(level2_ident_pgt)
-	/* Since I easily can, map the first 1G.
+	.quad	level1_ident_pgt - __START_KERNEL_map + _KERNPG_TABLE
+	/* Since I easily can, map the first 2G.
 	 * Don't set NX because code runs from these pages.
 	 */
-	PMDS(0, __PAGE_KERNEL_IDENT_LARGE_EXEC, PTRS_PER_PMD)
-#endif
+	PMDS(PMD_SIZE, __PAGE_KERNEL_IDENT_LARGE_EXEC, 2*PTRS_PER_PMD - 1)
 
 NEXT_PAGE(level3_kernel_pgt)
 	.fill	L3_START_KERNEL,8,0
 	/* (2^48-(2*1024*1024*1024)-((2^39)*511))/(2^30) = 510 */
 	.quad	level2_kernel_pgt - __START_KERNEL_map + _KERNPG_TABLE
-	.quad	level2_fixmap_pgt - __START_KERNEL_map + _PAGE_TABLE
+	.quad	level2_fixmap_pgt - __START_KERNEL_map + _KERNPG_TABLE
+
+NEXT_PAGE(level2_vmemmap_pgt)
+	.fill	512,8,0
 
 NEXT_PAGE(level2_kernel_pgt)
 	/*
@@ -466,23 +544,73 @@ NEXT_PAGE(level2_kernel_pgt)
 		KERNEL_IMAGE_SIZE/PMD_SIZE)
 
 NEXT_PAGE(level2_fixmap_pgt)
-	.fill	506,8,0
-	.quad	level1_fixmap_pgt - __START_KERNEL_map + _PAGE_TABLE
-	/* 8MB reserved for vsyscalls + a 2MB hole = 4 + 1 entries */
-	.fill	5,8,0
+	.quad	level1_modules_pgt - __START_KERNEL_map + 0 * PAGE_SIZE + _KERNPG_TABLE
+	.quad	level1_modules_pgt - __START_KERNEL_map + 1 * PAGE_SIZE + _KERNPG_TABLE
+	.quad	level1_modules_pgt - __START_KERNEL_map + 2 * PAGE_SIZE + _KERNPG_TABLE
+	.quad	level1_modules_pgt - __START_KERNEL_map + 3 * PAGE_SIZE + _KERNPG_TABLE
+	.fill	500,8,0
+	.quad	level1_fixmap_pgt - __START_KERNEL_map + 0 * PAGE_SIZE + _KERNPG_TABLE
+	.quad	level1_fixmap_pgt - __START_KERNEL_map + 1 * PAGE_SIZE + _KERNPG_TABLE
+	.quad	level1_fixmap_pgt - __START_KERNEL_map + 2 * PAGE_SIZE + _KERNPG_TABLE
+	.quad	level1_vsyscall_pgt - __START_KERNEL_map + _KERNPG_TABLE
+	/* 6MB reserved for vsyscalls + a 2MB hole = 3 + 1 entries */
+	.fill	4,8,0
+
+NEXT_PAGE(level1_ident_pgt)
+	.fill	512,8,0
+
+NEXT_PAGE(level1_modules_pgt)
+	.fill	4*512,8,0
 
 NEXT_PAGE(level1_fixmap_pgt)
+	.fill	3*512,8,0
+
+NEXT_PAGE(level1_vsyscall_pgt)
 	.fill	512,8,0
 
 #undef PMDS
 
-	.data
+	.align PAGE_SIZE
+ENTRY(cpu_gdt_table)
+	.rept NR_CPUS
+	.quad	0x0000000000000000	/* NULL descriptor */
+	.quad	0x00cf9b000000ffff	/* __KERNEL32_CS */
+	.quad	0x00af9b000000ffff	/* __KERNEL_CS */
+	.quad	0x00cf93000000ffff	/* __KERNEL_DS */
+	.quad	0x00cffb000000ffff	/* __USER32_CS */
+	.quad	0x00cff3000000ffff	/* __USER_DS, __USER32_DS  */
+	.quad	0x00affb000000ffff	/* __USER_CS */
+
+#ifdef CONFIG_PAX_KERNEXEC
+	.quad	0x00af9b000000ffff	/* __KERNEXEC_KERNEL_CS */
+#else
+	.quad	0x0			/* unused */
+#endif
+
+	.quad	0,0			/* TSS */
+	.quad	0,0			/* LDT */
+	.quad	0,0,0			/* three TLS descriptors */
+	.quad	0x0000f40000000000	/* node/CPU stored in limit */
+	/* asm/segment.h:GDT_ENTRIES must match this */
+
+#ifdef CONFIG_PAX_MEMORY_UDEREF
+	.quad	0x00cf93000000ffff	/* __UDEREF_KERNEL_DS */
+#else
+	.quad	0x0			/* unused */
+#endif
+
+	/* zero the remaining page */
+	.fill PAGE_SIZE / 8 - GDT_ENTRIES,8,0
+	.endr
+
+EXPORT_SYMBOL_GPL(cpu_gdt_table)
+
 	.align 16
 	.globl early_gdt_descr
 early_gdt_descr:
 	.word	GDT_ENTRIES*8-1
 early_gdt_descr_base:
-	.quad	INIT_PER_CPU_VAR(gdt_page)
+	.quad	cpu_gdt_table
 
 ENTRY(phys_base)
 	/* This must match the first entry in level2_kernel_pgt */
@@ -490,8 +618,8 @@ ENTRY(phys_base)
 EXPORT_SYMBOL(phys_base)
 
 #include "../../x86/xen/xen-head.S"
-	
-	__PAGE_ALIGNED_BSS
+
+	.section .rodata,"a",@progbits
 NEXT_PAGE(empty_zero_page)
 	.skip PAGE_SIZE
 EXPORT_SYMBOL(empty_zero_page)

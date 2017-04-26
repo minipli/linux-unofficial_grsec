@@ -117,7 +117,7 @@ struct fscache_operation {
 	fscache_operation_release_t release;
 };
 
-extern atomic_t fscache_op_debug_id;
+extern atomic_unchecked_t fscache_op_debug_id;
 extern void fscache_op_work_func(struct work_struct *work);
 
 extern void fscache_enqueue_operation(struct fscache_operation *);

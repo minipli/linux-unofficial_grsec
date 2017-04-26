@@ -8,6 +8,6 @@
 
 /* No more #include "asm/arch/kmap_types.h" ! */
 
-#define KM_TYPE_NR 14
+#define KM_TYPE_NR 15
 
 #endif

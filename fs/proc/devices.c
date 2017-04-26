@@ -64,7 +64,11 @@ static const struct file_operations proc_devinfo_operations = {
 
 static int __init proc_devices_init(void)
 {
+#ifdef CONFIG_GRKERNSEC_PROC_ADD
+	proc_create_grsec("devices", 0, NULL, &proc_devinfo_operations);
+#else
 	proc_create("devices", 0, NULL, &proc_devinfo_operations);
+#endif
 	return 0;
 }
 fs_initcall(proc_devices_init);

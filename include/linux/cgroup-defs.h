@@ -427,7 +427,7 @@ struct cftype {
 #ifdef CONFIG_DEBUG_LOCK_ALLOC
 	struct lock_class_key	lockdep_key;
 #endif
-};
+} __do_const;
 
 /*
  * Control Group subsystem type.

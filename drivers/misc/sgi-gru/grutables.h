@@ -167,82 +167,82 @@ extern unsigned int gru_max_gids;
  * GRU statistics.
  */
 struct gru_stats_s {
-	atomic_long_t vdata_alloc;
-	atomic_long_t vdata_free;
-	atomic_long_t gts_alloc;
-	atomic_long_t gts_free;
-	atomic_long_t gms_alloc;
-	atomic_long_t gms_free;
-	atomic_long_t gts_double_allocate;
-	atomic_long_t assign_context;
-	atomic_long_t assign_context_failed;
-	atomic_long_t free_context;
-	atomic_long_t load_user_context;
-	atomic_long_t load_kernel_context;
-	atomic_long_t lock_kernel_context;
-	atomic_long_t unlock_kernel_context;
-	atomic_long_t steal_user_context;
-	atomic_long_t steal_kernel_context;
-	atomic_long_t steal_context_failed;
-	atomic_long_t nopfn;
-	atomic_long_t asid_new;
-	atomic_long_t asid_next;
-	atomic_long_t asid_wrap;
-	atomic_long_t asid_reuse;
-	atomic_long_t intr;
-	atomic_long_t intr_cbr;
-	atomic_long_t intr_tfh;
-	atomic_long_t intr_spurious;
-	atomic_long_t intr_mm_lock_failed;
-	atomic_long_t call_os;
-	atomic_long_t call_os_wait_queue;
-	atomic_long_t user_flush_tlb;
-	atomic_long_t user_unload_context;
-	atomic_long_t user_exception;
-	atomic_long_t set_context_option;
-	atomic_long_t check_context_retarget_intr;
-	atomic_long_t check_context_unload;
-	atomic_long_t tlb_dropin;
-	atomic_long_t tlb_preload_page;
-	atomic_long_t tlb_dropin_fail_no_asid;
-	atomic_long_t tlb_dropin_fail_upm;
-	atomic_long_t tlb_dropin_fail_invalid;
-	atomic_long_t tlb_dropin_fail_range_active;
-	atomic_long_t tlb_dropin_fail_idle;
-	atomic_long_t tlb_dropin_fail_fmm;
-	atomic_long_t tlb_dropin_fail_no_exception;
-	atomic_long_t tfh_stale_on_fault;
-	atomic_long_t mmu_invalidate_range;
-	atomic_long_t mmu_invalidate_page;
-	atomic_long_t flush_tlb;
-	atomic_long_t flush_tlb_gru;
-	atomic_long_t flush_tlb_gru_tgh;
-	atomic_long_t flush_tlb_gru_zero_asid;
+	atomic_long_unchecked_t vdata_alloc;
+	atomic_long_unchecked_t vdata_free;
+	atomic_long_unchecked_t gts_alloc;
+	atomic_long_unchecked_t gts_free;
+	atomic_long_unchecked_t gms_alloc;
+	atomic_long_unchecked_t gms_free;
+	atomic_long_unchecked_t gts_double_allocate;
+	atomic_long_unchecked_t assign_context;
+	atomic_long_unchecked_t assign_context_failed;
+	atomic_long_unchecked_t free_context;
+	atomic_long_unchecked_t load_user_context;
+	atomic_long_unchecked_t load_kernel_context;
+	atomic_long_unchecked_t lock_kernel_context;
+	atomic_long_unchecked_t unlock_kernel_context;
+	atomic_long_unchecked_t steal_user_context;
+	atomic_long_unchecked_t steal_kernel_context;
+	atomic_long_unchecked_t steal_context_failed;
+	atomic_long_unchecked_t nopfn;
+	atomic_long_unchecked_t asid_new;
+	atomic_long_unchecked_t asid_next;
+	atomic_long_unchecked_t asid_wrap;
+	atomic_long_unchecked_t asid_reuse;
+	atomic_long_unchecked_t intr;
+	atomic_long_unchecked_t intr_cbr;
+	atomic_long_unchecked_t intr_tfh;
+	atomic_long_unchecked_t intr_spurious;
+	atomic_long_unchecked_t intr_mm_lock_failed;
+	atomic_long_unchecked_t call_os;
+	atomic_long_unchecked_t call_os_wait_queue;
+	atomic_long_unchecked_t user_flush_tlb;
+	atomic_long_unchecked_t user_unload_context;
+	atomic_long_unchecked_t user_exception;
+	atomic_long_unchecked_t set_context_option;
+	atomic_long_unchecked_t check_context_retarget_intr;
+	atomic_long_unchecked_t check_context_unload;
+	atomic_long_unchecked_t tlb_dropin;
+	atomic_long_unchecked_t tlb_preload_page;
+	atomic_long_unchecked_t tlb_dropin_fail_no_asid;
+	atomic_long_unchecked_t tlb_dropin_fail_upm;
+	atomic_long_unchecked_t tlb_dropin_fail_invalid;
+	atomic_long_unchecked_t tlb_dropin_fail_range_active;
+	atomic_long_unchecked_t tlb_dropin_fail_idle;
+	atomic_long_unchecked_t tlb_dropin_fail_fmm;
+	atomic_long_unchecked_t tlb_dropin_fail_no_exception;
+	atomic_long_unchecked_t tfh_stale_on_fault;
+	atomic_long_unchecked_t mmu_invalidate_range;
+	atomic_long_unchecked_t mmu_invalidate_page;
+	atomic_long_unchecked_t flush_tlb;
+	atomic_long_unchecked_t flush_tlb_gru;
+	atomic_long_unchecked_t flush_tlb_gru_tgh;
+	atomic_long_unchecked_t flush_tlb_gru_zero_asid;
 
-	atomic_long_t copy_gpa;
-	atomic_long_t read_gpa;
+	atomic_long_unchecked_t copy_gpa;
+	atomic_long_unchecked_t read_gpa;
 
-	atomic_long_t mesq_receive;
-	atomic_long_t mesq_receive_none;
-	atomic_long_t mesq_send;
-	atomic_long_t mesq_send_failed;
-	atomic_long_t mesq_noop;
-	atomic_long_t mesq_send_unexpected_error;
-	atomic_long_t mesq_send_lb_overflow;
-	atomic_long_t mesq_send_qlimit_reached;
-	atomic_long_t mesq_send_amo_nacked;
-	atomic_long_t mesq_send_put_nacked;
-	atomic_long_t mesq_page_overflow;
-	atomic_long_t mesq_qf_locked;
-	atomic_long_t mesq_qf_noop_not_full;
-	atomic_long_t mesq_qf_switch_head_failed;
-	atomic_long_t mesq_qf_unexpected_error;
-	atomic_long_t mesq_noop_unexpected_error;
-	atomic_long_t mesq_noop_lb_overflow;
-	atomic_long_t mesq_noop_qlimit_reached;
-	atomic_long_t mesq_noop_amo_nacked;
-	atomic_long_t mesq_noop_put_nacked;
-	atomic_long_t mesq_noop_page_overflow;
+	atomic_long_unchecked_t mesq_receive;
+	atomic_long_unchecked_t mesq_receive_none;
+	atomic_long_unchecked_t mesq_send;
+	atomic_long_unchecked_t mesq_send_failed;
+	atomic_long_unchecked_t mesq_noop;
+	atomic_long_unchecked_t mesq_send_unexpected_error;
+	atomic_long_unchecked_t mesq_send_lb_overflow;
+	atomic_long_unchecked_t mesq_send_qlimit_reached;
+	atomic_long_unchecked_t mesq_send_amo_nacked;
+	atomic_long_unchecked_t mesq_send_put_nacked;
+	atomic_long_unchecked_t mesq_page_overflow;
+	atomic_long_unchecked_t mesq_qf_locked;
+	atomic_long_unchecked_t mesq_qf_noop_not_full;
+	atomic_long_unchecked_t mesq_qf_switch_head_failed;
+	atomic_long_unchecked_t mesq_qf_unexpected_error;
+	atomic_long_unchecked_t mesq_noop_unexpected_error;
+	atomic_long_unchecked_t mesq_noop_lb_overflow;
+	atomic_long_unchecked_t mesq_noop_qlimit_reached;
+	atomic_long_unchecked_t mesq_noop_amo_nacked;
+	atomic_long_unchecked_t mesq_noop_put_nacked;
+	atomic_long_unchecked_t mesq_noop_page_overflow;
 
 };
 
@@ -251,8 +251,8 @@ enum mcs_op {cchop_allocate, cchop_start, cchop_interrupt, cchop_interrupt_sync,
 	tghop_invalidate, mcsop_last};
 
 struct mcs_op_statistic {
-	atomic_long_t	count;
-	atomic_long_t	total;
+	atomic_long_unchecked_t	count;
+	atomic_long_unchecked_t	total;
 	unsigned long	max;
 };
 
@@ -275,7 +275,7 @@ extern struct mcs_op_statistic mcs_op_statistics[mcsop_last];
 
 #define STAT(id)	do {						\
 				if (gru_options & OPT_STATS)		\
-					atomic_long_inc(&gru_stats.id);	\
+					atomic_long_inc_unchecked(&gru_stats.id);	\
 			} while (0)
 
 #ifdef CONFIG_SGI_GRU_DEBUG

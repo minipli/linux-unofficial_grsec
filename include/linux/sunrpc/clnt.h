@@ -103,7 +103,7 @@ struct rpc_procinfo {
 	unsigned int		p_timer;	/* Which RTT timer to use */
 	u32			p_statidx;	/* Which procedure to account */
 	const char *		p_name;		/* name of procedure */
-};
+} __do_const;
 
 #ifdef __KERNEL__
 

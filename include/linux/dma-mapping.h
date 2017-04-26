@@ -125,7 +125,7 @@ struct dma_map_ops {
 	u64 (*get_required_mask)(struct device *dev);
 #endif
 	int is_phys;
-};
+} __do_const;
 
 extern struct dma_map_ops dma_noop_ops;
 

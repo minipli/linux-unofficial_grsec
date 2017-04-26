@@ -415,7 +415,7 @@ void prepare_data_dma(struct gpmi_nand_data *this, enum dma_data_direction dr)
 
 	/* first try to map the upper buffer directly */
 	if (virt_addr_valid(this->upper_buf) &&
-		!object_is_on_stack(this->upper_buf)) {
+		!object_starts_on_stack(this->upper_buf)) {
 		sg_init_one(sgl, this->upper_buf, this->upper_len);
 		ret = dma_map_sg(this->dev, sgl, 1, dr);
 		if (ret == 0)

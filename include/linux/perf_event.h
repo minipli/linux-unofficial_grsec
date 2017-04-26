@@ -586,8 +586,8 @@ struct perf_event {
 
 	enum perf_event_active_state	state;
 	unsigned int			attach_state;
-	local64_t			count;
-	atomic64_t			child_count;
+	local64_t			count; /* PaX: fix it one day */
+	atomic64_unchecked_t		child_count;
 
 	/*
 	 * These are the total time in nanoseconds that the event
@@ -638,8 +638,8 @@ struct perf_event {
 	 * These accumulate total time (in nanoseconds) that children
 	 * events have been enabled and running, respectively.
 	 */
-	atomic64_t			child_total_time_enabled;
-	atomic64_t			child_total_time_running;
+	atomic64_unchecked_t		child_total_time_enabled;
+	atomic64_unchecked_t		child_total_time_running;
 
 	/*
 	 * Protect attach/detach and child_list:
@@ -1100,7 +1100,7 @@ static inline void perf_event_task_sched_out(struct task_struct *prev,
 
 static inline u64 __perf_event_count(struct perf_event *event)
 {
-	return local64_read(&event->count) + atomic64_read(&event->child_count);
+	return local64_read(&event->count) + atomic64_read_unchecked(&event->child_count);
 }
 
 extern void perf_event_mmap(struct vm_area_struct *vma);
@@ -1151,7 +1151,7 @@ static inline int perf_callchain_store(struct perf_callchain_entry_ctx *ctx, u64
 	}
 }
 
-extern int sysctl_perf_event_paranoid;
+extern int sysctl_perf_event_legitimately_concerned;
 extern int sysctl_perf_event_mlock;
 extern int sysctl_perf_event_sample_rate;
 extern int sysctl_perf_cpu_time_max_percent;
@@ -1168,19 +1168,24 @@ extern int perf_cpu_time_max_percent_handler(struct ctl_table *table, int write,
 int perf_event_max_stack_handler(struct ctl_table *table, int write,
 				 void __user *buffer, size_t *lenp, loff_t *ppos);
 
+static inline bool perf_paranoid_any(void)
+{
+	return sysctl_perf_event_legitimately_concerned > 2;
+}
+
 static inline bool perf_paranoid_tracepoint_raw(void)
 {
-	return sysctl_perf_event_paranoid > -1;
+	return sysctl_perf_event_legitimately_concerned > -1;
 }
 
 static inline bool perf_paranoid_cpu(void)
 {
-	return sysctl_perf_event_paranoid > 0;
+	return sysctl_perf_event_legitimately_concerned > 0;
 }
 
 static inline bool perf_paranoid_kernel(void)
 {
-	return sysctl_perf_event_paranoid > 1;
+	return sysctl_perf_event_legitimately_concerned > 1;
 }
 
 extern void perf_event_init(void);
@@ -1341,7 +1346,7 @@ struct perf_pmu_events_attr {
 	struct device_attribute attr;
 	u64 id;
 	const char *event_str;
-};
+} __do_const;
 
 struct perf_pmu_events_ht_attr {
 	struct device_attribute			attr;

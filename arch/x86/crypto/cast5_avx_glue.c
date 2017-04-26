@@ -44,6 +44,8 @@ asmlinkage void cast5_cbc_dec_16way(struct cast5_ctx *ctx, u8 *dst,
 				    const u8 *src);
 asmlinkage void cast5_ctr_16way(struct cast5_ctx *ctx, u8 *dst, const u8 *src,
 				__be64 *iv);
+void __cast5_enc_blk16(struct cast5_ctx *ctx, u8 *dst, const u8 *src) __rap_hash;
+void __cast5_dec_blk16(struct cast5_ctx *ctx, u8 *dst, const u8 *src) __rap_hash;
 
 static inline bool cast5_fpu_begin(bool fpu_enabled, unsigned int nbytes)
 {

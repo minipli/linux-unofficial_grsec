@@ -11,6 +11,7 @@
 #include <linux/i2c.h>
 #include <asm/pmac_low_i2c.h>
 #include <asm/prom.h>
+#include <asm/local.h>
 
 /* PCM3052 register definitions */
 

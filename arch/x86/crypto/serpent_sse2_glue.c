@@ -45,8 +45,10 @@
 #include <asm/crypto/serpent-sse2.h>
 #include <asm/crypto/glue_helper.h>
 
-static void serpent_decrypt_cbc_xway(void *ctx, u128 *dst, const u128 *src)
+static void serpent_decrypt_cbc_xway(void *ctx, u8 *_dst, const u8 *_src)
 {
+	u128 *dst = (u128 *)_dst;
+	const u128 *src = (const u128 *)_src;
 	u128 ivs[SERPENT_PARALLEL_BLOCKS - 1];
 	unsigned int j;
 

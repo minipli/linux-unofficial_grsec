@@ -31,7 +31,7 @@ static int snd_pcm_ioctl_delay_compat(struct snd_pcm_substream *substream,
 	int err;
 
 	fs = snd_enter_user();
-	err = snd_pcm_delay(substream, &delay);
+	err = snd_pcm_delay(substream, (snd_pcm_sframes_t __force_user *)&delay);
 	snd_leave_user(fs);
 	if (err < 0)
 		return err;

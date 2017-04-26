@@ -189,6 +189,7 @@ hugetlb_get_unmapped_area_new_pmd(unsigned long len)
 	info.high_limit = TASK_SIZE;
 	info.align_mask = PAGE_MASK & HUGEPT_MASK;
 	info.align_offset = 0;
+	info.threadstack_offset = 0;
 	return vm_unmapped_area(&info);
 }
 

@@ -74,9 +74,9 @@ int v4l2_device_put(struct v4l2_device *v4l2_dev)
 EXPORT_SYMBOL_GPL(v4l2_device_put);
 
 int v4l2_device_set_name(struct v4l2_device *v4l2_dev, const char *basename,
-						atomic_t *instance)
+						atomic_unchecked_t *instance)
 {
-	int num = atomic_inc_return(instance) - 1;
+	int num = atomic_inc_return_unchecked(instance) - 1;
 	int len = strlen(basename);
 
 	if (basename[len - 1] >= '0' && basename[len - 1] <= '9')

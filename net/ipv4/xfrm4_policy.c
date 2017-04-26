@@ -215,11 +215,11 @@ _decode_session4(struct sk_buff *skb, struct flowi *fl, int reverse)
 	fl4->flowi4_tos = iph->tos;
 }
 
-static inline int xfrm4_garbage_collect(struct dst_ops *ops)
+static int xfrm4_garbage_collect(struct dst_ops *ops)
 {
 	struct net *net = container_of(ops, struct net, xfrm.xfrm4_dst_ops);
 
-	xfrm4_policy_afinfo.garbage_collect(net);
+	xfrm_garbage_collect_deferred(net);
 	return (dst_entries_get_slow(ops) > ops->gc_thresh * 2);
 }
 
@@ -297,19 +297,19 @@ static struct ctl_table xfrm4_policy_table[] = {
 
 static __net_init int xfrm4_net_sysctl_init(struct net *net)
 {
-	struct ctl_table *table;
+	ctl_table_no_const *table = NULL;
 	struct ctl_table_header *hdr;
 
-	table = xfrm4_policy_table;
 	if (!net_eq(net, &init_net)) {
-		table = kmemdup(table, sizeof(xfrm4_policy_table), GFP_KERNEL);
+		table = kmemdup(xfrm4_policy_table, sizeof(xfrm4_policy_table), GFP_KERNEL);
 		if (!table)
 			goto err_alloc;
 
 		table[0].data = &net->xfrm.xfrm4_dst_ops.gc_thresh;
-	}
 
-	hdr = register_net_sysctl(net, "net/ipv4", table);
+		hdr = register_net_sysctl(net, "net/ipv4", table);
+	} else
+		hdr = register_net_sysctl(net, "net/ipv4", xfrm4_policy_table);
 	if (!hdr)
 		goto err_reg;
 
@@ -317,8 +317,7 @@ static __net_init int xfrm4_net_sysctl_init(struct net *net)
 	return 0;
 
 err_reg:
-	if (!net_eq(net, &init_net))
-		kfree(table);
+	kfree(table);
 err_alloc:
 	return -ENOMEM;
 }
@@ -369,7 +368,7 @@ static void __net_exit xfrm4_net_exit(struct net *net)
 	dst_entries_destroy(&net->xfrm.xfrm4_dst_ops);
 }
 
-static struct pernet_operations __net_initdata xfrm4_net_ops = {
+static struct pernet_operations __net_initconst xfrm4_net_ops = {
 	.init	= xfrm4_net_init,
 	.exit	= xfrm4_net_exit,
 };

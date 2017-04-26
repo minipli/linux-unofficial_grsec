@@ -98,15 +98,15 @@ void *do_nofail(void *ptr, const char *expr);
 
 struct buffer {
 	char *p;
-	int pos;
-	int size;
+	unsigned int pos;
+	unsigned int size;
 };
 
 void __attribute__((format(printf, 2, 3)))
 buf_printf(struct buffer *buf, const char *fmt, ...);
 
 void
-buf_write(struct buffer *buf, const char *s, int len);
+buf_write(struct buffer *buf, const char *s, unsigned int len);
 
 struct module {
 	struct module *next;

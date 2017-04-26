@@ -574,7 +574,7 @@ void __init smp_init(void)
  * early_boot_irqs_disabled is set.  Use local_irq_save/restore() instead
  * of local_irq_disable/enable().
  */
-int on_each_cpu(void (*func) (void *info), void *info, int wait)
+int on_each_cpu(smp_call_func_t func, void *info, int wait)
 {
 	unsigned long flags;
 	int ret = 0;

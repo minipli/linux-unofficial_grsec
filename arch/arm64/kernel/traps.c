@@ -547,7 +547,7 @@ asmlinkage long do_ni_syscall(struct pt_regs *regs)
 			__show_regs(regs);
 	}
 
-	return sys_ni_syscall();
+	return -ENOSYS;
 }
 
 static const char *esr_class_str[] = {

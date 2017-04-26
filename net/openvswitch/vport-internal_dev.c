@@ -44,7 +44,7 @@ static struct internal_dev *internal_dev_priv(struct net_device *netdev)
 }
 
 /* Called with rcu_read_lock_bh. */
-static int internal_dev_xmit(struct sk_buff *skb, struct net_device *netdev)
+static netdev_tx_t internal_dev_xmit(struct sk_buff *skb, struct net_device *netdev)
 {
 	int len, err;
 
@@ -153,7 +153,7 @@ static const struct net_device_ops internal_dev_netdev_ops = {
 	.ndo_set_rx_headroom = internal_set_rx_headroom,
 };
 
-static struct rtnl_link_ops internal_dev_link_ops __read_mostly = {
+static struct rtnl_link_ops internal_dev_link_ops = {
 	.kind = "openvswitch",
 };
 

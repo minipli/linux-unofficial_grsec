@@ -18,7 +18,7 @@
  * The IP header will be moved forward to make space for the encapsulation
  * header.
  */
-static int xfrm4_transport_output(struct xfrm_state *x, struct sk_buff *skb)
+static int __intentional_overflow(0) xfrm4_transport_output(struct xfrm_state *x, struct sk_buff *skb)
 {
 	struct iphdr *iph = ip_hdr(skb);
 	int ihl = iph->ihl * 4;

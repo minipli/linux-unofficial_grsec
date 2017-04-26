@@ -108,7 +108,7 @@ nla_put_failure:
 	return -EMSGSIZE;
 }
 
-static struct rtnl_link_ops hsr_link_ops __read_mostly = {
+static struct rtnl_link_ops hsr_link_ops = {
 	.kind		= "hsr",
 	.maxtype	= IFLA_HSR_MAX,
 	.policy		= hsr_policy,

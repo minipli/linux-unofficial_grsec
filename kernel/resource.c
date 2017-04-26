@@ -84,8 +84,8 @@ static void *r_next(struct seq_file *m, void *v, loff_t *pos)
 
 enum { MAX_IORES_LEVEL = 5 };
 
+static void *r_start(struct seq_file *m, loff_t *pos) __acquires(&resource_lock);
 static void *r_start(struct seq_file *m, loff_t *pos)
-	__acquires(resource_lock)
 {
 	struct resource *p = m->private;
 	loff_t l = 0;
@@ -95,8 +95,8 @@ static void *r_start(struct seq_file *m, loff_t *pos)
 	return p;
 }
 
+static void r_stop(struct seq_file *m, void *v) __releases(&resource_lock);
 static void r_stop(struct seq_file *m, void *v)
-	__releases(resource_lock)
 {
 	read_unlock(&resource_lock);
 }
@@ -171,8 +171,18 @@ static const struct file_operations proc_iomem_operations = {
 
 static int __init ioresources_init(void)
 {
+#ifdef CONFIG_GRKERNSEC_PROC_ADD
+#ifdef CONFIG_GRKERNSEC_PROC_USER
+	proc_create("ioports", S_IRUSR, NULL, &proc_ioports_operations);
+	proc_create("iomem", S_IRUSR, NULL, &proc_iomem_operations);
+#elif defined(CONFIG_GRKERNSEC_PROC_USERGROUP)
+	proc_create("ioports", S_IRUSR | S_IRGRP, NULL, &proc_ioports_operations);
+	proc_create("iomem", S_IRUSR | S_IRGRP, NULL, &proc_iomem_operations);
+#endif
+#else
 	proc_create("ioports", 0, NULL, &proc_ioports_operations);
 	proc_create("iomem", 0, NULL, &proc_iomem_operations);
+#endif
 	return 0;
 }
 __initcall(ioresources_init);

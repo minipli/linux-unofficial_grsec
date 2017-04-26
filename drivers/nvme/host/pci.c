@@ -2040,7 +2040,7 @@ static int nvme_resume(struct device *dev)
 static SIMPLE_DEV_PM_OPS(nvme_dev_pm_ops, nvme_suspend, nvme_resume);
 
 static pci_ers_result_t nvme_error_detected(struct pci_dev *pdev,
-						pci_channel_state_t state)
+						enum pci_channel_state state)
 {
 	struct nvme_dev *dev = pci_get_drvdata(pdev);
 

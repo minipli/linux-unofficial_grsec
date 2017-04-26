@@ -31,6 +31,12 @@ struct desc_struct {
 			unsigned base1: 8, type: 4, s: 1, dpl: 2, p: 1;
 			unsigned limit: 4, avl: 1, l: 1, d: 1, g: 1, base2: 8;
 		};
+		struct {
+			u16 offset_low;
+			u16 seg;
+			unsigned reserved: 8, type: 4, s: 1, dpl: 2, p: 1;
+			unsigned offset_high: 16;
+		} gate;
 	};
 } __attribute__((packed));
 

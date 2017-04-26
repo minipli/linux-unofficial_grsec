@@ -113,6 +113,19 @@ extern void __list_del_entry(struct list_head *entry);
 extern void list_del(struct list_head *entry);
 #endif
 
+extern void __pax_list_add(struct list_head *new,
+			      struct list_head *prev,
+			      struct list_head *next);
+static inline void pax_list_add(struct list_head *new, struct list_head *head)
+{
+	__pax_list_add(new, head, head->next);
+}
+static inline void pax_list_add_tail(struct list_head *new, struct list_head *head)
+{
+	__pax_list_add(new, head->prev, head);
+}
+extern void pax_list_del(struct list_head *entry);
+
 /**
  * list_replace - replace old entry by new one
  * @old : the element to be replaced
@@ -145,6 +158,8 @@ static inline void list_del_init(struct list_head *entry)
 	__list_del_entry(entry);
 	INIT_LIST_HEAD(entry);
 }
+
+extern void pax_list_del_init(struct list_head *entry);
 
 /**
  * list_move - delete from one list and add as another's head

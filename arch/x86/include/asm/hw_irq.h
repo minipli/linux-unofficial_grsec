@@ -164,8 +164,8 @@ static inline void unlock_vector_lock(void) {}
 #endif	/* CONFIG_X86_LOCAL_APIC */
 
 /* Statistics */
-extern atomic_t irq_err_count;
-extern atomic_t irq_mis_count;
+extern atomic_unchecked_t irq_err_count;
+extern atomic_unchecked_t irq_mis_count;
 
 extern void elcr_set_level_irq(unsigned int irq);
 

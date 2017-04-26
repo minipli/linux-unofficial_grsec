@@ -61,6 +61,11 @@ static inline void pgd_populate(struct mm_struct *mm, pgd_t *pgd, pmd_t *pmd)
 		        (__u32)(__pa((unsigned long)pmd) >> PxD_VALUE_SHIFT));
 }
 
+static inline void pgd_populate_kernel(struct mm_struct *mm, pgd_t *pgd, pmd_t *pmd)
+{
+	pgd_populate(mm, pgd, pmd);
+}
+
 static inline pmd_t *pmd_alloc_one(struct mm_struct *mm, unsigned long address)
 {
 	pmd_t *pmd = (pmd_t *)__get_free_pages(GFP_KERNEL, PMD_ORDER);
@@ -96,6 +101,7 @@ static inline void pmd_free(struct mm_struct *mm, pmd_t *pmd)
 #define pmd_alloc_one(mm, addr)		({ BUG(); ((pmd_t *)2); })
 #define pmd_free(mm, x)			do { } while (0)
 #define pgd_populate(mm, pmd, pte)	BUG()
+#define pgd_populate_kernel(mm, pmd, pte)	BUG()
 
 #endif
 

@@ -116,7 +116,7 @@ struct sensor_template {
 		       struct device_attribute *devattr,
 		       const char *buf, size_t count);
 	int index;
-};
+} __do_const;
 
 /* Averaging interval */
 static int update_avg_interval(struct acpi_power_meter_resource *resource)
@@ -631,7 +631,7 @@ static int register_attrs(struct acpi_power_meter_resource *resource,
 			  struct sensor_template *attrs)
 {
 	struct device *dev = &resource->acpi_dev->dev;
-	struct sensor_device_attribute *sensors =
+	sensor_device_attribute_no_const *sensors =
 		&resource->sensors[resource->num_sensors];
 	int res = 0;
 
@@ -973,7 +973,7 @@ static int __init enable_cap_knobs(const struct dmi_system_id *d)
 	return 0;
 }
 
-static struct dmi_system_id __initdata pm_dmi_table[] = {
+static const struct dmi_system_id __initconst pm_dmi_table[] = {
 	{
 		enable_cap_knobs, "IBM Active Energy Manager",
 		{

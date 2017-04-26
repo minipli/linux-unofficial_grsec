@@ -1,6 +1,7 @@
 #ifndef _ASM_POWERPC_PGTABLE_H
 #define _ASM_POWERPC_PGTABLE_H
 
+#include <linux/const.h>
 #ifndef __ASSEMBLY__
 #include <linux/mmdebug.h>
 #include <linux/mmzone.h>

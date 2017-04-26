@@ -130,12 +130,12 @@ static void stop_dbg(void)
 /*
  * didd callback function
  */
-static void *didd_callback(void *context, DESCRIPTOR *adapter,
+static void didd_callback(void *context, DESCRIPTOR *adapter,
 			   int removal)
 {
 	if (adapter->type == IDI_DADAPTER) {
 		DBG_ERR(("Notification about IDI_DADAPTER change ! Oops."));
-		return (NULL);
+		return;
 	}
 
 	if (adapter->type == IDI_DIMAINT) {
@@ -143,11 +143,9 @@ static void *didd_callback(void *context, DESCRIPTOR *adapter,
 			stop_dbg();
 		} else {
 			memcpy(&MAdapter, adapter, sizeof(MAdapter));
-			dprintf = (DIVA_DI_PRINTF) MAdapter.request;
 			start_dbg();
 		}
 	}
-	return (NULL);
 }
 
 /*
@@ -169,7 +167,7 @@ static int __init connect_didd(void)
 			req.didd_notify.e.Req = 0;
 			req.didd_notify.e.Rc =
 				IDI_SYNC_REQ_DIDD_REGISTER_ADAPTER_NOTIFY;
-			req.didd_notify.info.callback = (void *)didd_callback;
+			req.didd_notify.info.callback = didd_callback;
 			req.didd_notify.info.context = NULL;
 			DAdapter.request((ENTITY *)&req);
 			if (req.didd_notify.e.Rc != 0xff) {
@@ -179,7 +177,6 @@ static int __init connect_didd(void)
 			notify_handle = req.didd_notify.info.handle;
 		} else if (DIDD_Table[x].type == IDI_DIMAINT) {	/* MAINT found */
 			memcpy(&MAdapter, &DIDD_Table[x], sizeof(DAdapter));
-			dprintf = (DIVA_DI_PRINTF) MAdapter.request;
 			start_dbg();
 		}
 	}

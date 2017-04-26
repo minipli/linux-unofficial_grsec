@@ -624,14 +624,14 @@ static int parser_auth(struct table *t, const char *filename)
 	regex_t mask_rex;
 	regmatch_t match[4];
 	char buf[1024];
-	size_t end;
+	long end;
 	int len;
 	int done = 0;
 	int r;
 	unsigned o;
 	struct offset *offset;
 	char last_reg_s[10];
-	int last_reg;
+	unsigned long last_reg;
 
 	if (regcomp
 	    (&mask_rex, "(0x[0-9a-fA-F]*) *([_a-zA-Z0-9]*)", REG_EXTENDED)) {

@@ -25,7 +25,7 @@ struct blk_trace {
 	struct dentry *dropped_file;
 	struct dentry *msg_file;
 	struct list_head running_list;
-	atomic_t dropped;
+	atomic_unchecked_t dropped;
 };
 
 extern int blk_trace_ioctl(struct block_device *, unsigned, char __user *);

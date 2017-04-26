@@ -218,6 +218,7 @@ struct clk_ops {
 	void		(*init)(struct clk_hw *hw);
 	int		(*debug_init)(struct clk_hw *hw, struct dentry *dentry);
 };
+typedef struct clk_ops __no_const clk_ops_no_const;
 
 /**
  * struct clk_init_data - holds init data that's common to all clocks and is

@@ -207,7 +207,7 @@ static void		ahd_add_scb_to_free_list(struct ahd_softc *ahd,
 static u_int		ahd_rem_wscb(struct ahd_softc *ahd, u_int scbid,
 				     u_int prev, u_int next, u_int tid);
 static void		ahd_reset_current_bus(struct ahd_softc *ahd);
-static ahd_callback_t	ahd_stat_timer;
+static ahd_linux_callback_t	ahd_stat_timer;
 #ifdef AHD_DUMP_SEQ
 static void		ahd_dumpseq(struct ahd_softc *ahd);
 #endif
@@ -7041,10 +7041,9 @@ static const char *termstat_strings[] = {
 /***************************** Timer Facilities *******************************/
 #define ahd_timer_init init_timer
 #define ahd_timer_stop del_timer_sync
-typedef void ahd_linux_callback_t (u_long);
 
 static void
-ahd_timer_reset(ahd_timer_t *timer, int usec, ahd_callback_t *func, void *arg)
+ahd_timer_reset(ahd_timer_t *timer, int usec, ahd_linux_callback_t *func, void *arg)
 {
 	struct ahd_softc *ahd;
 
@@ -7052,7 +7051,7 @@ ahd_timer_reset(ahd_timer_t *timer, int usec, ahd_callback_t *func, void *arg)
 	del_timer(timer);
 	timer->data = (u_long)arg;
 	timer->expires = jiffies + (usec * HZ)/1000000;
-	timer->function = (ahd_linux_callback_t*)func;
+	timer->function = func;
 	add_timer(timer);
 }
 
@@ -8878,9 +8877,9 @@ ahd_reset_channel(struct ahd_softc *ahd, char channel, int initiate_reset)
 
 /**************************** Statistics Processing ***************************/
 static void
-ahd_stat_timer(void *arg)
+ahd_stat_timer(unsigned long arg)
 {
-	struct	ahd_softc *ahd = arg;
+	struct	ahd_softc *ahd = (struct ahd_softc *)arg;
 	u_long	s;
 	int	enint_coal;
 	

@@ -78,7 +78,7 @@
  * finds that the saved generation number is smaller than the global generation
  * number, it wakes up the process.
  */
-static atomic_t		rds_cong_generation = ATOMIC_INIT(0);
+static atomic_unchecked_t		rds_cong_generation = ATOMIC_INIT(0);
 
 /*
  * Congestion monitoring
@@ -248,7 +248,7 @@ void rds_cong_map_updated(struct rds_cong_map *map, uint64_t portmask)
 	rdsdebug("waking map %p for %pI4\n",
 	  map, &map->m_addr);
 	rds_stats_inc(s_cong_update_received);
-	atomic_inc(&rds_cong_generation);
+	atomic_inc_unchecked(&rds_cong_generation);
 	if (waitqueue_active(&map->m_waitq))
 		wake_up(&map->m_waitq);
 	if (waitqueue_active(&rds_poll_waitq))
@@ -274,7 +274,7 @@ EXPORT_SYMBOL_GPL(rds_cong_map_updated);
 
 int rds_cong_updated_since(unsigned long *recent)
 {
-	unsigned long gen = atomic_read(&rds_cong_generation);
+	unsigned long gen = atomic_read_unchecked(&rds_cong_generation);
 
 	if (likely(*recent == gen))
 		return 0;

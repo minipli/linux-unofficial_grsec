@@ -206,7 +206,7 @@ static int atmtcp_v_send(struct atm_vcc *vcc,struct sk_buff *skb)
 		if (vcc->pop) vcc->pop(vcc,skb);
 		else dev_kfree_skb(skb);
 		if (dev_data) return 0;
-		atomic_inc(&vcc->stats->tx_err);
+		atomic_inc_unchecked(&vcc->stats->tx_err);
 		return -ENOLINK;
 	}
 	size = skb->len+sizeof(struct atmtcp_hdr);
@@ -214,7 +214,7 @@ static int atmtcp_v_send(struct atm_vcc *vcc,struct sk_buff *skb)
 	if (!new_skb) {
 		if (vcc->pop) vcc->pop(vcc,skb);
 		else dev_kfree_skb(skb);
-		atomic_inc(&vcc->stats->tx_err);
+		atomic_inc_unchecked(&vcc->stats->tx_err);
 		return -ENOBUFS;
 	}
 	hdr = (void *) skb_put(new_skb,sizeof(struct atmtcp_hdr));
@@ -225,8 +225,8 @@ static int atmtcp_v_send(struct atm_vcc *vcc,struct sk_buff *skb)
 	if (vcc->pop) vcc->pop(vcc,skb);
 	else dev_kfree_skb(skb);
 	out_vcc->push(out_vcc,new_skb);
-	atomic_inc(&vcc->stats->tx);
-	atomic_inc(&out_vcc->stats->rx);
+	atomic_inc_unchecked(&vcc->stats->tx);
+	atomic_inc_unchecked(&out_vcc->stats->rx);
 	return 0;
 }
 
@@ -300,7 +300,7 @@ static int atmtcp_c_send(struct atm_vcc *vcc,struct sk_buff *skb)
 	read_unlock(&vcc_sklist_lock);
 	if (!out_vcc) {
 		result = -EUNATCH;
-		atomic_inc(&vcc->stats->tx_err);
+		atomic_inc_unchecked(&vcc->stats->tx_err);
 		goto done;
 	}
 	skb_pull(skb,sizeof(struct atmtcp_hdr));
@@ -312,8 +312,8 @@ static int atmtcp_c_send(struct atm_vcc *vcc,struct sk_buff *skb)
 	__net_timestamp(new_skb);
 	skb_copy_from_linear_data(skb, skb_put(new_skb, skb->len), skb->len);
 	out_vcc->push(out_vcc,new_skb);
-	atomic_inc(&vcc->stats->tx);
-	atomic_inc(&out_vcc->stats->rx);
+	atomic_inc_unchecked(&vcc->stats->tx);
+	atomic_inc_unchecked(&out_vcc->stats->rx);
 done:
 	if (vcc->pop) vcc->pop(vcc,skb);
 	else dev_kfree_skb(skb);

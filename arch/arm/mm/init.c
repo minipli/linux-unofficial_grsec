@@ -747,7 +747,46 @@ void free_tcmmem(void)
 {
 #ifdef CONFIG_HAVE_TCM
 	extern char __tcm_start, __tcm_end;
+#endif
 
+#ifdef CONFIG_PAX_KERNEXEC
+	unsigned long addr;
+	pgd_t *pgd;
+	pud_t *pud;
+	pmd_t *pmd;
+	int cpu_arch = cpu_architecture();
+	unsigned int cr = get_cr();
+
+	if (cpu_arch >= CPU_ARCH_ARMv6 && (cr & CR_XP)) {
+		/* make pages tables, etc before .text NX */
+		for (addr = PAGE_OFFSET; addr < (unsigned long)_stext; addr += SECTION_SIZE) {
+			pgd = pgd_offset_k(addr);
+			pud = pud_offset(pgd, addr);
+			pmd = pmd_offset(pud, addr);
+			__section_update(pmd, addr, PMD_SECT_XN);
+		}
+		/* make init NX */
+		for (addr = (unsigned long)__init_begin; addr < (unsigned long)_sdata; addr += SECTION_SIZE) {
+			pgd = pgd_offset_k(addr);
+			pud = pud_offset(pgd, addr);
+			pmd = pmd_offset(pud, addr);
+			__section_update(pmd, addr, PMD_SECT_XN);
+		}
+		/* make kernel code/rodata RX */
+		for (addr = (unsigned long)_stext; addr < (unsigned long)__init_begin; addr += SECTION_SIZE) {
+			pgd = pgd_offset_k(addr);
+			pud = pud_offset(pgd, addr);
+			pmd = pmd_offset(pud, addr);
+#ifdef CONFIG_ARM_LPAE
+			__section_update(pmd, addr, PMD_SECT_RDONLY);
+#else
+			__section_update(pmd, addr, PMD_SECT_APX|PMD_SECT_AP_WRITE);
+#endif
+		}
+	}
+#endif
+
+#ifdef CONFIG_HAVE_TCM
 	poison_init_mem(&__tcm_start, &__tcm_end - &__tcm_start);
 	free_reserved_area(&__tcm_start, &__tcm_end, -1, "TCM link");
 #endif

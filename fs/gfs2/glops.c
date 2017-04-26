@@ -549,9 +549,9 @@ static void iopen_go_callback(struct gfs2_glock *gl, bool remote)
 
 	if (gl->gl_demote_state == LM_ST_UNLOCKED &&
 	    gl->gl_state == LM_ST_SHARED && ip) {
-		gl->gl_lockref.count++;
+		__lockref_inc(&gl->gl_lockref);
 		if (queue_work(gfs2_delete_workqueue, &gl->gl_delete) == 0)
-			gl->gl_lockref.count--;
+			__lockref_dec(&gl->gl_lockref);
 	}
 }
 

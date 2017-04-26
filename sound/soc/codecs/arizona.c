@@ -2606,7 +2606,9 @@ int arizona_register_notifier(struct snd_soc_codec *codec,
 	struct arizona_priv *priv = snd_soc_codec_get_drvdata(codec);
 	struct arizona *arizona = priv->arizona;
 
-	nb->notifier_call = notify;
+	pax_open_kernel();
+	const_cast(nb->notifier_call) = notify;
+	pax_close_kernel();
 
 	return blocking_notifier_chain_register(&arizona->notifier, nb);
 }

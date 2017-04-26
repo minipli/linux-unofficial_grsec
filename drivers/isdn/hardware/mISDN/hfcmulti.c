@@ -2856,8 +2856,9 @@ irq_notforus:
  */
 
 static void
-hfcmulti_dbusy_timer(struct hfc_multi *hc)
+hfcmulti_dbusy_timer(unsigned long _hc)
 {
+	//struct hfc_multi *hc = (struct hfc_multi *)_hc;
 }
 
 
@@ -3878,7 +3879,7 @@ hfcmulti_initmode(struct dchannel *dch)
 		if (hc->dnum[pt]) {
 			mode_hfcmulti(hc, dch->slot, dch->dev.D.protocol,
 				      -1, 0, -1, 0);
-			dch->timer.function = (void *) hfcmulti_dbusy_timer;
+			dch->timer.function = hfcmulti_dbusy_timer;
 			dch->timer.data = (long) dch;
 			init_timer(&dch->timer);
 		}
@@ -3986,7 +3987,7 @@ hfcmulti_initmode(struct dchannel *dch)
 		hc->chan[i].slot_rx = -1;
 		hc->chan[i].conf = -1;
 		mode_hfcmulti(hc, i, dch->dev.D.protocol, -1, 0, -1, 0);
-		dch->timer.function = (void *) hfcmulti_dbusy_timer;
+		dch->timer.function = hfcmulti_dbusy_timer;
 		dch->timer.data = (long) dch;
 		init_timer(&dch->timer);
 		hc->chan[i - 2].slot_tx = -1;

@@ -33,72 +33,140 @@
 #include <asm/asm.h>
 #include <asm/smap.h>
 #include <asm/export.h>
+#include <asm/segment.h>
+#include <asm/pgtable.h>
+#include <asm/frame.h>
+#include <asm/alternative-asm.h>
+
+#if defined(CONFIG_X86_32) && defined(CONFIG_PAX_MEMORY_UDEREF)
+#define __copyuser_seg gs;
+#else
+#define __copyuser_seg
+#endif
 
 	.text
 ENTRY(__get_user_1)
+	FRAME_BEGIN
+
+#if !defined(CONFIG_X86_32) || !defined(CONFIG_PAX_MEMORY_UDEREF)
 	mov PER_CPU_VAR(current_task), %_ASM_DX
 	cmp TASK_addr_limit(%_ASM_DX),%_ASM_AX
 	jae bad_get_user
-	ASM_STAC
-1:	movzbl (%_ASM_AX),%edx
+
+#if defined(CONFIG_X86_64) && defined(CONFIG_PAX_MEMORY_UDEREF)
+	mov pax_user_shadow_base,%_ASM_DX
+	cmp %_ASM_DX,%_ASM_AX
+	jae 1234f
+	add %_ASM_DX,%_ASM_AX
+1234:
+#endif
+
+#endif
+
+	ASM_USER_ACCESS_BEGIN
+1:	__copyuser_seg movzbl (%_ASM_AX),%edx
 	xor %eax,%eax
-	ASM_CLAC
-	ret
+	ASM_USER_ACCESS_END
+	FRAME_END
+	pax_ret __get_user_1
 ENDPROC(__get_user_1)
 EXPORT_SYMBOL(__get_user_1)
 
 ENTRY(__get_user_2)
+	FRAME_BEGIN
 	add $1,%_ASM_AX
+
+#if !defined(CONFIG_X86_32) || !defined(CONFIG_PAX_MEMORY_UDEREF)
 	jc bad_get_user
 	mov PER_CPU_VAR(current_task), %_ASM_DX
 	cmp TASK_addr_limit(%_ASM_DX),%_ASM_AX
 	jae bad_get_user
-	ASM_STAC
-2:	movzwl -1(%_ASM_AX),%edx
+
+#if defined(CONFIG_X86_64) && defined(CONFIG_PAX_MEMORY_UDEREF)
+	mov pax_user_shadow_base,%_ASM_DX
+	cmp %_ASM_DX,%_ASM_AX
+	jae 1234f
+	add %_ASM_DX,%_ASM_AX
+1234:
+#endif
+
+#endif
+
+	ASM_USER_ACCESS_BEGIN
+2:	__copyuser_seg movzwl -1(%_ASM_AX),%edx
 	xor %eax,%eax
-	ASM_CLAC
-	ret
+	ASM_USER_ACCESS_END
+	FRAME_END
+	pax_ret __get_user_2
 ENDPROC(__get_user_2)
 EXPORT_SYMBOL(__get_user_2)
 
 ENTRY(__get_user_4)
+	FRAME_BEGIN
 	add $3,%_ASM_AX
+
+#if !defined(CONFIG_X86_32) || !defined(CONFIG_PAX_MEMORY_UDEREF)
 	jc bad_get_user
 	mov PER_CPU_VAR(current_task), %_ASM_DX
 	cmp TASK_addr_limit(%_ASM_DX),%_ASM_AX
 	jae bad_get_user
-	ASM_STAC
-3:	movl -3(%_ASM_AX),%edx
+
+#if defined(CONFIG_X86_64) && defined(CONFIG_PAX_MEMORY_UDEREF)
+	mov pax_user_shadow_base,%_ASM_DX
+	cmp %_ASM_DX,%_ASM_AX
+	jae 1234f
+	add %_ASM_DX,%_ASM_AX
+1234:
+#endif
+
+#endif
+
+	ASM_USER_ACCESS_BEGIN
+3:	__copyuser_seg movl -3(%_ASM_AX),%edx
 	xor %eax,%eax
-	ASM_CLAC
-	ret
+	ASM_USER_ACCESS_END
+	FRAME_END
+	pax_ret __get_user_4
 ENDPROC(__get_user_4)
 EXPORT_SYMBOL(__get_user_4)
 
 ENTRY(__get_user_8)
+	FRAME_BEGIN
+
 #ifdef CONFIG_X86_64
 	add $7,%_ASM_AX
 	jc bad_get_user
 	mov PER_CPU_VAR(current_task), %_ASM_DX
 	cmp TASK_addr_limit(%_ASM_DX),%_ASM_AX
 	jae bad_get_user
-	ASM_STAC
+
+#ifdef CONFIG_PAX_MEMORY_UDEREF
+	mov pax_user_shadow_base,%_ASM_DX
+	cmp %_ASM_DX,%_ASM_AX
+	jae 1234f
+	add %_ASM_DX,%_ASM_AX
+1234:
+#endif
+
+	ASM_USER_ACCESS_BEGIN
 4:	movq -7(%_ASM_AX),%rdx
 	xor %eax,%eax
-	ASM_CLAC
-	ret
+	ASM_USER_ACCESS_END
+	FRAME_END
+	pax_ret __get_user_8
 #else
 	add $7,%_ASM_AX
 	jc bad_get_user_8
 	mov PER_CPU_VAR(current_task), %_ASM_DX
 	cmp TASK_addr_limit(%_ASM_DX),%_ASM_AX
 	jae bad_get_user_8
-	ASM_STAC
-4:	movl -7(%_ASM_AX),%edx
-5:	movl -3(%_ASM_AX),%ecx
+	ASM_USER_ACCESS_BEGIN
+4:	__copyuser_seg movl -7(%_ASM_AX),%edx
+5:	__copyuser_seg movl -3(%_ASM_AX),%ecx
 	xor %eax,%eax
-	ASM_CLAC
-	ret
+	ASM_USER_ACCESS_END
+	FRAME_END
+	pax_ret __get_user_8
 #endif
 ENDPROC(__get_user_8)
 EXPORT_SYMBOL(__get_user_8)
@@ -107,8 +175,9 @@ EXPORT_SYMBOL(__get_user_8)
 bad_get_user:
 	xor %edx,%edx
 	mov $(-EFAULT),%_ASM_AX
-	ASM_CLAC
-	ret
+	ASM_USER_ACCESS_END
+	FRAME_END
+	pax_ret __get_user_bad
 END(bad_get_user)
 
 #ifdef CONFIG_X86_32
@@ -116,8 +185,9 @@ bad_get_user_8:
 	xor %edx,%edx
 	xor %ecx,%ecx
 	mov $(-EFAULT),%_ASM_AX
-	ASM_CLAC
-	ret
+	ASM_USER_ACCESS_END
+	FRAME_END
+	pax_ret __get_user_bad
 END(bad_get_user_8)
 #endif
 

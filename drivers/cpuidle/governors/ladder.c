@@ -173,6 +173,15 @@ static void ladder_reflect(struct cpuidle_device *dev, int index)
 
 static struct cpuidle_governor ladder_governor = {
 	.name =		"ladder",
+	.rating =	25,
+	.enable =	ladder_enable_device,
+	.select =	ladder_select_state,
+	.reflect =	ladder_reflect,
+	.owner =	THIS_MODULE,
+};
+
+static struct cpuidle_governor ladder_governor_nohz = {
+	.name =		"ladder",
 	.rating =	10,
 	.enable =	ladder_enable_device,
 	.select =	ladder_select_state,
@@ -190,10 +199,8 @@ static int __init init_ladder(void)
 	 * governor is better so give it a higher rating than the menu
 	 * governor.
 	 */
-	if (!tick_nohz_enabled)
-		ladder_governor.rating = 25;
 
-	return cpuidle_register_governor(&ladder_governor);
+	return cpuidle_register_governor(tick_nohz_enabled ? &ladder_governor_nohz : &ladder_governor);
 }
 
 postcore_initcall(init_ladder);

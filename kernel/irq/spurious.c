@@ -334,7 +334,7 @@ void note_interrupt(struct irq_desc *desc, irqreturn_t action_ret)
 			 * count. We just care about the count being
 			 * different than the one we saw before.
 			 */
-			handled = atomic_read(&desc->threads_handled);
+			handled = atomic_read_unchecked(&desc->threads_handled);
 			handled |= SPURIOUS_DEFERRED;
 			if (handled != desc->threads_handled_last) {
 				action_ret = IRQ_HANDLED;

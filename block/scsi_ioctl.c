@@ -67,7 +67,7 @@ static int scsi_get_bus(struct request_queue *q, int __user *p)
 	return put_user(0, p);
 }
 
-static int sg_get_timeout(struct request_queue *q)
+static int __intentional_overflow(-1) sg_get_timeout(struct request_queue *q)
 {
 	return jiffies_to_clock_t(q->sg_timeout);
 }

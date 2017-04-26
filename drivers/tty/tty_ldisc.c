@@ -68,7 +68,7 @@ int tty_register_ldisc(int disc, struct tty_ldisc_ops *new_ldisc)
 	raw_spin_lock_irqsave(&tty_ldiscs_lock, flags);
 	tty_ldiscs[disc] = new_ldisc;
 	new_ldisc->num = disc;
-	new_ldisc->refcount = 0;
+	atomic_set(&new_ldisc->refcount, 0);
 	raw_spin_unlock_irqrestore(&tty_ldiscs_lock, flags);
 
 	return ret;
@@ -96,7 +96,7 @@ int tty_unregister_ldisc(int disc)
 		return -EINVAL;
 
 	raw_spin_lock_irqsave(&tty_ldiscs_lock, flags);
-	if (tty_ldiscs[disc]->refcount)
+	if (atomic_read(&tty_ldiscs[disc]->refcount))
 		ret = -EBUSY;
 	else
 		tty_ldiscs[disc] = NULL;
@@ -117,7 +117,7 @@ static struct tty_ldisc_ops *get_ldops(int disc)
 	if (ldops) {
 		ret = ERR_PTR(-EAGAIN);
 		if (try_module_get(ldops->owner)) {
-			ldops->refcount++;
+			atomic_inc(&ldops->refcount);
 			ret = ldops;
 		}
 	}
@@ -130,7 +130,7 @@ static void put_ldops(struct tty_ldisc_ops *ldops)
 	unsigned long flags;
 
 	raw_spin_lock_irqsave(&tty_ldiscs_lock, flags);
-	ldops->refcount--;
+	atomic_dec(&ldops->refcount);
 	module_put(ldops->owner);
 	raw_spin_unlock_irqrestore(&tty_ldiscs_lock, flags);
 }

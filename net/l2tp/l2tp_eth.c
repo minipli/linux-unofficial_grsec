@@ -42,12 +42,12 @@ struct l2tp_eth {
 	struct sock		*tunnel_sock;
 	struct l2tp_session	*session;
 	struct list_head	list;
-	atomic_long_t		tx_bytes;
-	atomic_long_t		tx_packets;
-	atomic_long_t		tx_dropped;
-	atomic_long_t		rx_bytes;
-	atomic_long_t		rx_packets;
-	atomic_long_t		rx_errors;
+	atomic_long_unchecked_t	tx_bytes;
+	atomic_long_unchecked_t	tx_packets;
+	atomic_long_unchecked_t	tx_dropped;
+	atomic_long_unchecked_t	rx_bytes;
+	atomic_long_unchecked_t	rx_packets;
+	atomic_long_unchecked_t	rx_errors;
 };
 
 /* via l2tp_session_priv() */
@@ -90,7 +90,7 @@ static void l2tp_eth_dev_uninit(struct net_device *dev)
 	dev_put(dev);
 }
 
-static int l2tp_eth_dev_xmit(struct sk_buff *skb, struct net_device *dev)
+static netdev_tx_t l2tp_eth_dev_xmit(struct sk_buff *skb, struct net_device *dev)
 {
 	struct l2tp_eth *priv = netdev_priv(dev);
 	struct l2tp_session *session = priv->session;
@@ -98,10 +98,10 @@ static int l2tp_eth_dev_xmit(struct sk_buff *skb, struct net_device *dev)
 	int ret = l2tp_xmit_skb(session, skb, session->hdr_len);
 
 	if (likely(ret == NET_XMIT_SUCCESS)) {
-		atomic_long_add(len, &priv->tx_bytes);
-		atomic_long_inc(&priv->tx_packets);
+		atomic_long_add_unchecked(len, &priv->tx_bytes);
+		atomic_long_inc_unchecked(&priv->tx_packets);
 	} else {
-		atomic_long_inc(&priv->tx_dropped);
+		atomic_long_inc_unchecked(&priv->tx_dropped);
 	}
 	return NETDEV_TX_OK;
 }
@@ -111,12 +111,12 @@ static struct rtnl_link_stats64 *l2tp_eth_get_stats64(struct net_device *dev,
 {
 	struct l2tp_eth *priv = netdev_priv(dev);
 
-	stats->tx_bytes   = atomic_long_read(&priv->tx_bytes);
-	stats->tx_packets = atomic_long_read(&priv->tx_packets);
-	stats->tx_dropped = atomic_long_read(&priv->tx_dropped);
-	stats->rx_bytes   = atomic_long_read(&priv->rx_bytes);
-	stats->rx_packets = atomic_long_read(&priv->rx_packets);
-	stats->rx_errors  = atomic_long_read(&priv->rx_errors);
+	stats->tx_bytes   = atomic_long_read_unchecked(&priv->tx_bytes);
+	stats->tx_packets = atomic_long_read_unchecked(&priv->tx_packets);
+	stats->tx_dropped = atomic_long_read_unchecked(&priv->tx_dropped);
+	stats->rx_bytes   = atomic_long_read_unchecked(&priv->rx_bytes);
+	stats->rx_packets = atomic_long_read_unchecked(&priv->rx_packets);
+	stats->rx_errors  = atomic_long_read_unchecked(&priv->rx_errors);
 	return stats;
 }
 
@@ -167,15 +167,15 @@ static void l2tp_eth_dev_recv(struct l2tp_session *session, struct sk_buff *skb,
 	nf_reset(skb);
 
 	if (dev_forward_skb(dev, skb) == NET_RX_SUCCESS) {
-		atomic_long_inc(&priv->rx_packets);
-		atomic_long_add(data_len, &priv->rx_bytes);
+		atomic_long_inc_unchecked(&priv->rx_packets);
+		atomic_long_add_unchecked(data_len, &priv->rx_bytes);
 	} else {
-		atomic_long_inc(&priv->rx_errors);
+		atomic_long_inc_unchecked(&priv->rx_errors);
 	}
 	return;
 
 error:
-	atomic_long_inc(&priv->rx_errors);
+	atomic_long_inc_unchecked(&priv->rx_errors);
 	kfree_skb(skb);
 }
 

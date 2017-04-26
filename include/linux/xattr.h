@@ -35,7 +35,7 @@ struct xattr_handler {
 	int (*set)(const struct xattr_handler *, struct dentry *dentry,
 		   struct inode *inode, const char *name, const void *buffer,
 		   size_t size, int flags);
-};
+} __do_const;
 
 const char *xattr_full_name(const struct xattr_handler *, const char *);
 
@@ -46,6 +46,9 @@ struct xattr {
 };
 
 ssize_t xattr_getsecurity(struct inode *, const char *, void *, size_t);
+#ifdef CONFIG_PAX_XATTR_PAX_FLAGS
+ssize_t pax_getxattr(struct dentry *, void *, size_t);
+#endif
 ssize_t __vfs_getxattr(struct dentry *, struct inode *, const char *, void *, size_t);
 ssize_t vfs_getxattr(struct dentry *, const char *, void *, size_t);
 ssize_t vfs_listxattr(struct dentry *d, char *list, size_t size);

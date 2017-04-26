@@ -2727,7 +2727,7 @@ static void pqi_heartbeat_timer_handler(unsigned long data)
 	int num_interrupts;
 	struct pqi_ctrl_info *ctrl_info = (struct pqi_ctrl_info *)data;
 
-	num_interrupts = atomic_read(&ctrl_info->num_interrupts);
+	num_interrupts = atomic_read_unchecked(&ctrl_info->num_interrupts);
 
 	if (num_interrupts == ctrl_info->previous_num_interrupts) {
 		ctrl_info->num_heartbeats_requested++;
@@ -2750,7 +2750,7 @@ static void pqi_heartbeat_timer_handler(unsigned long data)
 static void pqi_start_heartbeat_timer(struct pqi_ctrl_info *ctrl_info)
 {
 	ctrl_info->previous_num_interrupts =
-		atomic_read(&ctrl_info->num_interrupts);
+		atomic_read_unchecked(&ctrl_info->num_interrupts);
 
 	init_timer(&ctrl_info->heartbeat_timer);
 	ctrl_info->heartbeat_timer.expires =
@@ -2877,7 +2877,7 @@ static irqreturn_t pqi_irq_handler(int irq, void *data)
 		num_responses_handled += pqi_process_event_intr(ctrl_info);
 
 	if (num_responses_handled)
-		atomic_inc(&ctrl_info->num_interrupts);
+		atomic_inc_unchecked(&ctrl_info->num_interrupts);
 
 	pqi_start_io(ctrl_info, queue_group, RAID_PATH, NULL);
 	pqi_start_io(ctrl_info, queue_group, AIO_PATH, NULL);
@@ -5535,7 +5535,7 @@ static struct pqi_ctrl_info *pqi_alloc_ctrl_info(int numa_node)
 	spin_lock_init(&ctrl_info->scsi_device_list_lock);
 
 	INIT_WORK(&ctrl_info->event_work, pqi_event_worker);
-	atomic_set(&ctrl_info->num_interrupts, 0);
+	atomic_set_unchecked(&ctrl_info->num_interrupts, 0);
 
 	INIT_DELAYED_WORK(&ctrl_info->rescan_work, pqi_rescan_worker);
 	INIT_DELAYED_WORK(&ctrl_info->update_time_work, pqi_update_time_worker);

@@ -13,6 +13,7 @@
 
 #include <linux/kernel.h>
 #include <linux/compiler.h>
+#include <linux/bug.h>
 #include <linux/irqflags.h>
 #include <linux/percpu.h>
 #include <linux/smp.h>

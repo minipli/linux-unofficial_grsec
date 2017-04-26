@@ -248,7 +248,7 @@ static struct net *vlan_get_link_net(const struct net_device *dev)
 	return dev_net(real_dev);
 }
 
-struct rtnl_link_ops vlan_link_ops __read_mostly = {
+struct rtnl_link_ops vlan_link_ops = {
 	.kind		= "vlan",
 	.maxtype	= IFLA_VLAN_MAX,
 	.policy		= vlan_policy,

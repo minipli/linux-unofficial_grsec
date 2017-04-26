@@ -1743,7 +1743,7 @@ static int get_kctl_0dB_offset(struct hda_codec *codec,
 		/* FIXME: set_fs() hack for obtaining user-space TLV data */
 		mm_segment_t fs = get_fs();
 		set_fs(get_ds());
-		if (!kctl->tlv.c(kctl, 0, sizeof(_tlv), _tlv))
+		if (!kctl->tlv.c(kctl, 0, sizeof(_tlv), (unsigned int __force_user *)_tlv))
 			tlv = _tlv;
 		set_fs(fs);
 	} else if (kctl->vd[0].access & SNDRV_CTL_ELEM_ACCESS_TLV_READ)

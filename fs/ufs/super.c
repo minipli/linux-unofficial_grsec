@@ -1424,10 +1424,12 @@ static void init_once(void *foo)
 
 static int __init init_inodecache(void)
 {
-	ufs_inode_cachep = kmem_cache_create("ufs_inode_cache",
+	ufs_inode_cachep = kmem_cache_create_usercopy("ufs_inode_cache",
 					     sizeof(struct ufs_inode_info),
 					     0, (SLAB_RECLAIM_ACCOUNT|
 						SLAB_MEM_SPREAD|SLAB_ACCOUNT),
+					     offsetof(struct ufs_inode_info, i_u1.i_symlink),
+					     sizeof(((struct ufs_inode_info *)0)->i_u1.i_symlink),
 					     init_once);
 	if (ufs_inode_cachep == NULL)
 		return -ENOMEM;

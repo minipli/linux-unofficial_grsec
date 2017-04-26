@@ -61,6 +61,7 @@ static inline void x86_ce4100_early_setup(void) { }
 #ifndef _SETUP
 
 #include <asm/espfix.h>
+#include <asm/uaccess.h>
 #include <linux/kernel.h>
 
 /*
@@ -76,7 +77,7 @@ static inline bool kaslr_enabled(void)
 
 static inline unsigned long kaslr_offset(void)
 {
-	return (unsigned long)&_text - __START_KERNEL;
+	return ktla_ktva((unsigned long)&_text) - __START_KERNEL;
 }
 
 /*

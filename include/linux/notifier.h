@@ -56,7 +56,8 @@ struct notifier_block {
 	notifier_fn_t notifier_call;
 	struct notifier_block __rcu *next;
 	int priority;
-};
+} __do_const;
+typedef struct notifier_block __no_const notifier_block_no_const;
 
 struct atomic_notifier_head {
 	spinlock_t lock;

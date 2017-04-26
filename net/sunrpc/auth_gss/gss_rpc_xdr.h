@@ -177,12 +177,12 @@ struct gssx_res_accept_sec_context {
 #define gssx_dec_store_cred NULL
 #define gssx_enc_init_sec_context NULL
 #define gssx_dec_init_sec_context NULL
-void gssx_enc_accept_sec_context(struct rpc_rqst *req,
+void gssx_enc_accept_sec_context(void *req,
 				 struct xdr_stream *xdr,
-				 struct gssx_arg_accept_sec_context *args);
-int gssx_dec_accept_sec_context(struct rpc_rqst *rqstp,
+				 void *args);
+int gssx_dec_accept_sec_context(void *rqstp,
 				struct xdr_stream *xdr,
-				struct gssx_res_accept_sec_context *res);
+				void *res);
 #define gssx_enc_release_handle NULL
 #define gssx_dec_release_handle NULL
 #define gssx_enc_get_mic NULL

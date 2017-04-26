@@ -10,6 +10,7 @@
  *  ASM optimised string functions
  */
 #include <linux/linkage.h>
+#include <linux/const.h>
 #include <asm/assembler.h>
 #include <asm/asm-offsets.h>
 #include <asm/cache.h>

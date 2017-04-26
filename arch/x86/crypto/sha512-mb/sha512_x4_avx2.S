@@ -63,6 +63,7 @@
 # clobbers ymm0-15
 
 #include <linux/linkage.h>
+#include <asm/alternative-asm.h>
 #include "sha512_mb_mgr_datastruct.S"
 
 arg1 = %rdi
@@ -358,7 +359,7 @@ Lrounds_16_xx:
 	pop     %r12
 
 	# outer calling routine restores XMM and other GP registers
-	ret
+	pax_ret sha512_x4_avx2
 ENDPROC(sha512_x4_avx2)
 
 .data

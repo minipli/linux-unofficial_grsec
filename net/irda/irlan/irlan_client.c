@@ -68,7 +68,7 @@ static void irlan_check_response_param(struct irlan_cb *self, char *param,
 				       char *value, int val_len);
 static void irlan_client_open_ctrl_tsap(struct irlan_cb *self);
 
-static void irlan_client_kick_timer_expired(void *data)
+static void irlan_client_kick_timer_expired(unsigned long data)
 {
 	struct irlan_cb *self = (struct irlan_cb *) data;
 

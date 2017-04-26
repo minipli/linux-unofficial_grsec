@@ -1965,8 +1965,8 @@ static u64 cfqg_prfill_sectors_recursive(struct seq_file *sf,
 {
 	struct blkg_rwstat tmp = blkg_rwstat_recursive_sum(pd->blkg, NULL,
 					offsetof(struct blkcg_gq, stat_bytes));
-	u64 sum = atomic64_read(&tmp.aux_cnt[BLKG_RWSTAT_READ]) +
-		atomic64_read(&tmp.aux_cnt[BLKG_RWSTAT_WRITE]);
+	u64 sum = atomic64_read_unchecked(&tmp.aux_cnt[BLKG_RWSTAT_READ]) +
+		atomic64_read_unchecked(&tmp.aux_cnt[BLKG_RWSTAT_WRITE]);
 
 	return __blkg_prfill_u64(sf, pd, sum >> 9);
 }

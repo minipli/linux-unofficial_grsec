@@ -238,7 +238,7 @@ struct omap_sr_class_data {
 	int (*notify)(struct omap_sr *sr, u32 status);
 	u8 notify_flags;
 	u8 class_type;
-};
+} __do_const;
 
 /**
  * struct omap_sr_nvalue_table	- Smartreflex n-target value info

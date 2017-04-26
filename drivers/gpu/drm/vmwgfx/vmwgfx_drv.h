@@ -439,7 +439,7 @@ struct vmw_private {
 	 * Fencing and IRQs.
 	 */
 
-	atomic_t marker_seq;
+	atomic_unchecked_t marker_seq;
 	wait_queue_head_t fence_queue;
 	wait_queue_head_t fifo_queue;
 	spinlock_t waiter_lock;

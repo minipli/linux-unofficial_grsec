@@ -182,7 +182,7 @@ struct c4iw_rdev {
 	struct c4iw_stats stats;
 	struct c4iw_hw_queue hw_queue;
 	struct t4_dev_status_page *status_page;
-	atomic_t wr_log_idx;
+	atomic_unchecked_t wr_log_idx;
 	struct wr_log_entry *wr_log;
 	int wr_log_size;
 	struct workqueue_struct *free_workq;

@@ -5,6 +5,7 @@
  * Bcache on disk data structures
  */
 
+#include <linux/compiler.h>
 #include <asm/types.h>
 
 #define BITMASK(name, type, field, offset, size)		\
@@ -20,8 +21,8 @@ static inline void SET_##name(type *k, __u64 v)			\
 /* Btree keys - all units are in sectors */
 
 struct bkey {
-	__u64	high;
-	__u64	low;
+	__u64	high __intentional_overflow(-1);
+	__u64	low __intentional_overflow(-1);
 	__u64	ptr[];
 };
 

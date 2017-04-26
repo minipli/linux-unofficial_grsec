@@ -56,7 +56,7 @@ static ssize_t sm_attr_show(struct device *dev, struct device_attribute *attr,
 #define SM_CIS_VENDOR_OFFSET 0x59
 static struct attribute_group *sm_create_sysfs_attributes(struct sm_ftl *ftl)
 {
-	struct attribute_group *attr_group;
+	attribute_group_no_const *attr_group;
 	struct attribute **attributes;
 	struct sm_sysfs_attribute *vendor_attribute;
 	char *vendor;

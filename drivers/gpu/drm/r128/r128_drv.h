@@ -93,14 +93,14 @@ typedef struct drm_r128_private {
 	int is_pci;
 	unsigned long cce_buffers_offset;
 
-	atomic_t idle_count;
+	atomic_unchecked_t idle_count;
 
 	int page_flipping;
 	int current_page;
 	u32 crtc_offset;
 	u32 crtc_offset_cntl;
 
-	atomic_t vbl_received;
+	atomic_unchecked_t vbl_received;
 
 	u32 color_fmt;
 	unsigned int front_offset;
@@ -135,7 +135,7 @@ typedef struct drm_r128_buf_priv {
 } drm_r128_buf_priv_t;
 
 extern const struct drm_ioctl_desc r128_ioctls[];
-extern int r128_max_ioctl;
+extern const int r128_max_ioctl;
 
 				/* r128_cce.c */
 extern int r128_cce_init(struct drm_device *dev, void *data, struct drm_file *file_priv);

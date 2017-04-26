@@ -28,12 +28,12 @@ static DESCRIPTOR _DAdapter;
 /*
  * didd callback function
  */
-static void *didd_callback(void *context, DESCRIPTOR *adapter,
+static void didd_callback(void *context, DESCRIPTOR *adapter,
 			   int removal)
 {
 	if (adapter->type == IDI_DADAPTER) {
 		DBG_ERR(("Notification about IDI_DADAPTER change ! Oops."))
-			return (NULL);
+			return;
 	} else if (adapter->type == IDI_DIMAINT) {
 		if (removal) {
 			DbgDeregister();
@@ -41,7 +41,6 @@ static void *didd_callback(void *context, DESCRIPTOR *adapter,
 			DbgRegister("DIDD", DRIVERRELEASE_DIDD, DBG_DEFAULT);
 		}
 	}
-	return (NULL);
 }
 
 /*
@@ -63,7 +62,7 @@ static int __init connect_didd(void)
 			req.didd_notify.e.Req = 0;
 			req.didd_notify.e.Rc =
 				IDI_SYNC_REQ_DIDD_REGISTER_ADAPTER_NOTIFY;
-			req.didd_notify.info.callback = (void *)didd_callback;
+			req.didd_notify.info.callback = didd_callback;
 			req.didd_notify.info.context = NULL;
 			_DAdapter.request((ENTITY *)&req);
 			if (req.didd_notify.e.Rc != 0xff)

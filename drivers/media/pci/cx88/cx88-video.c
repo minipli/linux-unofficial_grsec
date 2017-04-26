@@ -50,9 +50,9 @@ MODULE_VERSION(CX88_VERSION);
 
 /* ------------------------------------------------------------------ */
 
-static unsigned int video_nr[] = {[0 ... (CX88_MAXBOARDS - 1)] = UNSET };
-static unsigned int vbi_nr[]   = {[0 ... (CX88_MAXBOARDS - 1)] = UNSET };
-static unsigned int radio_nr[] = {[0 ... (CX88_MAXBOARDS - 1)] = UNSET };
+static int video_nr[] = {[0 ... (CX88_MAXBOARDS - 1)] = UNSET };
+static int vbi_nr[]   = {[0 ... (CX88_MAXBOARDS - 1)] = UNSET };
+static int radio_nr[] = {[0 ... (CX88_MAXBOARDS - 1)] = UNSET };
 
 module_param_array(video_nr, int, NULL, 0444);
 module_param_array(vbi_nr,   int, NULL, 0444);

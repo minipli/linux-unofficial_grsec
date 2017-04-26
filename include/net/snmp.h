@@ -67,7 +67,7 @@ struct icmp_mib {
 
 #define ICMPMSG_MIB_MAX	__ICMPMSG_MIB_MAX
 struct icmpmsg_mib {
-	atomic_long_t	mibs[ICMPMSG_MIB_MAX];
+	atomic_long_unchecked_t	mibs[ICMPMSG_MIB_MAX];
 };
 
 /* ICMP6 (IPv6-ICMP) */
@@ -78,17 +78,17 @@ struct icmpv6_mib {
 };
 /* per device counters, (shared on all cpus) */
 struct icmpv6_mib_device {
-	atomic_long_t	mibs[ICMP6_MIB_MAX];
+	atomic_long_unchecked_t	mibs[ICMP6_MIB_MAX];
 };
 
 #define ICMP6MSG_MIB_MAX  __ICMP6MSG_MIB_MAX
 /* per network ns counters */
 struct icmpv6msg_mib {
-	atomic_long_t	mibs[ICMP6MSG_MIB_MAX];
+	atomic_long_unchecked_t	mibs[ICMP6MSG_MIB_MAX];
 };
 /* per device counters, (shared on all cpus) */
 struct icmpv6msg_mib_device {
-	atomic_long_t	mibs[ICMP6MSG_MIB_MAX];
+	atomic_long_unchecked_t	mibs[ICMP6MSG_MIB_MAX];
 };
 
 
@@ -127,7 +127,7 @@ struct linux_xfrm_mib {
 			__this_cpu_inc(mib->mibs[field])
 
 #define SNMP_INC_STATS_ATOMIC_LONG(mib, field)	\
-			atomic_long_inc(&mib->mibs[field])
+			atomic_long_inc_unchecked(&mib->mibs[field])
 
 #define SNMP_INC_STATS(mib, field)	\
 			this_cpu_inc(mib->mibs[field])

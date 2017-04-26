@@ -832,9 +832,11 @@ static int rv3029_probe(struct device *dev, struct regmap *regmap, int irq,
 			dev_warn(dev, "unable to request IRQ, alarms disabled\n");
 			rv3029->irq = 0;
 		} else {
-			rv3029_rtc_ops.read_alarm = rv3029_read_alarm;
-			rv3029_rtc_ops.set_alarm = rv3029_set_alarm;
-			rv3029_rtc_ops.alarm_irq_enable = rv3029_alarm_irq_enable;
+			pax_open_kernel();
+			const_cast(rv3029_rtc_ops.read_alarm) = rv3029_read_alarm;
+			const_cast(rv3029_rtc_ops.set_alarm) = rv3029_set_alarm;
+			const_cast(rv3029_rtc_ops.alarm_irq_enable) = rv3029_alarm_irq_enable;
+			pax_close_kernel();
 		}
 	}
 

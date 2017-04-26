@@ -136,7 +136,7 @@ void irlmp_add_discovery_log(hashbin_t *cachelog, hashbin_t *log)
 	}
 
 	/* Delete the now empty log */
-	hashbin_delete(log, (FREE_FUNC) kfree);
+	hashbin_delete(log, irlmp_kfree);
 }
 
 /*

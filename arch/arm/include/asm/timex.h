@@ -13,6 +13,7 @@
 #define _ASMARM_TIMEX_H
 
 typedef unsigned long cycles_t;
+extern int read_current_timer(unsigned long *timer_val);
 #define get_cycles()	({ cycles_t c; read_current_timer(&c) ? 0 : c; })
 
 #endif

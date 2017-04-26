@@ -200,7 +200,7 @@ int rdma_read_chunk_lcl(struct svcxprt_rdma *xprt,
 	*page_no = pg_no;
 	*page_offset = pg_off;
 	ret = read;
-	atomic_inc(&rdma_stat_read);
+	atomic_inc_unchecked(&rdma_stat_read);
 	return ret;
  err:
 	svc_rdma_unmap_dma(ctxt);
@@ -345,7 +345,7 @@ int rdma_read_chunk_frmr(struct svcxprt_rdma *xprt,
 	*page_no = pg_no;
 	*page_offset = pg_off;
 	ret = read;
-	atomic_inc(&rdma_stat_read);
+	atomic_inc_unchecked(&rdma_stat_read);
 	return ret;
  err:
 	svc_rdma_put_context(ctxt, 0);
@@ -610,7 +610,7 @@ int svc_rdma_recvfrom(struct svc_rqst *rqstp)
 				  dto_q);
 		list_del_init(&ctxt->dto_q);
 	} else {
-		atomic_inc(&rdma_stat_rq_starve);
+		atomic_inc_unchecked(&rdma_stat_rq_starve);
 		clear_bit(XPT_DATA, &xprt->xpt_flags);
 		ctxt = NULL;
 	}
@@ -627,7 +627,7 @@ int svc_rdma_recvfrom(struct svc_rqst *rqstp)
 	}
 	dprintk("svcrdma: processing ctxt=%p on xprt=%p, rqstp=%p, status=%d\n",
 		ctxt, rdma_xprt, rqstp, ctxt->wc_status);
-	atomic_inc(&rdma_stat_recv);
+	atomic_inc_unchecked(&rdma_stat_recv);
 
 	/* Build up the XDR from the receive buffers. */
 	rdma_build_arg_xdr(rqstp, ctxt, ctxt->byte_len);

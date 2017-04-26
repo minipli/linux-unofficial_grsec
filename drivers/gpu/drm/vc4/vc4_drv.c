@@ -183,6 +183,11 @@ static int compare_dev(struct device *dev, void *data)
 	return dev == data;
 }
 
+static int vc4_match(struct device *dev, void *drv)
+{
+	return platform_bus_type.match(dev, drv);
+}
+
 static void vc4_match_add_drivers(struct device *dev,
 				  struct component_match **match,
 				  struct platform_driver *const *drivers,
@@ -194,8 +199,7 @@ static void vc4_match_add_drivers(struct device *dev,
 		struct device_driver *drv = &drivers[i]->driver;
 		struct device *p = NULL, *d;
 
-		while ((d = bus_find_device(&platform_bus_type, p, drv,
-					    (void *)platform_bus_type.match))) {
+		while ((d = bus_find_device(&platform_bus_type, p, drv, vc4_match))) {
 			put_device(p);
 			component_match_add(dev, match, compare_dev, d);
 			p = d;

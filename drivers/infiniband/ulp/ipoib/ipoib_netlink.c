@@ -156,7 +156,7 @@ static size_t ipoib_get_size(const struct net_device *dev)
 		nla_total_size(2);	/* IFLA_IPOIB_UMCAST */
 }
 
-static struct rtnl_link_ops ipoib_link_ops __read_mostly = {
+static struct rtnl_link_ops ipoib_link_ops = {
 	.kind		= "ipoib",
 	.maxtype	= IFLA_IPOIB_MAX,
 	.policy		= ipoib_policy,

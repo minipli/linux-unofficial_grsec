@@ -2049,10 +2049,12 @@ static void bus_reset_work(struct work_struct *work)
 			  be32_to_cpu(ohci->next_header));
 	}
 
+#ifndef CONFIG_GRKERNSEC
 	if (param_remote_dma) {
 		reg_write(ohci, OHCI1394_PhyReqFilterHiSet, ~0);
 		reg_write(ohci, OHCI1394_PhyReqFilterLoSet, ~0);
 	}
+#endif
 
 	spin_unlock_irq(&ohci->lock);
 
@@ -2585,8 +2587,10 @@ static int ohci_enable_phys_dma(struct fw_card *card,
 	unsigned long flags;
 	int n, ret = 0;
 
+#ifndef CONFIG_GRKERNSEC
 	if (param_remote_dma)
 		return 0;
+#endif
 
 	/*
 	 * FIXME:  Make sure this bitmask is cleared when we clear the busReset

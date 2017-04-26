@@ -22,6 +22,7 @@
 
 #include <linux/linkage.h>
 #include <asm/asm-offsets.h>
+#include <asm/alternative-asm.h>
 
 #define a_offset	0
 #define b_offset	4
@@ -215,7 +216,7 @@
 	xor	%r8d,		d ## D;\
 	ror	$1,		d ## D;
 
-ENTRY(twofish_enc_blk)
+RAP_ENTRY(twofish_enc_blk)
 	pushq    R1
 
 	/* %rdi contains the ctx address */
@@ -265,10 +266,10 @@ ENTRY(twofish_enc_blk)
 
 	popq	R1
 	movl	$1,%eax
-	ret
+	pax_ret twofish_enc_blk
 ENDPROC(twofish_enc_blk)
 
-ENTRY(twofish_dec_blk)
+RAP_ENTRY(twofish_dec_blk)
 	pushq    R1
 
 	/* %rdi contains the ctx address */
@@ -317,5 +318,5 @@ ENTRY(twofish_dec_blk)
 
 	popq	R1
 	movl	$1,%eax
-	ret
+	pax_ret twofish_dec_blk
 ENDPROC(twofish_dec_blk)

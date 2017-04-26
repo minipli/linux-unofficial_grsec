@@ -138,7 +138,7 @@ ftrace_push_return_trace(unsigned long ret, unsigned long func, int *depth,
 
 	/* The return trace stack is full */
 	if (current->curr_ret_stack == FTRACE_RETFUNC_DEPTH - 1) {
-		atomic_inc(&current->trace_overrun);
+		atomic_inc_unchecked(&current->trace_overrun);
 		return -EBUSY;
 	}
 
@@ -239,7 +239,7 @@ ftrace_pop_return_trace(struct ftrace_graph_ret *trace, unsigned long *ret,
 	*ret = current->ret_stack[index].ret;
 	trace->func = current->ret_stack[index].func;
 	trace->calltime = current->ret_stack[index].calltime;
-	trace->overrun = atomic_read(&current->trace_overrun);
+	trace->overrun = atomic_read_unchecked(&current->trace_overrun);
 	trace->depth = index;
 }
 

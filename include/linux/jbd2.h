@@ -676,7 +676,7 @@ struct transaction_s
 	/*
 	 * How many handles used this transaction? [t_handle_lock]
 	 */
-	atomic_t		t_handle_count;
+	atomic_unchecked_t	t_handle_count;
 
 	/*
 	 * This transaction is being forced and some process is

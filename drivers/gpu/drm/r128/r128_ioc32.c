@@ -178,7 +178,7 @@ static int compat_r128_getparam(struct file *file, unsigned int cmd,
 	return drm_ioctl(file, DRM_IOCTL_R128_GETPARAM, (unsigned long)getparam);
 }
 
-drm_ioctl_compat_t *r128_compat_ioctls[] = {
+drm_ioctl_compat_t r128_compat_ioctls[] = {
 	[DRM_R128_INIT] = compat_r128_init,
 	[DRM_R128_DEPTH] = compat_r128_depth,
 	[DRM_R128_STIPPLE] = compat_r128_stipple,
@@ -197,17 +197,13 @@ drm_ioctl_compat_t *r128_compat_ioctls[] = {
 long r128_compat_ioctl(struct file *filp, unsigned int cmd, unsigned long arg)
 {
 	unsigned int nr = DRM_IOCTL_NR(cmd);
-	drm_ioctl_compat_t *fn = NULL;
 	int ret;
 
 	if (nr < DRM_COMMAND_BASE)
 		return drm_compat_ioctl(filp, cmd, arg);
 
-	if (nr < DRM_COMMAND_BASE + ARRAY_SIZE(r128_compat_ioctls))
-		fn = r128_compat_ioctls[nr - DRM_COMMAND_BASE];
-
-	if (fn != NULL)
-		ret = (*fn) (filp, cmd, arg);
+	if (nr < DRM_COMMAND_BASE + ARRAY_SIZE(r128_compat_ioctls) && r128_compat_ioctls[nr - DRM_COMMAND_BASE])
+		ret = (*r128_compat_ioctls[nr - DRM_COMMAND_BASE]) (filp, cmd, arg);
 	else
 		ret = drm_ioctl(filp, cmd, arg);
 

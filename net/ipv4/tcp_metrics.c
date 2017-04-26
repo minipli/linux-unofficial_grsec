@@ -1166,7 +1166,7 @@ static void __net_exit tcp_net_metrics_exit(struct net *net)
 	tcp_metrics_flush_all(net);
 }
 
-static __net_initdata struct pernet_operations tcp_net_metrics_ops = {
+static __net_initconst struct pernet_operations tcp_net_metrics_ops = {
 	.init	=	tcp_net_metrics_init,
 	.exit	=	tcp_net_metrics_exit,
 };

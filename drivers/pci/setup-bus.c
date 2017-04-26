@@ -406,8 +406,12 @@ static void __assign_resources_sorted(struct list_head *head,
 
 	/* Update res in head list with add_size in realloc_head list */
 	list_for_each_entry_safe(dev_res, tmp_res, head, list) {
-		dev_res->res->end += get_res_add_size(realloc_head,
-							dev_res->res);
+		resource_size_t add_size = get_res_add_size(realloc_head, dev_res->res);
+
+		if (dev_res->res->start == 0 && dev_res->res->end == RESOURCE_SIZE_MAX)
+			dev_res->res->end = add_size - 1;
+		else
+			dev_res->res->end += get_res_add_size(realloc_head, dev_res->res);
 
 		/*
 		 * There are two kinds of additional resources in the list:
@@ -1120,7 +1124,7 @@ static int pbus_size_mem(struct pci_bus *bus, unsigned long mask,
 	return 0;
 }
 
-unsigned long pci_cardbus_resource_alignment(struct resource *res)
+unsigned long pci_cardbus_resource_alignment(const struct resource *res)
 {
 	if (res->flags & IORESOURCE_IO)
 		return pci_cardbus_io_size;

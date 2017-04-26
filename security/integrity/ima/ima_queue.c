@@ -84,7 +84,7 @@ static int ima_add_digest_entry(struct ima_template_entry *entry)
 	INIT_LIST_HEAD(&qe->later);
 	list_add_tail_rcu(&qe->later, &ima_measurements);
 
-	atomic_long_inc(&ima_htable.len);
+	atomic_long_inc_unchecked(&ima_htable.len);
 	key = ima_hash_key(entry->digest);
 	hlist_add_head_rcu(&qe->hnext, &ima_htable.queue[key]);
 	return 0;

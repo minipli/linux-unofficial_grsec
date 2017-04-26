@@ -102,6 +102,9 @@ struct dentry {
 		struct list_head d_lru;		/* LRU list */
 		wait_queue_head_t *d_wait;	/* in-lookup ones only */
 	};
+#ifdef CONFIG_GRKERNSEC_CHROOT_RENAME
+	atomic_t chroot_refcnt;		/* tracks use of directory in chroot */
+#endif
 	struct list_head d_child;	/* child of parent list */
 	struct list_head d_subdirs;	/* our children */
 	/*
@@ -112,7 +115,7 @@ struct dentry {
 		struct hlist_bl_node d_in_lookup_hash;	/* only for in-lookup ones */
 	 	struct rcu_head d_rcu;
 	} d_u;
-};
+} __randomize_layout;
 
 /*
  * dentry->d_lock spinlock nesting subclasses:
@@ -279,7 +282,7 @@ extern struct dentry *__d_lookup_rcu(const struct dentry *parent,
 
 static inline unsigned d_count(const struct dentry *dentry)
 {
-	return dentry->d_lockref.count;
+	return __lockref_read(&dentry->d_lockref);
 }
 
 /*
@@ -308,7 +311,7 @@ extern char *dentry_path(struct dentry *, char *, int);
 static inline struct dentry *dget_dlock(struct dentry *dentry)
 {
 	if (dentry)
-		dentry->d_lockref.count++;
+		__lockref_inc(&dentry->d_lockref);
 	return dentry;
 }
 

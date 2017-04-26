@@ -695,7 +695,7 @@ extern struct rtnl_link_ops bond_link_ops;
 
 static inline void bond_tx_drop(struct net_device *dev, struct sk_buff *skb)
 {
-	atomic_long_inc(&dev->tx_dropped);
+	atomic_long_inc_unchecked(&dev->tx_dropped);
 	dev_kfree_skb_any(skb);
 }
 

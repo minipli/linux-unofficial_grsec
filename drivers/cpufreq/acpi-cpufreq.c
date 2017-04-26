@@ -694,8 +694,11 @@ static int acpi_cpufreq_cpu_init(struct cpufreq_policy *policy)
 	data->acpi_perf_cpu = cpu;
 	policy->driver_data = data;
 
-	if (cpu_has(c, X86_FEATURE_CONSTANT_TSC))
-		acpi_cpufreq_driver.flags |= CPUFREQ_CONST_LOOPS;
+	if (cpu_has(c, X86_FEATURE_CONSTANT_TSC)) {
+		pax_open_kernel();
+		const_cast(acpi_cpufreq_driver.flags) |= CPUFREQ_CONST_LOOPS;
+		pax_close_kernel();
+	}
 
 	result = acpi_processor_register_performance(perf, cpu);
 	if (result)
@@ -833,7 +836,9 @@ static int acpi_cpufreq_cpu_init(struct cpufreq_policy *policy)
 		policy->cur = acpi_cpufreq_guess_freq(data, policy->cpu);
 		break;
 	case ACPI_ADR_SPACE_FIXED_HARDWARE:
-		acpi_cpufreq_driver.get = get_cur_freq_on_cpu;
+		pax_open_kernel();
+		const_cast(acpi_cpufreq_driver.get) = get_cur_freq_on_cpu;
+		pax_close_kernel();
 		break;
 	default:
 		break;
@@ -930,8 +935,10 @@ static void __init acpi_cpufreq_boost_init(void)
 		if (!msrs)
 			return;
 
-		acpi_cpufreq_driver.set_boost = set_boost;
-		acpi_cpufreq_driver.boost_enabled = boost_state(0);
+		pax_open_kernel();
+		const_cast(acpi_cpufreq_driver.set_boost) = set_boost;
+		const_cast(acpi_cpufreq_driver.boost_enabled) = boost_state(0);
+		pax_close_kernel();
 
 		cpu_notifier_register_begin();
 

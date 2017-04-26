@@ -274,7 +274,7 @@ const struct dsa_device_ops *dsa_resolve_tag_protocol(int tag_protocol)
 int dsa_cpu_port_ethtool_setup(struct dsa_switch *ds)
 {
 	struct net_device *master;
-	struct ethtool_ops *cpu_ops;
+	ethtool_ops_no_const *cpu_ops;
 
 	master = ds->dst->master_netdev;
 	if (ds->master_netdev)
@@ -1050,7 +1050,7 @@ static struct packet_type dsa_pack_type __read_mostly = {
 	.func	= dsa_switch_rcv,
 };
 
-static struct notifier_block dsa_netdevice_nb __read_mostly = {
+static struct notifier_block dsa_netdevice_nb = {
 	.notifier_call	= dsa_slave_netdevice_event,
 };
 

@@ -44,7 +44,7 @@ static void rds_tcp_cork(struct socket *sock, int val)
 
 	oldfs = get_fs();
 	set_fs(KERNEL_DS);
-	sock->ops->setsockopt(sock, SOL_TCP, TCP_CORK, (char __user *)&val,
+	sock->ops->setsockopt(sock, SOL_TCP, TCP_CORK, (char __force_user *)&val,
 			      sizeof(val));
 	set_fs(oldfs);
 }

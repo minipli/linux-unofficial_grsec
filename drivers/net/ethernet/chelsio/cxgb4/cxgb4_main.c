@@ -3861,7 +3861,7 @@ bye:
 /* EEH callbacks */
 
 static pci_ers_result_t eeh_err_detected(struct pci_dev *pdev,
-					 pci_channel_state_t state)
+					 enum pci_channel_state state)
 {
 	int i;
 	struct adapter *adap = pci_get_drvdata(pdev);

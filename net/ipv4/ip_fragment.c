@@ -282,7 +282,7 @@ static int ip_frag_too_far(struct ipq *qp)
 		return 0;
 
 	start = qp->rid;
-	end = atomic_inc_return(&peer->rid);
+	end = atomic_inc_return_unchecked(&peer->rid);
 	qp->rid = end;
 
 	rc = qp->q.fragments && (end - start) > max;
@@ -773,12 +773,11 @@ static struct ctl_table ip4_frags_ctl_table[] = {
 
 static int __net_init ip4_frags_ns_ctl_register(struct net *net)
 {
-	struct ctl_table *table;
+	ctl_table_no_const *table = NULL;
 	struct ctl_table_header *hdr;
 
-	table = ip4_frags_ns_ctl_table;
 	if (!net_eq(net, &init_net)) {
-		table = kmemdup(table, sizeof(ip4_frags_ns_ctl_table), GFP_KERNEL);
+		table = kmemdup(ip4_frags_ns_ctl_table, sizeof(ip4_frags_ns_ctl_table), GFP_KERNEL);
 		if (!table)
 			goto err_alloc;
 
@@ -789,9 +788,10 @@ static int __net_init ip4_frags_ns_ctl_register(struct net *net)
 		table[1].extra2 = &net->ipv4.frags.high_thresh;
 		table[2].data = &net->ipv4.frags.timeout;
 		table[3].data = &net->ipv4.frags.max_dist;
-	}
-
-	hdr = register_net_sysctl(net, "net/ipv4", table);
+		hdr = register_net_sysctl(net, "net/ipv4", table);
+	} else
+		hdr = register_net_sysctl(net, "net/ipv4", ip4_frags_ns_ctl_table);
+ 
 	if (!hdr)
 		goto err_reg;
 
@@ -799,8 +799,7 @@ static int __net_init ip4_frags_ns_ctl_register(struct net *net)
 	return 0;
 
 err_reg:
-	if (!net_eq(net, &init_net))
-		kfree(table);
+	kfree(table);
 err_alloc:
 	return -ENOMEM;
 }

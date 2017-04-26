@@ -31,7 +31,7 @@
 #include <drm/amdgpu_drm.h>
 #include "amdgpu.h"
 
-#define AMDGPU_BO_INVALID_OFFSET	LONG_MAX
+#define AMDGPU_BO_INVALID_OFFSET	(LONG_MAX >> PAGE_SHIFT)
 
 /**
  * amdgpu_mem_type_to_domain - return domain corresponding to mem_type

@@ -93,7 +93,7 @@ struct fbtft_ops {
 
 	int (*set_var)(struct fbtft_par *par);
 	int (*set_gamma)(struct fbtft_par *par, unsigned long *curves);
-};
+} __no_const;
 
 /**
  * struct fbtft_display - Describes the display properties

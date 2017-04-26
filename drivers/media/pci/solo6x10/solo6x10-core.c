@@ -411,7 +411,7 @@ static void solo_device_release(struct device *dev)
 
 static int solo_sysfs_init(struct solo_dev *solo_dev)
 {
-	struct bin_attribute *sdram_attr = &solo_dev->sdram_attr;
+	bin_attribute_no_const *sdram_attr = &solo_dev->sdram_attr;
 	struct device *dev = &solo_dev->dev;
 	const char *driver;
 	int i;

@@ -63,12 +63,12 @@ struct blkcg {
  */
 struct blkg_stat {
 	struct percpu_counter		cpu_cnt;
-	atomic64_t			aux_cnt;
+	atomic64_unchecked_t		aux_cnt;
 };
 
 struct blkg_rwstat {
 	struct percpu_counter		cpu_cnt[BLKG_RWSTAT_NR];
-	atomic64_t			aux_cnt[BLKG_RWSTAT_NR];
+	atomic64_unchecked_t		aux_cnt[BLKG_RWSTAT_NR];
 };
 
 /*
@@ -499,7 +499,7 @@ static inline int blkg_stat_init(struct blkg_stat *stat, gfp_t gfp)
 	if (ret)
 		return ret;
 
-	atomic64_set(&stat->aux_cnt, 0);
+	atomic64_set_unchecked(&stat->aux_cnt, 0);
 	return 0;
 }
 
@@ -537,7 +537,7 @@ static inline uint64_t blkg_stat_read(struct blkg_stat *stat)
 static inline void blkg_stat_reset(struct blkg_stat *stat)
 {
 	percpu_counter_set(&stat->cpu_cnt, 0);
-	atomic64_set(&stat->aux_cnt, 0);
+	atomic64_set_unchecked(&stat->aux_cnt, 0);
 }
 
 /**
@@ -550,7 +550,7 @@ static inline void blkg_stat_reset(struct blkg_stat *stat)
 static inline void blkg_stat_add_aux(struct blkg_stat *to,
 				     struct blkg_stat *from)
 {
-	atomic64_add(blkg_stat_read(from) + atomic64_read(&from->aux_cnt),
+	atomic64_add_unchecked(blkg_stat_read(from) + atomic64_read_unchecked(&from->aux_cnt),
 		     &to->aux_cnt);
 }
 
@@ -565,7 +565,7 @@ static inline int blkg_rwstat_init(struct blkg_rwstat *rwstat, gfp_t gfp)
 				percpu_counter_destroy(&rwstat->cpu_cnt[i]);
 			return ret;
 		}
-		atomic64_set(&rwstat->aux_cnt[i], 0);
+		atomic64_set_unchecked(&rwstat->aux_cnt[i], 0);
 	}
 	return 0;
 }
@@ -620,7 +620,7 @@ static inline struct blkg_rwstat blkg_rwstat_read(struct blkg_rwstat *rwstat)
 	int i;
 
 	for (i = 0; i < BLKG_RWSTAT_NR; i++)
-		atomic64_set(&result.aux_cnt[i],
+		atomic64_set_unchecked(&result.aux_cnt[i],
 			     percpu_counter_sum_positive(&rwstat->cpu_cnt[i]));
 	return result;
 }
@@ -637,8 +637,8 @@ static inline uint64_t blkg_rwstat_total(struct blkg_rwstat *rwstat)
 {
 	struct blkg_rwstat tmp = blkg_rwstat_read(rwstat);
 
-	return atomic64_read(&tmp.aux_cnt[BLKG_RWSTAT_READ]) +
-		atomic64_read(&tmp.aux_cnt[BLKG_RWSTAT_WRITE]);
+	return atomic64_read_unchecked(&tmp.aux_cnt[BLKG_RWSTAT_READ]) +
+		atomic64_read_unchecked(&tmp.aux_cnt[BLKG_RWSTAT_WRITE]);
 }
 
 /**
@@ -651,7 +651,7 @@ static inline void blkg_rwstat_reset(struct blkg_rwstat *rwstat)
 
 	for (i = 0; i < BLKG_RWSTAT_NR; i++) {
 		percpu_counter_set(&rwstat->cpu_cnt[i], 0);
-		atomic64_set(&rwstat->aux_cnt[i], 0);
+		atomic64_set_unchecked(&rwstat->aux_cnt[i], 0);
 	}
 }
 
@@ -669,8 +669,8 @@ static inline void blkg_rwstat_add_aux(struct blkg_rwstat *to,
 	int i;
 
 	for (i = 0; i < BLKG_RWSTAT_NR; i++)
-		atomic64_add(atomic64_read(&v.aux_cnt[i]) +
-			     atomic64_read(&from->aux_cnt[i]),
+		atomic64_add_unchecked(atomic64_read_unchecked(&v.aux_cnt[i]) +
+			     atomic64_read_unchecked(&from->aux_cnt[i]),
 			     &to->aux_cnt[i]);
 }
 

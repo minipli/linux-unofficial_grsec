@@ -1960,7 +1960,7 @@ int btrfs_sync_file(struct file *file, loff_t start, loff_t end, int datasync)
 		return ret;
 
 	inode_lock(inode);
-	atomic_inc(&root->log_batch);
+	atomic_inc_unchecked(&root->log_batch);
 	full_sync = test_bit(BTRFS_INODE_NEEDS_FULL_SYNC,
 			     &BTRFS_I(inode)->runtime_flags);
 	/*
@@ -2014,7 +2014,7 @@ int btrfs_sync_file(struct file *file, loff_t start, loff_t end, int datasync)
 		inode_unlock(inode);
 		goto out;
 	}
-	atomic_inc(&root->log_batch);
+	atomic_inc_unchecked(&root->log_batch);
 
 	/*
 	 * If the last transaction that changed this file was before the current

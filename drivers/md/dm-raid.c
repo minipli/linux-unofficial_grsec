@@ -3196,7 +3196,7 @@ static void raid_status(struct dm_target *ti, status_type_t type,
 				      mddev->resync_max_sectors : mddev->dev_sectors;
 		progress = rs_get_progress(rs, resync_max_sectors, &array_in_sync);
 		resync_mismatches = (mddev->last_sync_action && !strcasecmp(mddev->last_sync_action, "check")) ?
-				    atomic64_read(&mddev->resync_mismatches) : 0;
+				    atomic64_read_unchecked(&mddev->resync_mismatches) : 0;
 		sync_action = decipher_sync_action(&rs->md);
 
 		/* HM FIXME: do we want another state char for raid0? It shows 'D' or 'A' now */

@@ -290,10 +290,10 @@ struct sdebug_queue {
 	atomic_t blocked;	/* to temporarily stop more being queued */
 };
 
-static atomic_t sdebug_cmnd_count;   /* number of incoming commands */
-static atomic_t sdebug_completions;  /* count of deferred completions */
-static atomic_t sdebug_miss_cpus;    /* submission + completion cpus differ */
-static atomic_t sdebug_a_tsf;	     /* 'almost task set full' counter */
+static atomic_unchecked_t sdebug_cmnd_count;   /* number of incoming commands */
+static atomic_unchecked_t sdebug_completions;  /* count of deferred completions */
+static atomic_unchecked_t sdebug_miss_cpus;    /* submission + completion cpus differ */
+static atomic_unchecked_t sdebug_a_tsf;	     /* 'almost task set full' counter */
 
 struct opcode_info_t {
 	u8 num_attached;	/* 0 if this is it (i.e. a leaf); use 0xff */
@@ -3493,9 +3493,9 @@ static void sdebug_q_cmd_complete(struct sdebug_defer *sd_dp)
 	qc_idx = sd_dp->qc_idx;
 	sqp = sdebug_q_arr + sd_dp->sqa_idx;
 	if (sdebug_statistics) {
-		atomic_inc(&sdebug_completions);
+		atomic_inc_unchecked(&sdebug_completions);
 		if (raw_smp_processor_id() != sd_dp->issuing_cpu)
-			atomic_inc(&sdebug_miss_cpus);
+			atomic_inc_unchecked(&sdebug_miss_cpus);
 	}
 	if (unlikely((qc_idx < 0) || (qc_idx >= SDEBUG_CANQUEUE))) {
 		pr_err("wild qc_idx=%d\n", qc_idx);
@@ -3967,23 +3967,23 @@ static void tweak_cmnd_count(void)
 	if (modulo < 2)
 		return;
 	block_unblock_all_queues(true);
-	count = atomic_read(&sdebug_cmnd_count);
-	atomic_set(&sdebug_cmnd_count, (count / modulo) * modulo);
+	count = atomic_read_unchecked(&sdebug_cmnd_count);
+	atomic_set_unchecked(&sdebug_cmnd_count, (count / modulo) * modulo);
 	block_unblock_all_queues(false);
 }
 
 static void clear_queue_stats(void)
 {
-	atomic_set(&sdebug_cmnd_count, 0);
-	atomic_set(&sdebug_completions, 0);
-	atomic_set(&sdebug_miss_cpus, 0);
-	atomic_set(&sdebug_a_tsf, 0);
+	atomic_set_unchecked(&sdebug_cmnd_count, 0);
+	atomic_set_unchecked(&sdebug_completions, 0);
+	atomic_set_unchecked(&sdebug_miss_cpus, 0);
+	atomic_set_unchecked(&sdebug_a_tsf, 0);
 }
 
 static void setup_inject(struct sdebug_queue *sqp,
 			 struct sdebug_queued_cmd *sqcp)
 {
-	if ((atomic_read(&sdebug_cmnd_count) % abs(sdebug_every_nth)) > 0)
+	if ((atomic_read_unchecked(&sdebug_cmnd_count) % abs(sdebug_every_nth)) > 0)
 		return;
 	sqcp->inj_recovered = !!(SDEBUG_OPT_RECOVERED_ERR & sdebug_opts);
 	sqcp->inj_transport = !!(SDEBUG_OPT_TRANSPORT_ERR & sdebug_opts);
@@ -4040,9 +4040,9 @@ static int schedule_resp(struct scsi_cmnd *cmnd, struct sdebug_dev_info *devip,
 			    (SDEBUG_OPT_RARE_TSF & sdebug_opts) &&
 			    (scsi_result == 0))) {
 		if ((num_in_q == (qdepth - 1)) &&
-		    (atomic_inc_return(&sdebug_a_tsf) >=
+		    (atomic_inc_return_unchecked(&sdebug_a_tsf) >=
 		     abs(sdebug_every_nth))) {
-			atomic_set(&sdebug_a_tsf, 0);
+			atomic_set_unchecked(&sdebug_a_tsf, 0);
 			inject = 1;
 			scsi_result = device_qfull_result;
 		}
@@ -4297,10 +4297,10 @@ static int scsi_debug_show_info(struct seq_file *m, struct Scsi_Host *host)
 		   TICK_NSEC / 1000, "statistics", sdebug_statistics,
 		   sdebug_mq_active);
 	seq_printf(m, "cmnd_count=%d, completions=%d, %s=%d, a_tsf=%d\n",
-		   atomic_read(&sdebug_cmnd_count),
-		   atomic_read(&sdebug_completions),
-		   "miss_cpus", atomic_read(&sdebug_miss_cpus),
-		   atomic_read(&sdebug_a_tsf));
+		   atomic_read_unchecked(&sdebug_cmnd_count),
+		   atomic_read_unchecked(&sdebug_completions),
+		   "miss_cpus", atomic_read_unchecked(&sdebug_miss_cpus),
+		   atomic_read_unchecked(&sdebug_a_tsf));
 
 	seq_printf(m, "submit_queues=%d\n", submit_queues);
 	for (j = 0, sqp = sdebug_q_arr; j < submit_queues; ++j, ++sqp) {
@@ -5253,7 +5253,7 @@ static int sdebug_change_qdepth(struct scsi_device *sdev, int qdepth)
 
 static bool fake_timeout(struct scsi_cmnd *scp)
 {
-	if (0 == (atomic_read(&sdebug_cmnd_count) % abs(sdebug_every_nth))) {
+	if (0 == (atomic_read_unchecked(&sdebug_cmnd_count) % abs(sdebug_every_nth))) {
 		if (sdebug_every_nth < -1)
 			sdebug_every_nth = -1;
 		if (SDEBUG_OPT_TIMEOUT & sdebug_opts)
@@ -5284,7 +5284,7 @@ static int scsi_debug_queuecommand(struct Scsi_Host *shost,
 
 	scsi_set_resid(scp, 0);
 	if (sdebug_statistics)
-		atomic_inc(&sdebug_cmnd_count);
+		atomic_inc_unchecked(&sdebug_cmnd_count);
 	if (unlikely(sdebug_verbose &&
 		     !(SDEBUG_OPT_NO_CDB_NOISE & sdebug_opts))) {
 		char b[120];

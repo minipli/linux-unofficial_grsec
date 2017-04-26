@@ -57,7 +57,7 @@ static struct ctl_table helper_sysctl_table[] = {
 
 static int nf_conntrack_helper_init_sysctl(struct net *net)
 {
-	struct ctl_table *table;
+	ctl_table_no_const *table;
 
 	table = kmemdup(helper_sysctl_table, sizeof(helper_sysctl_table),
 			GFP_KERNEL);

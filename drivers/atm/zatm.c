@@ -459,7 +459,7 @@ printk("dummy: 0x%08lx, 0x%08lx\n",dummy[0],dummy[1]);
 		}
 		if (!size) {
 			dev_kfree_skb_irq(skb);
-			if (vcc) atomic_inc(&vcc->stats->rx_err);
+			if (vcc) atomic_inc_unchecked(&vcc->stats->rx_err);
 			continue;
 		}
 		if (!atm_charge(vcc,skb->truesize)) {
@@ -469,7 +469,7 @@ printk("dummy: 0x%08lx, 0x%08lx\n",dummy[0],dummy[1]);
 		skb->len = size;
 		ATM_SKB(skb)->vcc = vcc;
 		vcc->push(vcc,skb);
-		atomic_inc(&vcc->stats->rx);
+		atomic_inc_unchecked(&vcc->stats->rx);
 	}
 	zout(pos & 0xffff,MTA(mbx));
 #if 0 /* probably a stupid idea */
@@ -734,7 +734,7 @@ if (*ZATM_PRV_DSC(skb) != (uPD98401_TXPD_V | uPD98401_TXPD_DP |
 			skb_queue_head(&zatm_vcc->backlog,skb);
 			break;
 		}
-	atomic_inc(&vcc->stats->tx);
+	atomic_inc_unchecked(&vcc->stats->tx);
 	wake_up(&zatm_vcc->tx_wait);
 }
 

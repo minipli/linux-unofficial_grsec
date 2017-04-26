@@ -3721,7 +3721,7 @@ int scrub_enumerate_chunks(struct scrub_ctx *sctx,
 		if (ret)
 			break;
 		if (is_dev_replace &&
-		    atomic64_read(&dev_replace->num_write_errors) > 0) {
+		    atomic64_read_unchecked(&dev_replace->num_write_errors) > 0) {
 			ret = -EIO;
 			break;
 		}

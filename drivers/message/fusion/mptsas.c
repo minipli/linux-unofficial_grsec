@@ -446,6 +446,23 @@ mptsas_is_end_device(struct mptsas_devinfo * attached)
 		return 0;
 }
 
+static inline void
+mptsas_set_rphy(MPT_ADAPTER *ioc, struct mptsas_phyinfo *phy_info, struct sas_rphy *rphy)
+{
+	if (phy_info->port_details) {
+		phy_info->port_details->rphy = rphy;
+		dsaswideprintk(ioc, printk(MYIOC_s_DEBUG_FMT "sas_rphy_add: rphy=%p\n",
+		    ioc->name, rphy));
+	}
+
+	if (rphy) {
+		dsaswideprintk(ioc, dev_printk(KERN_DEBUG,
+		    &rphy->dev, MYIOC_s_FMT "add:", ioc->name));
+		dsaswideprintk(ioc, printk(MYIOC_s_DEBUG_FMT "rphy=%p release=%p\n",
+		    ioc->name, rphy, rphy->dev.release));
+	}
+}
+
 /* no mutex */
 static void
 mptsas_port_delete(MPT_ADAPTER *ioc, struct mptsas_portinfo_details * port_details)
@@ -482,23 +499,6 @@ mptsas_get_rphy(struct mptsas_phyinfo *phy_info)
 		return phy_info->port_details->rphy;
 	else
 		return NULL;
-}
-
-static inline void
-mptsas_set_rphy(MPT_ADAPTER *ioc, struct mptsas_phyinfo *phy_info, struct sas_rphy *rphy)
-{
-	if (phy_info->port_details) {
-		phy_info->port_details->rphy = rphy;
-		dsaswideprintk(ioc, printk(MYIOC_s_DEBUG_FMT "sas_rphy_add: rphy=%p\n",
-		    ioc->name, rphy));
-	}
-
-	if (rphy) {
-		dsaswideprintk(ioc, dev_printk(KERN_DEBUG,
-		    &rphy->dev, MYIOC_s_FMT "add:", ioc->name));
-		dsaswideprintk(ioc, printk(MYIOC_s_DEBUG_FMT "rphy=%p release=%p\n",
-		    ioc->name, rphy, rphy->dev.release));
-	}
 }
 
 static inline struct sas_port *

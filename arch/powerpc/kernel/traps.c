@@ -37,6 +37,7 @@
 #include <linux/debugfs.h>
 #include <linux/ratelimit.h>
 #include <linux/context_tracking.h>
+#include <linux/uaccess.h>
 
 #include <asm/emulated_ops.h>
 #include <asm/pgtable.h>
@@ -146,6 +147,8 @@ static unsigned long oops_begin(struct pt_regs *regs)
 }
 NOKPROBE_SYMBOL(oops_begin);
 
+extern void gr_handle_kernel_exploit(void);
+
 static void oops_end(unsigned long flags, struct pt_regs *regs,
 			       int signr)
 {
@@ -195,6 +198,9 @@ static void oops_end(unsigned long flags, struct pt_regs *regs,
 		panic("Fatal exception in interrupt");
 	if (panic_on_oops)
 		panic("Fatal exception");
+
+	gr_handle_kernel_exploit();
+
 	do_exit(signr);
 }
 NOKPROBE_SYMBOL(oops_end);
@@ -1161,6 +1167,26 @@ void program_check_exception(struct pt_regs *regs)
 {
 	enum ctx_state prev_state = exception_enter();
 	unsigned int reason = get_reason(regs);
+
+#ifdef CONFIG_PAX_REFCOUNT
+	unsigned int bkpt;
+	const struct exception_table_entry *entry;
+
+	if (reason & REASON_ILLEGAL) {
+		/* Check if PaX bad instruction */
+		if (!probe_kernel_address((const void *)regs->nip, bkpt) && bkpt == 0xc00b00) {
+			current->thread.trap_nr = 0;
+			pax_report_refcount_error(regs, NULL);
+			/* fixup_exception() for PowerPC does not exist, simulate its job */
+			if ((entry = search_exception_tables(regs->nip)) != NULL) {
+				regs->nip = entry->fixup;
+				return;
+			}
+			/* fixup_exception() could not handle */
+			goto bail;
+		}
+	}
+#endif
 
 	/* We can now get here via a FP Unavailable exception if the core
 	 * has no FPU, in that case the reason flags will be 0 */

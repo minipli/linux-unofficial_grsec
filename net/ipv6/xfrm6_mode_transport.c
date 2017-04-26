@@ -19,7 +19,7 @@
  * The IP header and mutable extension headers will be moved forward to make
  * space for the encapsulation header.
  */
-static int xfrm6_transport_output(struct xfrm_state *x, struct sk_buff *skb)
+static int __intentional_overflow(0) xfrm6_transport_output(struct xfrm_state *x, struct sk_buff *skb)
 {
 	struct ipv6hdr *iph;
 	u8 *prevhdr;

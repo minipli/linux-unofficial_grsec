@@ -8,7 +8,7 @@
 
 static int hvsi_send_packet(struct hvsi_priv *pv, struct hvsi_header *packet)
 {
-	packet->seqno = cpu_to_be16(atomic_inc_return(&pv->seqno));
+	packet->seqno = cpu_to_be16(atomic_inc_return_unchecked(&pv->seqno));
 
 	/* Assumes that always succeeds, works in practice */
 	return pv->put_chars(pv->termno, (char *)packet, packet->len);
@@ -20,7 +20,7 @@ static void hvsi_start_handshake(struct hvsi_priv *pv)
 
 	/* Reset state */
 	pv->established = 0;
-	atomic_set(&pv->seqno, 0);
+	atomic_set_unchecked(&pv->seqno, 0);
 
 	pr_devel("HVSI@%x: Handshaking started\n", pv->termno);
 

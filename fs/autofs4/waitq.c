@@ -56,7 +56,7 @@ static int autofs4_write(struct autofs_sb_info *sbi,
 {
 	unsigned long sigpipe, flags;
 	mm_segment_t fs;
-	const char *data = (const char *)addr;
+	const char __user *data = (const char __force_user *)addr;
 	ssize_t wr = 0;
 
 	sigpipe = sigismember(&current->pending.signal, SIGPIPE);
@@ -344,6 +344,10 @@ static int validate_request(struct autofs_wait_queue **wait,
 	return 1;
 }
 
+#ifdef CONFIG_GRKERNSEC_HIDESYM
+static atomic_unchecked_t autofs_dummy_name_id = ATOMIC_INIT(0);
+#endif
+
 int autofs4_wait(struct autofs_sb_info *sbi,
 		 struct dentry *dentry, enum autofs_notify notify)
 {
@@ -389,7 +393,12 @@ int autofs4_wait(struct autofs_sb_info *sbi,
 
 	/* If this is a direct mount request create a dummy name */
 	if (IS_ROOT(dentry) && autofs_type_trigger(sbi->type))
+#ifdef CONFIG_GRKERNSEC_HIDESYM
+		/* this name does get written to userland via autofs4_write() */
+		qstr.len = sprintf(name, "%08x", atomic_inc_return_unchecked(&autofs_dummy_name_id));
+#else
 		qstr.len = sprintf(name, "%p", dentry);
+#endif
 	else {
 		qstr.len = autofs4_getpath(sbi, dentry, &name);
 		if (!qstr.len) {

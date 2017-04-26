@@ -396,7 +396,7 @@ COMPAT_SYSCALL_DEFINE6(ipc, u32, call, int, first, int, second,
 			       COMPAT_SHMLBA);
 		if (err < 0)
 			return err;
-		return put_user(raddr, (compat_ulong_t *)compat_ptr(third));
+		return put_user(raddr, (compat_ulong_t __user *)compat_ptr(third));
 	}
 	case SHMDT:
 		return sys_shmdt(compat_ptr(ptr));
@@ -747,7 +747,7 @@ COMPAT_SYSCALL_DEFINE3(shmctl, int, first, int, second, void __user *, uptr)
 }
 
 COMPAT_SYSCALL_DEFINE4(semtimedop, int, semid, struct sembuf __user *, tsems,
-		       unsigned, nsops,
+		       compat_long_t, nsops,
 		       const struct compat_timespec __user *, timeout)
 {
 	struct timespec __user *ts64;

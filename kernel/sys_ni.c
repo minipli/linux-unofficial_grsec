@@ -1,17 +1,18 @@
 
 #include <linux/linkage.h>
 #include <linux/errno.h>
+#include <linux/syscalls.h>
 
 #include <asm/unistd.h>
 
 /*  we can't #include <linux/syscalls.h> here,
     but tell gcc to not warn with -Wmissing-prototypes  */
-asmlinkage long sys_ni_syscall(void);
+//asmlinkage long sys_ni_syscall(unsigned long, unsigned long, unsigned long, unsigned long, unsigned long, unsigned long);
 
 /*
  * Non-implemented system calls get redirected here.
  */
-asmlinkage long sys_ni_syscall(void)
+SYSCALL_DEFINE6(ni_syscall, unsigned long, a, unsigned long, b, unsigned long, c, unsigned long, d, unsigned long, e, unsigned long, f)
 {
 	return -ENOSYS;
 }

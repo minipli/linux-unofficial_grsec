@@ -66,7 +66,7 @@ static void free_modprobe_argv(struct subprocess_info *info)
 	kfree(info->argv);
 }
 
-static int call_modprobe(char *module_name, int wait)
+static int call_modprobe(char *module_name, char *module_param, int wait)
 {
 	struct subprocess_info *info;
 	static char *envp[] = {
@@ -76,7 +76,7 @@ static int call_modprobe(char *module_name, int wait)
 		NULL
 	};
 
-	char **argv = kmalloc(sizeof(char *[5]), GFP_KERNEL);
+	char **argv = kmalloc(sizeof(char *[6]), GFP_KERNEL);
 	if (!argv)
 		goto out;
 
@@ -88,7 +88,8 @@ static int call_modprobe(char *module_name, int wait)
 	argv[1] = "-q";
 	argv[2] = "--";
 	argv[3] = module_name;	/* check free_modprobe_argv() */
-	argv[4] = NULL;
+	argv[4] = module_param;
+	argv[5] = NULL;
 
 	info = call_usermodehelper_setup(modprobe_path, argv, envp, GFP_KERNEL,
 					 NULL, free_modprobe_argv, NULL);
@@ -121,9 +122,8 @@ out:
  * If module auto-loading support is disabled then this function
  * becomes a no-operation.
  */
-int __request_module(bool wait, const char *fmt, ...)
+static int ____request_module(bool wait, char *module_param, const char *fmt, va_list ap)
 {
-	va_list args;
 	char module_name[MODULE_NAME_LEN];
 	unsigned int max_modprobes;
 	int ret;
@@ -142,15 +142,27 @@ int __request_module(bool wait, const char *fmt, ...)
 	if (!modprobe_path[0])
 		return 0;
 
-	va_start(args, fmt);
-	ret = vsnprintf(module_name, MODULE_NAME_LEN, fmt, args);
-	va_end(args);
+	ret = vsnprintf(module_name, MODULE_NAME_LEN, fmt, ap);
 	if (ret >= MODULE_NAME_LEN)
 		return -ENAMETOOLONG;
 
 	ret = security_kernel_module_request(module_name);
 	if (ret)
 		return ret;
+
+#ifdef CONFIG_GRKERNSEC_MODHARDEN
+	if (uid_eq(current_uid(), GLOBAL_ROOT_UID)) {
+		/* hack to workaround consolekit/udisks stupidity */
+		read_lock(&tasklist_lock);
+		if (!strcmp(current->comm, "mount") &&
+		    current->real_parent && !strncmp(current->real_parent->comm, "udisk", 5)) {
+			read_unlock(&tasklist_lock);
+			printk(KERN_ALERT "grsec: denied attempt to auto-load fs module %.64s by udisks\n", module_name);
+			return -EPERM;
+		}
+		read_unlock(&tasklist_lock);
+	}
+#endif
 
 	/* If modprobe needs a service that is in a module, we get a recursive
 	 * loop.  Limit the number of running kmod threads to max_threads/2 or
@@ -180,16 +192,61 @@ int __request_module(bool wait, const char *fmt, ...)
 
 	trace_module_request(module_name, wait, _RET_IP_);
 
-	ret = call_modprobe(module_name, wait ? UMH_WAIT_PROC : UMH_WAIT_EXEC);
+	ret = call_modprobe(module_name, module_param, wait ? UMH_WAIT_PROC : UMH_WAIT_EXEC);
 
 	atomic_dec(&kmod_concurrent);
 	return ret;
 }
+
+int ___request_module(bool wait, char *module_param, const char *fmt, ...)
+{
+	va_list args;
+	int ret;
+
+	va_start(args, fmt);
+	ret = ____request_module(wait, module_param, fmt, args);
+	va_end(args);
+
+	return ret;
+}
+
+int __request_module(bool wait, const char *fmt, ...)
+{
+	va_list args;
+	int ret;
+
+#ifdef CONFIG_GRKERNSEC_MODHARDEN
+	if (!uid_eq(current_uid(), GLOBAL_ROOT_UID)) {
+		char module_param[MODULE_NAME_LEN];
+
+		memset(module_param, 0, sizeof(module_param));
+
+		snprintf(module_param, sizeof(module_param) - 1, "grsec_modharden_normal%u_", GR_GLOBAL_UID(current_uid()));
+
+		va_start(args, fmt);
+		ret = ____request_module(wait, module_param, fmt, args);
+		va_end(args);
+
+		return ret;
+	}
+#endif
+
+	va_start(args, fmt);
+	ret = ____request_module(wait, NULL, fmt, args);
+	va_end(args);
+
+	return ret;
+}
+
 EXPORT_SYMBOL(__request_module);
 #endif /* CONFIG_MODULES */
 
 static void call_usermodehelper_freeinfo(struct subprocess_info *info)
 {
+#ifdef CONFIG_GRKERNSEC
+	kfree(info->path);
+	info->path = info->origpath;
+#endif
 	if (info->cleanup)
 		(*info->cleanup)(info);
 	kfree(info);
@@ -228,6 +285,22 @@ static int call_usermodehelper_exec_async(void *data)
 	 */
 	set_user_nice(current, 0);
 
+#ifdef CONFIG_GRKERNSEC
+	/* this is race-free as far as userland is concerned as we copied
+	   out the path to be used prior to this point and are now operating
+	   on that copy
+	*/
+	if ((strncmp(sub_info->path, "/sbin/", 6) && strncmp(sub_info->path, "/usr/lib/", 9) &&
+	     strncmp(sub_info->path, "/lib/", 5) && strncmp(sub_info->path, "/lib64/", 7) &&
+	     strncmp(sub_info->path, "/usr/libexec/", 13) && strncmp(sub_info->path, "/usr/bin/", 9) &&
+	     strncmp(sub_info->path, "/usr/sbin/", 10) && strcmp(sub_info->path, "/bin/false") && 
+	     strcmp(sub_info->path, "/usr/share/apport/apport")) || strstr(sub_info->path, "..")) {
+		printk(KERN_ALERT "grsec: denied exec of usermode helper binary %.950s located outside of permitted system paths\n", sub_info->path);
+		retval = -EPERM;
+		goto out;
+	}
+#endif
+
 	retval = -ENOMEM;
 	new = prepare_kernel_cred(current);
 	if (!new)
@@ -250,8 +323,8 @@ static int call_usermodehelper_exec_async(void *data)
 	commit_creds(new);
 
 	retval = do_execve(getname_kernel(sub_info->path),
-			   (const char __user *const __user *)sub_info->argv,
-			   (const char __user *const __user *)sub_info->envp);
+			   (const char __user *const __force_user *)sub_info->argv,
+			   (const char __user *const __force_user *)sub_info->envp);
 out:
 	sub_info->retval = retval;
 	/*
@@ -287,7 +360,7 @@ static void call_usermodehelper_exec_sync(struct subprocess_info *sub_info)
 		 *
 		 * Thus the __user pointer cast is valid here.
 		 */
-		sys_wait4(pid, (int __user *)&ret, 0, NULL);
+		sys_wait4(pid, (int __force_user *)&ret, 0, NULL);
 
 		/*
 		 * If ret is 0, either call_usermodehelper_exec_async failed and
@@ -528,7 +601,12 @@ struct subprocess_info *call_usermodehelper_setup(char *path, char **argv,
 		goto out;
 
 	INIT_WORK(&sub_info->work, call_usermodehelper_exec_work);
+#ifdef CONFIG_GRKERNSEC
+	sub_info->origpath = path;
+	sub_info->path = kstrdup(path, gfp_mask);
+#else
 	sub_info->path = path;
+#endif
 	sub_info->argv = argv;
 	sub_info->envp = envp;
 
@@ -630,7 +708,7 @@ EXPORT_SYMBOL(call_usermodehelper);
 static int proc_cap_handler(struct ctl_table *table, int write,
 			 void __user *buffer, size_t *lenp, loff_t *ppos)
 {
-	struct ctl_table t;
+	ctl_table_no_const t;
 	unsigned long cap_array[_KERNEL_CAPABILITY_U32S];
 	kernel_cap_t new_cap;
 	int err, i;

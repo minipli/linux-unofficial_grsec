@@ -26,8 +26,8 @@
 
 #include "sha256_glue.h"
 
-asmlinkage void sha256_block_data_order_neon(u32 *digest, const void *data,
-					     unsigned int num_blks);
+asmlinkage void sha256_block_data_order_neon(struct sha256_state *digest, const u8 *data,
+					     int num_blks);
 
 static int sha256_update(struct shash_desc *desc, const u8 *data,
 			 unsigned int len)
@@ -39,8 +39,7 @@ static int sha256_update(struct shash_desc *desc, const u8 *data,
 		return crypto_sha256_arm_update(desc, data, len);
 
 	kernel_neon_begin();
-	sha256_base_do_update(desc, data, len,
-			(sha256_block_fn *)sha256_block_data_order_neon);
+	sha256_base_do_update(desc, data, len, sha256_block_data_order_neon);
 	kernel_neon_end();
 
 	return 0;
@@ -54,10 +53,8 @@ static int sha256_finup(struct shash_desc *desc, const u8 *data,
 
 	kernel_neon_begin();
 	if (len)
-		sha256_base_do_update(desc, data, len,
-			(sha256_block_fn *)sha256_block_data_order_neon);
-	sha256_base_do_finalize(desc,
-			(sha256_block_fn *)sha256_block_data_order_neon);
+		sha256_base_do_update(desc, data, len, sha256_block_data_order_neon);
+	sha256_base_do_finalize(desc, sha256_block_data_order_neon);
 	kernel_neon_end();
 
 	return sha256_base_finish(desc, out);

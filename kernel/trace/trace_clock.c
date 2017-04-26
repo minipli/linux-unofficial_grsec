@@ -127,7 +127,7 @@ u64 notrace trace_clock_global(void)
 }
 EXPORT_SYMBOL_GPL(trace_clock_global);
 
-static atomic64_t trace_counter;
+static atomic64_unchecked_t trace_counter;
 
 /*
  * trace_clock_counter(): simply an atomic counter.
@@ -136,5 +136,5 @@ static atomic64_t trace_counter;
  */
 u64 notrace trace_clock_counter(void)
 {
-	return atomic64_add_return(1, &trace_counter);
+	return atomic64_inc_return_unchecked(&trace_counter);
 }

@@ -1769,9 +1769,9 @@ static short ieee80211_sta_ps_sleep(struct ieee80211_device *ieee, u32 *time_h,
 
 }
 
-static inline void ieee80211_sta_ps(struct ieee80211_device *ieee)
+static inline void ieee80211_sta_ps(unsigned long _ieee)
 {
-
+	struct ieee80211_device *ieee = (struct ieee80211_device *)_ieee;
 	u32 th, tl;
 	short sleep;
 
@@ -2739,7 +2739,7 @@ void ieee80211_softmac_init(struct ieee80211_device *ieee)
 	spin_lock_init(&ieee->beacon_lock);
 
 	tasklet_init(&ieee->ps_task,
-	     (void(*)(unsigned long)) ieee80211_sta_ps,
+	     ieee80211_sta_ps,
 	     (unsigned long)ieee);
 
 }

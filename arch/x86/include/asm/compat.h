@@ -42,7 +42,11 @@ typedef u32		compat_uint_t;
 typedef u32		compat_ulong_t;
 typedef u32		compat_u32;
 typedef u64 __attribute__((aligned(4))) compat_u64;
+#ifdef CHECKER_PLUGIN_USER
 typedef u32		compat_uptr_t;
+#else
+typedef u32		__user compat_uptr_t;
+#endif
 
 struct compat_timespec {
 	compat_time_t	tv_sec;

@@ -44,7 +44,7 @@ struct kobj_ns_type_operations {
 	const void *(*netlink_ns)(struct sock *sk);
 	const void *(*initial_ns)(void);
 	void (*drop_ns)(void *);
-};
+} __do_const;
 
 int kobj_ns_type_register(const struct kobj_ns_type_operations *ops);
 int kobj_ns_type_registered(enum kobj_ns_type type);

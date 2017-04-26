@@ -217,7 +217,7 @@ int ocfs2_filecheck_create_sysfs(struct super_block *sb)
 	struct ocfs2_filecheck *fcheck = NULL;
 	struct ocfs2_filecheck_sysfs_entry *entry = NULL;
 	struct attribute **attrs = NULL;
-	struct attribute_group attrgp;
+	attribute_group_no_const attrgp;
 
 	if (!ocfs2_kset)
 		return -ENOMEM;

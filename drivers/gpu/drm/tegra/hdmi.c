@@ -74,7 +74,7 @@ struct tegra_hdmi {
 	bool stereo;
 	bool dvi;
 
-	struct drm_info_list *debugfs_files;
+	drm_info_list_no_const *debugfs_files;
 	struct drm_minor *minor;
 	struct dentry *debugfs;
 };

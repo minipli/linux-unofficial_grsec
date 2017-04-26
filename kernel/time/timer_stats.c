@@ -116,7 +116,7 @@ static ktime_t time_start, time_stop;
 static unsigned long nr_entries;
 static struct entry entries[MAX_ENTRIES];
 
-static atomic_t overflow_count;
+static atomic_unchecked_t overflow_count;
 
 /*
  * The entries are in a hash-table, for fast lookup:
@@ -140,7 +140,7 @@ static void reset_entries(void)
 	nr_entries = 0;
 	memset(entries, 0, sizeof(entries));
 	memset(tstat_hash_table, 0, sizeof(tstat_hash_table));
-	atomic_set(&overflow_count, 0);
+	atomic_set_unchecked(&overflow_count, 0);
 }
 
 static struct entry *alloc_entry(void)
@@ -261,7 +261,7 @@ void timer_stats_update_stats(void *timer, pid_t pid, void *startf,
 	if (likely(entry))
 		entry->count++;
 	else
-		atomic_inc(&overflow_count);
+		atomic_inc_unchecked(&overflow_count);
 
  out_unlock:
 	raw_spin_unlock_irqrestore(lock, flags);
@@ -269,12 +269,16 @@ void timer_stats_update_stats(void *timer, pid_t pid, void *startf,
 
 static void print_name_offset(struct seq_file *m, unsigned long addr)
 {
+#ifdef CONFIG_GRKERNSEC_HIDESYM
+	seq_printf(m, "<%p>", NULL);
+#else
 	char symname[KSYM_NAME_LEN];
 
 	if (lookup_symbol_name(addr, symname) < 0)
-		seq_printf(m, "<%p>", (void *)addr);
+		seq_printf(m, "<%pK>", (void *)addr);
 	else
 		seq_printf(m, "%s", symname);
+#endif
 }
 
 static int tstats_show(struct seq_file *m, void *v)
@@ -300,8 +304,8 @@ static int tstats_show(struct seq_file *m, void *v)
 
 	seq_puts(m, "Timer Stats Version: v0.3\n");
 	seq_printf(m, "Sample period: %ld.%03ld s\n", (long)period.tv_sec, ms);
-	if (atomic_read(&overflow_count))
-		seq_printf(m, "Overflow: %d entries\n", atomic_read(&overflow_count));
+	if (atomic_read_unchecked(&overflow_count))
+		seq_printf(m, "Overflow: %d entries\n", atomic_read_unchecked(&overflow_count));
 	seq_printf(m, "Collection: %s\n", timer_stats_active ? "active" : "inactive");
 
 	for (i = 0; i < nr_entries; i++) {
@@ -417,7 +421,11 @@ static int __init init_tstats_procfs(void)
 {
 	struct proc_dir_entry *pe;
 
+#ifdef CONFIG_GRKERNSEC_PROC_ADD
+	pe = proc_create("timer_stats", 0600, NULL, &tstats_fops);
+#else
 	pe = proc_create("timer_stats", 0644, NULL, &tstats_fops);
+#endif
 	if (!pe)
 		return -ENOMEM;
 	return 0;

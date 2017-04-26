@@ -221,7 +221,7 @@ struct clk_hw *clk_hw_register_composite(struct device *dev, const char *name,
 	struct clk_hw *hw;
 	struct clk_init_data init;
 	struct clk_composite *composite;
-	struct clk_ops *clk_composite_ops;
+	clk_ops_no_const *clk_composite_ops;
 	int ret;
 
 	composite = kzalloc(sizeof(*composite), GFP_KERNEL);

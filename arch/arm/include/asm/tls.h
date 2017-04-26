@@ -3,6 +3,7 @@
 
 #include <linux/compiler.h>
 #include <asm/thread_info.h>
+#include <asm/pgtable.h>
 
 #ifdef __ASSEMBLY__
 #include <asm/asm-offsets.h>
@@ -89,7 +90,9 @@ static inline void set_tls(unsigned long val)
 			 * at 0xffff0fe0 must be used instead.  (see
 			 * entry-armv.S for details)
 			 */
+			pax_open_kernel();
 			*((unsigned int *)0xffff0ff0) = val;
+			pax_close_kernel();
 #endif
 		}
 

@@ -51,7 +51,7 @@ struct rxrpc_connection *rxrpc_alloc_connection(gfp_t gfp)
 		skb_queue_head_init(&conn->rx_queue);
 		conn->security = &rxrpc_no_security;
 		spin_lock_init(&conn->state_lock);
-		conn->debug_id = atomic_inc_return(&rxrpc_debug_id);
+		conn->debug_id = atomic_inc_return_unchecked(&rxrpc_debug_id);
 		conn->size_align = 4;
 		conn->idle_timestamp = jiffies;
 	}

@@ -30,11 +30,11 @@ void oprofile_reset_stats(void)
 		cpu_buf->sample_invalid_eip = 0;
 	}
 
-	atomic_set(&oprofile_stats.sample_lost_no_mm, 0);
-	atomic_set(&oprofile_stats.sample_lost_no_mapping, 0);
-	atomic_set(&oprofile_stats.event_lost_overflow, 0);
-	atomic_set(&oprofile_stats.bt_lost_no_mapping, 0);
-	atomic_set(&oprofile_stats.multiplex_counter, 0);
+	atomic_set_unchecked(&oprofile_stats.sample_lost_no_mm, 0);
+	atomic_set_unchecked(&oprofile_stats.sample_lost_no_mapping, 0);
+	atomic_set_unchecked(&oprofile_stats.event_lost_overflow, 0);
+	atomic_set_unchecked(&oprofile_stats.bt_lost_no_mapping, 0);
+	atomic_set_unchecked(&oprofile_stats.multiplex_counter, 0);
 }
 
 

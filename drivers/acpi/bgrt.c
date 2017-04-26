@@ -17,40 +17,40 @@
 
 static struct kobject *bgrt_kobj;
 
-static ssize_t show_version(struct device *dev,
-			    struct device_attribute *attr, char *buf)
+static ssize_t show_version(struct kobject *kobj,
+			    struct kobj_attribute *attr, char *buf)
 {
 	return snprintf(buf, PAGE_SIZE, "%d\n", bgrt_tab->version);
 }
-static DEVICE_ATTR(version, S_IRUGO, show_version, NULL);
+static KOBJECT_ATTR(version, S_IRUGO, show_version, NULL);
 
-static ssize_t show_status(struct device *dev,
-			   struct device_attribute *attr, char *buf)
+static ssize_t show_status(struct kobject *kobj,
+			   struct kobj_attribute *attr, char *buf)
 {
 	return snprintf(buf, PAGE_SIZE, "%d\n", bgrt_tab->status);
 }
-static DEVICE_ATTR(status, S_IRUGO, show_status, NULL);
+static KOBJECT_ATTR(status, S_IRUGO, show_status, NULL);
 
-static ssize_t show_type(struct device *dev,
-			 struct device_attribute *attr, char *buf)
+static ssize_t show_type(struct kobject *kobj,
+			 struct kobj_attribute *attr, char *buf)
 {
 	return snprintf(buf, PAGE_SIZE, "%d\n", bgrt_tab->image_type);
 }
-static DEVICE_ATTR(type, S_IRUGO, show_type, NULL);
+static KOBJECT_ATTR(type, S_IRUGO, show_type, NULL);
 
-static ssize_t show_xoffset(struct device *dev,
-			    struct device_attribute *attr, char *buf)
+static ssize_t show_xoffset(struct kobject *kobj,
+			    struct kobj_attribute *attr, char *buf)
 {
 	return snprintf(buf, PAGE_SIZE, "%d\n", bgrt_tab->image_offset_x);
 }
-static DEVICE_ATTR(xoffset, S_IRUGO, show_xoffset, NULL);
+static KOBJECT_ATTR(xoffset, S_IRUGO, show_xoffset, NULL);
 
-static ssize_t show_yoffset(struct device *dev,
-			    struct device_attribute *attr, char *buf)
+static ssize_t show_yoffset(struct kobject *kobj,
+			    struct kobj_attribute *attr, char *buf)
 {
 	return snprintf(buf, PAGE_SIZE, "%d\n", bgrt_tab->image_offset_y);
 }
-static DEVICE_ATTR(yoffset, S_IRUGO, show_yoffset, NULL);
+static KOBJECT_ATTR(yoffset, S_IRUGO, show_yoffset, NULL);
 
 static ssize_t image_read(struct file *file, struct kobject *kobj,
 	       struct bin_attribute *attr, char *buf, loff_t off, size_t count)
@@ -87,8 +87,10 @@ static int __init bgrt_init(void)
 	if (!bgrt_image)
 		return -ENODEV;
 
-	bin_attr_image.private = bgrt_image;
-	bin_attr_image.size = bgrt_image_size;
+	pax_open_kernel();
+	const_cast(bin_attr_image.private) = bgrt_image;
+	const_cast(bin_attr_image.size) = bgrt_image_size;
+	pax_close_kernel();
 
 	bgrt_kobj = kobject_create_and_add("bgrt", acpi_kobj);
 	if (!bgrt_kobj)

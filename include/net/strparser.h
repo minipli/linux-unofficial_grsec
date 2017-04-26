@@ -48,7 +48,7 @@ struct strp_callbacks {
 	void (*rcv_msg)(struct strparser *strp, struct sk_buff *skb);
 	int (*read_sock_done)(struct strparser *strp, int err);
 	void (*abort_parser)(struct strparser *strp, int err);
-};
+} __no_const;
 
 struct strp_rx_msg {
 	int full_len;

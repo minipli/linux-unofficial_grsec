@@ -15,6 +15,7 @@
  */
 
 #include <linux/linkage.h>
+#include <asm/alternative-asm.h>
 
 .file "des3_ede-asm_64.S"
 .text
@@ -250,7 +251,7 @@ ENTRY(des3_ede_x86_64_crypt_blk)
 	popq %rbx;
 	popq %rbp;
 
-	ret;
+	pax_ret des3_ede_x86_64_crypt_blk;
 ENDPROC(des3_ede_x86_64_crypt_blk)
 
 /***********************************************************************
@@ -534,7 +535,7 @@ ENTRY(des3_ede_x86_64_crypt_blk_3way)
 	popq %rbx;
 	popq %rbp;
 
-	ret;
+	pax_ret des3_ede_x86_64_crypt_blk_3way;
 ENDPROC(des3_ede_x86_64_crypt_blk_3way)
 
 .data

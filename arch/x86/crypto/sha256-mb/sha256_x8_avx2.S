@@ -52,6 +52,7 @@
  */
 
 #include <linux/linkage.h>
+#include <asm/alternative-asm.h>
 #include "sha256_mb_mgr_datastruct.S"
 
 ## code to compute oct SHA256 using SSE-256
@@ -435,7 +436,7 @@ Lrounds_16_xx:
 	pop     %r13
 	pop     %r12
 
-	ret
+	pax_ret sha256_x8_avx2
 ENDPROC(sha256_x8_avx2)
 .data
 .align 64

@@ -561,10 +561,10 @@ u64 __blkg_prfill_rwstat(struct seq_file *sf, struct blkg_policy_data *pd,
 
 	for (i = 0; i < BLKG_RWSTAT_NR; i++)
 		seq_printf(sf, "%s %s %llu\n", dname, rwstr[i],
-			   (unsigned long long)atomic64_read(&rwstat->aux_cnt[i]));
+			   (unsigned long long)atomic64_read_unchecked(&rwstat->aux_cnt[i]));
 
-	v = atomic64_read(&rwstat->aux_cnt[BLKG_RWSTAT_READ]) +
-		atomic64_read(&rwstat->aux_cnt[BLKG_RWSTAT_WRITE]);
+	v = atomic64_read_unchecked(&rwstat->aux_cnt[BLKG_RWSTAT_READ]) +
+		atomic64_read_unchecked(&rwstat->aux_cnt[BLKG_RWSTAT_WRITE]);
 	seq_printf(sf, "%s Total %llu\n", dname, (unsigned long long)v);
 	return v;
 }
@@ -716,7 +716,7 @@ u64 blkg_stat_recursive_sum(struct blkcg_gq *blkg,
 		else
 			stat = (void *)blkg + off;
 
-		sum += blkg_stat_read(stat) + atomic64_read(&stat->aux_cnt);
+		sum += blkg_stat_read(stat) + atomic64_read_unchecked(&stat->aux_cnt);
 	}
 	rcu_read_unlock();
 
@@ -760,7 +760,7 @@ struct blkg_rwstat blkg_rwstat_recursive_sum(struct blkcg_gq *blkg,
 			rwstat = (void *)pos_blkg + off;
 
 		for (i = 0; i < BLKG_RWSTAT_NR; i++)
-			atomic64_add(atomic64_read(&rwstat->aux_cnt[i]) +
+			atomic64_add_unchecked(atomic64_read_unchecked(&rwstat->aux_cnt[i]) +
 				percpu_counter_sum_positive(&rwstat->cpu_cnt[i]),
 				&sum.aux_cnt[i]);
 	}
@@ -886,13 +886,13 @@ static int blkcg_print_stat(struct seq_file *sf, void *v)
 
 		rwstat = blkg_rwstat_recursive_sum(blkg, NULL,
 					offsetof(struct blkcg_gq, stat_bytes));
-		rbytes = atomic64_read(&rwstat.aux_cnt[BLKG_RWSTAT_READ]);
-		wbytes = atomic64_read(&rwstat.aux_cnt[BLKG_RWSTAT_WRITE]);
+		rbytes = atomic64_read_unchecked(&rwstat.aux_cnt[BLKG_RWSTAT_READ]);
+		wbytes = atomic64_read_unchecked(&rwstat.aux_cnt[BLKG_RWSTAT_WRITE]);
 
 		rwstat = blkg_rwstat_recursive_sum(blkg, NULL,
 					offsetof(struct blkcg_gq, stat_ios));
-		rios = atomic64_read(&rwstat.aux_cnt[BLKG_RWSTAT_READ]);
-		wios = atomic64_read(&rwstat.aux_cnt[BLKG_RWSTAT_WRITE]);
+		rios = atomic64_read_unchecked(&rwstat.aux_cnt[BLKG_RWSTAT_READ]);
+		wios = atomic64_read_unchecked(&rwstat.aux_cnt[BLKG_RWSTAT_WRITE]);
 
 		spin_unlock_irq(blkg->q->queue_lock);
 

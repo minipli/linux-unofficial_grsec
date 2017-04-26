@@ -193,7 +193,7 @@ late_initcall(sched_init_debug);
 
 #ifdef CONFIG_SYSCTL
 
-static struct ctl_table sd_ctl_dir[] = {
+static ctl_table_no_const sd_ctl_dir[] __read_only = {
 	{
 		.procname	= "sched_domain",
 		.mode		= 0555,
@@ -210,17 +210,17 @@ static struct ctl_table sd_ctl_root[] = {
 	{}
 };
 
-static struct ctl_table *sd_alloc_ctl_entry(int n)
+static ctl_table_no_const *sd_alloc_ctl_entry(int n)
 {
-	struct ctl_table *entry =
+	ctl_table_no_const *entry =
 		kcalloc(n, sizeof(struct ctl_table), GFP_KERNEL);
 
 	return entry;
 }
 
-static void sd_free_ctl_entry(struct ctl_table **tablep)
+static void sd_free_ctl_entry(ctl_table_no_const *tablep)
 {
-	struct ctl_table *entry;
+	ctl_table_no_const *entry;
 
 	/*
 	 * In the intermediate directories, both the child directory and
@@ -228,22 +228,25 @@ static void sd_free_ctl_entry(struct ctl_table **tablep)
 	 * will always be set. In the lowest directory the names are
 	 * static strings and all have proc handlers.
 	 */
-	for (entry = *tablep; entry->mode; entry++) {
-		if (entry->child)
-			sd_free_ctl_entry(&entry->child);
+	for (entry = tablep; entry->mode; entry++) {
+		if (entry->child) {
+			sd_free_ctl_entry(entry->child);
+			pax_open_kernel();
+			entry->child = NULL;
+			pax_close_kernel();
+		}
 		if (entry->proc_handler == NULL)
 			kfree(entry->procname);
 	}
 
-	kfree(*tablep);
-	*tablep = NULL;
+	kfree(tablep);
 }
 
 static int min_load_idx = 0;
 static int max_load_idx = CPU_LOAD_IDX_MAX-1;
 
 static void
-set_table_entry(struct ctl_table *entry,
+set_table_entry(ctl_table_no_const *entry,
 		const char *procname, void *data, int maxlen,
 		umode_t mode, proc_handler *proc_handler,
 		bool load_idx)
@@ -260,10 +263,10 @@ set_table_entry(struct ctl_table *entry,
 	}
 }
 
-static struct ctl_table *
+static ctl_table_no_const *
 sd_alloc_ctl_domain_table(struct sched_domain *sd)
 {
-	struct ctl_table *table = sd_alloc_ctl_entry(14);
+	ctl_table_no_const *table = sd_alloc_ctl_entry(14);
 
 	if (table == NULL)
 		return NULL;
@@ -301,9 +304,9 @@ sd_alloc_ctl_domain_table(struct sched_domain *sd)
 	return table;
 }
 
-static struct ctl_table *sd_alloc_ctl_cpu_table(int cpu)
+static ctl_table_no_const *sd_alloc_ctl_cpu_table(int cpu)
 {
-	struct ctl_table *entry, *table;
+	ctl_table_no_const *entry, *table;
 	struct sched_domain *sd;
 	int domain_num = 0, i;
 	char buf[32];
@@ -330,11 +333,13 @@ static struct ctl_table_header *sd_sysctl_header;
 void register_sched_domain_sysctl(void)
 {
 	int i, cpu_num = num_possible_cpus();
-	struct ctl_table *entry = sd_alloc_ctl_entry(cpu_num + 1);
+	ctl_table_no_const *entry = sd_alloc_ctl_entry(cpu_num + 1);
 	char buf[32];
 
 	WARN_ON(sd_ctl_dir[0].child);
+	pax_open_kernel();
 	sd_ctl_dir[0].child = entry;
+	pax_close_kernel();
 
 	if (entry == NULL)
 		return;
@@ -356,8 +361,12 @@ void unregister_sched_domain_sysctl(void)
 {
 	unregister_sysctl_table(sd_sysctl_header);
 	sd_sysctl_header = NULL;
-	if (sd_ctl_dir[0].child)
-		sd_free_ctl_entry(&sd_ctl_dir[0].child);
+	if (sd_ctl_dir[0].child) {
+		sd_free_ctl_entry(sd_ctl_dir[0].child);
+		pax_open_kernel();
+		sd_ctl_dir[0].child = NULL;
+		pax_close_kernel();
+	}
 }
 #endif /* CONFIG_SYSCTL */
 #endif /* CONFIG_SMP */
@@ -804,7 +813,11 @@ static int __init init_sched_debug_procfs(void)
 {
 	struct proc_dir_entry *pe;
 
+#ifdef CONFIG_GRKERNSEC_PROC_ADD
+	pe = proc_create("sched_debug", 0400, NULL, &sched_debug_fops);
+#else
 	pe = proc_create("sched_debug", 0444, NULL, &sched_debug_fops);
+#endif
 	if (!pe)
 		return -ENOMEM;
 	return 0;

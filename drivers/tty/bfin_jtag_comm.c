@@ -143,7 +143,7 @@ bfin_jc_open(struct tty_struct *tty, struct file *filp)
 	unsigned long flags;
 
 	spin_lock_irqsave(&port.lock, flags);
-	port.count++;
+	atomic_inc(&port.count);
 	spin_unlock_irqrestore(&port.lock, flags);
 	tty_port_tty_set(&port, tty);
 	wake_up_process(bfin_jc_kthread);
@@ -157,7 +157,7 @@ bfin_jc_close(struct tty_struct *tty, struct file *filp)
 	bool last;
 
 	spin_lock_irqsave(&port.lock, flags);
-	last = --port.count == 0;
+	last = atomic_dec_and_test(&port.count);
 	spin_unlock_irqrestore(&port.lock, flags);
 	if (last)
 		tty_port_tty_set(&port, NULL);

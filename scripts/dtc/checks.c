@@ -277,7 +277,7 @@ NODE_ERROR(duplicate_property_names, NULL);
 static void check_node_name_chars(struct check *c, struct node *dt,
 				  struct node *node)
 {
-	int n = strspn(node->name, c->data);
+	size_t n = strspn(node->name, c->data);
 
 	if (n < strlen(node->name))
 		FAIL(c, "Bad character '%c' in node %s",
@@ -321,7 +321,7 @@ NODE_WARNING(unit_address_vs_reg, NULL);
 static void check_property_name_chars(struct check *c, struct node *dt,
 				      struct node *node, struct property *prop)
 {
-	int n = strspn(prop->name, c->data);
+	size_t n = strspn(prop->name, c->data);
 
 	if (n < strlen(prop->name))
 		FAIL(c, "Bad character '%c' in property name \"%s\", node %s",
@@ -423,7 +423,7 @@ static void check_explicit_phandles(struct check *c, struct node *root,
 
 	phandle = propval_cell(prop);
 
-	if ((phandle == 0) || (phandle == -1)) {
+	if ((phandle == 0) || (phandle == ~0U)) {
 		FAIL(c, "%s has bad value (0x%x) in %s property",
 		     node->fullpath, phandle, prop->name);
 		return;
@@ -486,7 +486,7 @@ static void fixup_phandle_references(struct check *c, struct node *dt,
 	cell_t phandle;
 
 	for_each_marker_of_type(m, REF_PHANDLE) {
-		assert(m->offset + sizeof(cell_t) <= prop->val.len);
+		assert(m->offset + (int)sizeof(cell_t) <= prop->val.len);
 
 		refnode = get_node_by_ref(dt, m->ref);
 		if (! refnode) {
@@ -714,7 +714,7 @@ static void enable_warning_error(struct check *c, bool warn, bool error)
 
 static void disable_warning_error(struct check *c, bool warn, bool error)
 {
-	int i;
+	size_t i;
 
 	/* Lowering level, also lower it for things this is the prereq
 	 * for */
@@ -735,7 +735,7 @@ static void disable_warning_error(struct check *c, bool warn, bool error)
 
 void parse_checks_option(bool warn, bool error, const char *arg)
 {
-	int i;
+	size_t i;
 	const char *name = arg;
 	bool enable = true;
 
@@ -763,7 +763,7 @@ void parse_checks_option(bool warn, bool error, const char *arg)
 void process_checks(bool force, struct boot_info *bi)
 {
 	struct node *dt = bi->dt;
-	int i;
+	size_t i;
 	int error = 0;
 
 	for (i = 0; i < ARRAY_SIZE(check_table); i++) {

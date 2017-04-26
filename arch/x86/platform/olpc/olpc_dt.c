@@ -156,7 +156,7 @@ void * __init prom_early_alloc(unsigned long size)
 	return res;
 }
 
-static struct of_pdt_ops prom_olpc_ops __initdata = {
+static const struct of_pdt_ops prom_olpc_ops __initconst = {
 	.nextprop = olpc_dt_nextprop,
 	.getproplen = olpc_dt_getproplen,
 	.getproperty = olpc_dt_getproperty,

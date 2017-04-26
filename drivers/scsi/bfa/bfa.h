@@ -225,8 +225,10 @@ struct bfa_faa_args_s {
 	bfa_boolean_t		busy;
 };
 
+enum iocfc_event;
+
 struct bfa_iocfc_s {
-	bfa_fsm_t		fsm;
+	void (*fsm)(struct bfa_iocfc_s *, enum iocfc_event);
 	struct bfa_s		*bfa;
 	struct bfa_iocfc_cfg_s	cfg;
 	u32		req_cq_pi[BFI_IOC_MAX_CQS];

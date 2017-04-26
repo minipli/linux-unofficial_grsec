@@ -36,21 +36,21 @@
 EXPORT_SYMBOL_GPL(__twofish_enc_blk_3way);
 EXPORT_SYMBOL_GPL(twofish_dec_blk_3way);
 
-static inline void twofish_enc_blk_3way(struct twofish_ctx *ctx, u8 *dst,
+static inline void twofish_enc_blk_3way(void *ctx, u8 *dst,
 					const u8 *src)
 {
 	__twofish_enc_blk_3way(ctx, dst, src, false);
 }
 
-static inline void twofish_enc_blk_xor_3way(struct twofish_ctx *ctx, u8 *dst,
+static inline void twofish_enc_blk_xor_3way(void *ctx, u8 *dst,
 					    const u8 *src)
 {
 	__twofish_enc_blk_3way(ctx, dst, src, true);
 }
 
-void twofish_dec_blk_cbc_3way(void *ctx, u128 *dst, const u128 *src)
+void twofish_dec_blk_cbc_3way(void *ctx, u8 *_dst, const u8 *_src)
 {
-	u128 ivs[2];
+	u128 ivs[2], *dst = (u128 *)_dst, *src = (u128 *)_src;
 
 	ivs[0] = src[0];
 	ivs[1] = src[1];
@@ -118,10 +118,10 @@ static const struct common_glue_ctx twofish_ctr = {
 
 	.funcs = { {
 		.num_blocks = 3,
-		.fn_u = { .ecb = GLUE_FUNC_CAST(twofish_enc_blk_ctr_3way) }
+		.fn_u = { .ctr = GLUE_CTR_FUNC_CAST(twofish_enc_blk_ctr_3way) }
 	}, {
 		.num_blocks = 1,
-		.fn_u = { .ecb = GLUE_FUNC_CAST(twofish_enc_blk_ctr) }
+		.fn_u = { .ctr = GLUE_CTR_FUNC_CAST(twofish_enc_blk_ctr) }
 	} }
 };
 

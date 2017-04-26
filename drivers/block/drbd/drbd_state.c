@@ -1507,9 +1507,10 @@ int drbd_bitmap_io_from_worker(struct drbd_device *device,
 
 void notify_resource_state_change(struct sk_buff *skb,
 				  unsigned int seq,
-				  struct drbd_resource_state_change *resource_state_change,
+				  void *_resource_state_change,
 				  enum drbd_notification_type type)
 {
+	struct drbd_resource_state_change *resource_state_change = _resource_state_change;
 	struct drbd_resource *resource = resource_state_change->resource;
 	struct resource_info resource_info = {
 		.res_role = resource_state_change->role[NEW],
@@ -1523,9 +1524,10 @@ void notify_resource_state_change(struct sk_buff *skb,
 
 void notify_connection_state_change(struct sk_buff *skb,
 				    unsigned int seq,
-				    struct drbd_connection_state_change *connection_state_change,
+				    void *_connection_state_change,
 				    enum drbd_notification_type type)
 {
+	struct drbd_connection_state_change *connection_state_change = _connection_state_change;
 	struct drbd_connection *connection = connection_state_change->connection;
 	struct connection_info connection_info = {
 		.conn_connection_state = connection_state_change->cstate[NEW],
@@ -1537,9 +1539,10 @@ void notify_connection_state_change(struct sk_buff *skb,
 
 void notify_device_state_change(struct sk_buff *skb,
 				unsigned int seq,
-				struct drbd_device_state_change *device_state_change,
+				void *_device_state_change,
 				enum drbd_notification_type type)
 {
+	struct drbd_device_state_change *device_state_change = _device_state_change;
 	struct drbd_device *device = device_state_change->device;
 	struct device_info device_info = {
 		.dev_disk_state = device_state_change->disk_state[NEW],
@@ -1550,9 +1553,10 @@ void notify_device_state_change(struct sk_buff *skb,
 
 void notify_peer_device_state_change(struct sk_buff *skb,
 				     unsigned int seq,
-				     struct drbd_peer_device_state_change *p,
+				     void *_p,
 				     enum drbd_notification_type type)
 {
+	struct drbd_peer_device_state_change *p = _p;
 	struct drbd_peer_device *peer_device = p->peer_device;
 	struct peer_device_info peer_device_info = {
 		.peer_repl_state = p->repl_state[NEW],

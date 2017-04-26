@@ -988,7 +988,7 @@ static int lov_getattr_interpret(struct ptlrpc_request_set *rqset,
 
 	/* don't do attribute merge if this async op failed */
 	if (rc)
-		atomic_set(&lovset->set_completes, 0);
+		atomic_set_unchecked(&lovset->set_completes, 0);
 	err = lov_fini_getattr_set(lovset);
 	return rc ? rc : err;
 }
@@ -1043,7 +1043,7 @@ static int lov_getattr_async(struct obd_export *exp, struct obd_info *oinfo,
 	}
 out:
 	if (rc)
-		atomic_set(&lovset->set_completes, 0);
+		atomic_set_unchecked(&lovset->set_completes, 0);
 	err = lov_fini_getattr_set(lovset);
 	return rc ? rc : err;
 }
@@ -1055,7 +1055,7 @@ static int lov_setattr_interpret(struct ptlrpc_request_set *rqset,
 	int err;
 
 	if (rc)
-		atomic_set(&lovset->set_completes, 0);
+		atomic_set_unchecked(&lovset->set_completes, 0);
 	err = lov_fini_setattr_set(lovset);
 	return rc ? rc : err;
 }
@@ -1117,7 +1117,7 @@ static int lov_setattr_async(struct obd_export *exp, struct obd_info *oinfo,
 		int err;
 
 		if (rc)
-			atomic_set(&set->set_completes, 0);
+			atomic_set_unchecked(&set->set_completes, 0);
 		err = lov_fini_setattr_set(set);
 		return rc ? rc : err;
 	}
@@ -1135,7 +1135,7 @@ int lov_statfs_interpret(struct ptlrpc_request_set *rqset, void *data, int rc)
 	int err;
 
 	if (rc)
-		atomic_set(&lovset->set_completes, 0);
+		atomic_set_unchecked(&lovset->set_completes, 0);
 
 	err = lov_fini_statfs_set(lovset);
 	return rc ? rc : err;
@@ -1168,7 +1168,7 @@ static int lov_statfs_async(struct obd_export *exp, struct obd_info *oinfo,
 		int err;
 
 		if (rc)
-			atomic_set(&set->set_completes, 0);
+			atomic_set_unchecked(&set->set_completes, 0);
 		err = lov_fini_statfs_set(set);
 		return rc ? rc : err;
 	}

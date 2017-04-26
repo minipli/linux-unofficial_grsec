@@ -357,8 +357,8 @@ struct ring_desc {
 };
 
 struct ring_desc_ex {
-	__le32 bufhigh;
-	__le32 buflow;
+	__le32 bufhigh __intentional_overflow(0);
+	__le32 buflow __intentional_overflow(0);
 	__le32 txvlan;
 	__le32 flaglen;
 };

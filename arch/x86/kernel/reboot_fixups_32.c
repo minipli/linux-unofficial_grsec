@@ -57,7 +57,7 @@ struct device_fixup {
 	unsigned int vendor;
 	unsigned int device;
 	void (*reboot_fixup)(struct pci_dev *);
-};
+} __do_const;
 
 /*
  * PCI ids solely used for fixups_table go here

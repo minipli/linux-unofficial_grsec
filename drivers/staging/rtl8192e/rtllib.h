@@ -1993,7 +1993,7 @@ int rtllib_encrypt_fragment(
 	struct sk_buff *frag,
 	int hdr_len);
 
-int rtllib_xmit(struct sk_buff *skb,  struct net_device *dev);
+netdev_tx_t rtllib_xmit(struct sk_buff *skb,  struct net_device *dev);
 void rtllib_txb_free(struct rtllib_txb *);
 
 /* rtllib_rx.c */
@@ -2107,7 +2107,7 @@ int rtllib_wx_set_freq(struct rtllib_device *ieee, struct iw_request_info *a,
 
 int rtllib_wx_get_freq(struct rtllib_device *ieee, struct iw_request_info *a,
 		       union iwreq_data *wrqu, char *b);
-void rtllib_wx_sync_scan_wq(void *data);
+void rtllib_wx_sync_scan_wq(struct work_struct *data);
 
 int rtllib_wx_set_rawtx(struct rtllib_device *ieee,
 			struct iw_request_info *info,

@@ -108,7 +108,7 @@ struct	_io_ops {
 			  u8 *pmem);
 	u32 (*_write_port)(struct intf_hdl *pintfhdl, u32 addr, u32 cnt,
 			   u8 *pmem);
-};
+} __no_const;
 
 struct io_req {
 	struct list_head list;

@@ -38,6 +38,7 @@
 #include <linux/timer.h>
 #include <linux/types.h>
 #include <linux/workqueue.h>
+#include <linux/sched.h>
 
 #include <asm/byteorder.h>
 

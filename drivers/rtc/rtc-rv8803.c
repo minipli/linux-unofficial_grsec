@@ -536,6 +536,15 @@ static int rx8900_trickle_charger_init(struct rv8803_data *rv8803)
 					 flags);
 }
 
+static struct rtc_class_ops rv8803_rtc_alarm_ops = {
+	.read_time = rv8803_get_time,
+	.set_time = rv8803_set_time,
+	.ioctl = rv8803_ioctl,
+	.read_alarm = rv8803_get_alarm,
+	.set_alarm = rv8803_set_alarm,
+	.alarm_irq_enable = rv8803_alarm_irq_enable,
+};
+
 static int rv8803_probe(struct i2c_client *client,
 			const struct i2c_device_id *id)
 {
@@ -580,15 +589,11 @@ static int rv8803_probe(struct i2c_client *client,
 		if (err) {
 			dev_warn(&client->dev, "unable to request IRQ, alarms disabled\n");
 			client->irq = 0;
-		} else {
-			rv8803_rtc_ops.read_alarm = rv8803_get_alarm;
-			rv8803_rtc_ops.set_alarm = rv8803_set_alarm;
-			rv8803_rtc_ops.alarm_irq_enable = rv8803_alarm_irq_enable;
 		}
 	}
 
 	rv8803->rtc = devm_rtc_device_register(&client->dev, client->name,
-					       &rv8803_rtc_ops, THIS_MODULE);
+					       client->irq > 0 ? &rv8803_rtc_alarm_ops : &rv8803_rtc_ops, THIS_MODULE);
 	if (IS_ERR(rv8803->rtc)) {
 		dev_err(&client->dev, "unable to register the class device\n");
 		return PTR_ERR(rv8803->rtc);

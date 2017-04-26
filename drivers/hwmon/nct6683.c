@@ -404,11 +404,11 @@ nct6683_create_attr_group(struct device *dev,
 			  const struct sensor_template_group *tg,
 			  int repeat)
 {
-	struct sensor_device_attribute_2 *a2;
-	struct sensor_device_attribute *a;
+	sensor_device_attribute_2_no_const *a2;
+	sensor_device_attribute_no_const *a;
 	struct sensor_device_template **t;
 	struct sensor_device_attr_u *su;
-	struct attribute_group *group;
+	attribute_group_no_const *group;
 	struct attribute **attrs;
 	int i, j, count;
 

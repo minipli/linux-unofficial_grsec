@@ -136,8 +136,8 @@ extern void fscache_operation_gc(struct work_struct *);
 extern int fscache_wait_for_deferred_lookup(struct fscache_cookie *);
 extern int fscache_wait_for_operation_activation(struct fscache_object *,
 						 struct fscache_operation *,
-						 atomic_t *,
-						 atomic_t *);
+						 atomic_unchecked_t *,
+						 atomic_unchecked_t *);
 extern void fscache_invalidate_writes(struct fscache_cookie *);
 
 /*
@@ -155,102 +155,102 @@ extern void fscache_proc_cleanup(void);
  * stats.c
  */
 #ifdef CONFIG_FSCACHE_STATS
-extern atomic_t fscache_n_ops_processed[FSCACHE_MAX_THREADS];
-extern atomic_t fscache_n_objs_processed[FSCACHE_MAX_THREADS];
+extern atomic_unchecked_t fscache_n_ops_processed[FSCACHE_MAX_THREADS];
+extern atomic_unchecked_t fscache_n_objs_processed[FSCACHE_MAX_THREADS];
 
-extern atomic_t fscache_n_op_pend;
-extern atomic_t fscache_n_op_run;
-extern atomic_t fscache_n_op_enqueue;
-extern atomic_t fscache_n_op_deferred_release;
-extern atomic_t fscache_n_op_initialised;
-extern atomic_t fscache_n_op_release;
-extern atomic_t fscache_n_op_gc;
-extern atomic_t fscache_n_op_cancelled;
-extern atomic_t fscache_n_op_rejected;
+extern atomic_unchecked_t fscache_n_op_pend;
+extern atomic_unchecked_t fscache_n_op_run;
+extern atomic_unchecked_t fscache_n_op_enqueue;
+extern atomic_unchecked_t fscache_n_op_deferred_release;
+extern atomic_unchecked_t fscache_n_op_initialised;
+extern atomic_unchecked_t fscache_n_op_release;
+extern atomic_unchecked_t fscache_n_op_gc;
+extern atomic_unchecked_t fscache_n_op_cancelled;
+extern atomic_unchecked_t fscache_n_op_rejected;
 
-extern atomic_t fscache_n_attr_changed;
-extern atomic_t fscache_n_attr_changed_ok;
-extern atomic_t fscache_n_attr_changed_nobufs;
-extern atomic_t fscache_n_attr_changed_nomem;
-extern atomic_t fscache_n_attr_changed_calls;
+extern atomic_unchecked_t fscache_n_attr_changed;
+extern atomic_unchecked_t fscache_n_attr_changed_ok;
+extern atomic_unchecked_t fscache_n_attr_changed_nobufs;
+extern atomic_unchecked_t fscache_n_attr_changed_nomem;
+extern atomic_unchecked_t fscache_n_attr_changed_calls;
 
-extern atomic_t fscache_n_allocs;
-extern atomic_t fscache_n_allocs_ok;
-extern atomic_t fscache_n_allocs_wait;
-extern atomic_t fscache_n_allocs_nobufs;
-extern atomic_t fscache_n_allocs_intr;
-extern atomic_t fscache_n_allocs_object_dead;
-extern atomic_t fscache_n_alloc_ops;
-extern atomic_t fscache_n_alloc_op_waits;
+extern atomic_unchecked_t fscache_n_allocs;
+extern atomic_unchecked_t fscache_n_allocs_ok;
+extern atomic_unchecked_t fscache_n_allocs_wait;
+extern atomic_unchecked_t fscache_n_allocs_nobufs;
+extern atomic_unchecked_t fscache_n_allocs_intr;
+extern atomic_unchecked_t fscache_n_allocs_object_dead;
+extern atomic_unchecked_t fscache_n_alloc_ops;
+extern atomic_unchecked_t fscache_n_alloc_op_waits;
 
-extern atomic_t fscache_n_retrievals;
-extern atomic_t fscache_n_retrievals_ok;
-extern atomic_t fscache_n_retrievals_wait;
-extern atomic_t fscache_n_retrievals_nodata;
-extern atomic_t fscache_n_retrievals_nobufs;
-extern atomic_t fscache_n_retrievals_intr;
-extern atomic_t fscache_n_retrievals_nomem;
-extern atomic_t fscache_n_retrievals_object_dead;
-extern atomic_t fscache_n_retrieval_ops;
-extern atomic_t fscache_n_retrieval_op_waits;
+extern atomic_unchecked_t fscache_n_retrievals;
+extern atomic_unchecked_t fscache_n_retrievals_ok;
+extern atomic_unchecked_t fscache_n_retrievals_wait;
+extern atomic_unchecked_t fscache_n_retrievals_nodata;
+extern atomic_unchecked_t fscache_n_retrievals_nobufs;
+extern atomic_unchecked_t fscache_n_retrievals_intr;
+extern atomic_unchecked_t fscache_n_retrievals_nomem;
+extern atomic_unchecked_t fscache_n_retrievals_object_dead;
+extern atomic_unchecked_t fscache_n_retrieval_ops;
+extern atomic_unchecked_t fscache_n_retrieval_op_waits;
 
-extern atomic_t fscache_n_stores;
-extern atomic_t fscache_n_stores_ok;
-extern atomic_t fscache_n_stores_again;
-extern atomic_t fscache_n_stores_nobufs;
-extern atomic_t fscache_n_stores_oom;
-extern atomic_t fscache_n_store_ops;
-extern atomic_t fscache_n_store_calls;
-extern atomic_t fscache_n_store_pages;
-extern atomic_t fscache_n_store_radix_deletes;
-extern atomic_t fscache_n_store_pages_over_limit;
+extern atomic_unchecked_t fscache_n_stores;
+extern atomic_unchecked_t fscache_n_stores_ok;
+extern atomic_unchecked_t fscache_n_stores_again;
+extern atomic_unchecked_t fscache_n_stores_nobufs;
+extern atomic_unchecked_t fscache_n_stores_oom;
+extern atomic_unchecked_t fscache_n_store_ops;
+extern atomic_unchecked_t fscache_n_store_calls;
+extern atomic_unchecked_t fscache_n_store_pages;
+extern atomic_unchecked_t fscache_n_store_radix_deletes;
+extern atomic_unchecked_t fscache_n_store_pages_over_limit;
 
-extern atomic_t fscache_n_store_vmscan_not_storing;
-extern atomic_t fscache_n_store_vmscan_gone;
-extern atomic_t fscache_n_store_vmscan_busy;
-extern atomic_t fscache_n_store_vmscan_cancelled;
-extern atomic_t fscache_n_store_vmscan_wait;
+extern atomic_unchecked_t fscache_n_store_vmscan_not_storing;
+extern atomic_unchecked_t fscache_n_store_vmscan_gone;
+extern atomic_unchecked_t fscache_n_store_vmscan_busy;
+extern atomic_unchecked_t fscache_n_store_vmscan_cancelled;
+extern atomic_unchecked_t fscache_n_store_vmscan_wait;
 
-extern atomic_t fscache_n_marks;
-extern atomic_t fscache_n_uncaches;
+extern atomic_unchecked_t fscache_n_marks;
+extern atomic_unchecked_t fscache_n_uncaches;
 
-extern atomic_t fscache_n_acquires;
-extern atomic_t fscache_n_acquires_null;
-extern atomic_t fscache_n_acquires_no_cache;
-extern atomic_t fscache_n_acquires_ok;
-extern atomic_t fscache_n_acquires_nobufs;
-extern atomic_t fscache_n_acquires_oom;
+extern atomic_unchecked_t fscache_n_acquires;
+extern atomic_unchecked_t fscache_n_acquires_null;
+extern atomic_unchecked_t fscache_n_acquires_no_cache;
+extern atomic_unchecked_t fscache_n_acquires_ok;
+extern atomic_unchecked_t fscache_n_acquires_nobufs;
+extern atomic_unchecked_t fscache_n_acquires_oom;
 
-extern atomic_t fscache_n_invalidates;
-extern atomic_t fscache_n_invalidates_run;
+extern atomic_unchecked_t fscache_n_invalidates;
+extern atomic_unchecked_t fscache_n_invalidates_run;
 
-extern atomic_t fscache_n_updates;
-extern atomic_t fscache_n_updates_null;
-extern atomic_t fscache_n_updates_run;
+extern atomic_unchecked_t fscache_n_updates;
+extern atomic_unchecked_t fscache_n_updates_null;
+extern atomic_unchecked_t fscache_n_updates_run;
 
-extern atomic_t fscache_n_relinquishes;
-extern atomic_t fscache_n_relinquishes_null;
-extern atomic_t fscache_n_relinquishes_waitcrt;
-extern atomic_t fscache_n_relinquishes_retire;
+extern atomic_unchecked_t fscache_n_relinquishes;
+extern atomic_unchecked_t fscache_n_relinquishes_null;
+extern atomic_unchecked_t fscache_n_relinquishes_waitcrt;
+extern atomic_unchecked_t fscache_n_relinquishes_retire;
 
-extern atomic_t fscache_n_cookie_index;
-extern atomic_t fscache_n_cookie_data;
-extern atomic_t fscache_n_cookie_special;
+extern atomic_unchecked_t fscache_n_cookie_index;
+extern atomic_unchecked_t fscache_n_cookie_data;
+extern atomic_unchecked_t fscache_n_cookie_special;
 
-extern atomic_t fscache_n_object_alloc;
-extern atomic_t fscache_n_object_no_alloc;
-extern atomic_t fscache_n_object_lookups;
-extern atomic_t fscache_n_object_lookups_negative;
-extern atomic_t fscache_n_object_lookups_positive;
-extern atomic_t fscache_n_object_lookups_timed_out;
-extern atomic_t fscache_n_object_created;
-extern atomic_t fscache_n_object_avail;
-extern atomic_t fscache_n_object_dead;
+extern atomic_unchecked_t fscache_n_object_alloc;
+extern atomic_unchecked_t fscache_n_object_no_alloc;
+extern atomic_unchecked_t fscache_n_object_lookups;
+extern atomic_unchecked_t fscache_n_object_lookups_negative;
+extern atomic_unchecked_t fscache_n_object_lookups_positive;
+extern atomic_unchecked_t fscache_n_object_lookups_timed_out;
+extern atomic_unchecked_t fscache_n_object_created;
+extern atomic_unchecked_t fscache_n_object_avail;
+extern atomic_unchecked_t fscache_n_object_dead;
 
-extern atomic_t fscache_n_checkaux_none;
-extern atomic_t fscache_n_checkaux_okay;
-extern atomic_t fscache_n_checkaux_update;
-extern atomic_t fscache_n_checkaux_obsolete;
+extern atomic_unchecked_t fscache_n_checkaux_none;
+extern atomic_unchecked_t fscache_n_checkaux_okay;
+extern atomic_unchecked_t fscache_n_checkaux_update;
+extern atomic_unchecked_t fscache_n_checkaux_obsolete;
 
 extern atomic_t fscache_n_cop_alloc_object;
 extern atomic_t fscache_n_cop_lookup_object;
@@ -280,6 +280,11 @@ static inline void fscache_stat(atomic_t *stat)
 	atomic_inc(stat);
 }
 
+static inline void fscache_stat_unchecked(atomic_unchecked_t *stat)
+{
+	atomic_inc_unchecked(stat);
+}
+
 static inline void fscache_stat_d(atomic_t *stat)
 {
 	atomic_dec(stat);
@@ -292,6 +297,7 @@ extern const struct file_operations fscache_stats_fops;
 
 #define __fscache_stat(stat) (NULL)
 #define fscache_stat(stat) do {} while (0)
+#define fscache_stat_unchecked(stat) do {} while (0)
 #define fscache_stat_d(stat) do {} while (0)
 #endif
 

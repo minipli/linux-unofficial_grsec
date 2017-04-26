@@ -1122,7 +1122,7 @@ void ixgbe_ptp_start_cyclecounter(struct ixgbe_adapter *adapter)
 	}
 
 	/* update the base incval used to calculate frequency adjustment */
-	ACCESS_ONCE(adapter->base_incval) = incval;
+	ACCESS_ONCE_RW(adapter->base_incval) = incval;
 	smp_mb();
 
 	/* need lock to prevent incorrect read while modifying cyclecounter */

@@ -45,7 +45,7 @@ struct ext4_attr {
 		int offset;
 		void *explicit_ptr;
 	} u;
-};
+} __do_const;
 
 static ssize_t session_write_kbytes_show(struct ext4_attr *a,
 					 struct ext4_sb_info *sbi, char *buf)

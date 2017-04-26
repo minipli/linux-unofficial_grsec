@@ -52,7 +52,7 @@ typedef struct sg_io_hdr
 					      or scatter gather list */
     unsigned char __user *cmdp; /* [i], [*i] points to command to perform */
     void __user *sbp;		/* [i], [*o] points to sense_buffer memory */
-    unsigned int timeout;       /* [i] MAX_UINT->no timeout (unit: millisec) */
+    unsigned int timeout __intentional_overflow(-1);       /* [i] MAX_UINT->no timeout (unit: millisec) */
     unsigned int flags;         /* [i] 0 -> default, see SG_FLAG... */
     int pack_id;                /* [i->o] unused internally (normally) */
     void __user * usr_ptr;      /* [i->o] unused internally */

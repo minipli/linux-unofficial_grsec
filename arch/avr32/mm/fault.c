@@ -41,6 +41,23 @@ static inline int notify_page_fault(struct pt_regs *regs, int trap)
 
 int exception_trace = 1;
 
+#ifdef CONFIG_PAX_PAGEEXEC
+void pax_report_insns(struct pt_regs *regs, void *pc, void *sp)
+{
+	unsigned long i;
+
+	printk(KERN_ERR "PAX: bytes at PC: ");
+	for (i = 0; i < 20; i++) {
+		unsigned char c;
+		if (get_user(c, (unsigned char *)pc+i))
+			printk(KERN_CONT "???????? ");
+		else
+			printk(KERN_CONT "%02x ", c);
+	}
+	printk("\n");
+}
+#endif
+
 /*
  * This routine handles page faults. It determines the address and the
  * problem, and then passes it off to one of the appropriate routines.
@@ -178,6 +195,16 @@ bad_area:
 	up_read(&mm->mmap_sem);
 
 	if (user_mode(regs)) {
+
+#ifdef CONFIG_PAX_PAGEEXEC
+		if (mm->pax_flags & MF_PAX_PAGEEXEC) {
+			if (ecr == ECR_PROTECTION_X || ecr == ECR_TLB_MISS_X) {
+				pax_report_fault(regs, (void *)regs->pc, (void *)regs->sp);
+				do_group_exit(SIGKILL);
+			}
+		}
+#endif
+
 		if (exception_trace && printk_ratelimit())
 			printk("%s%s[%d]: segfault at %08lx pc %08lx "
 			       "sp %08lx ecr %lu\n",

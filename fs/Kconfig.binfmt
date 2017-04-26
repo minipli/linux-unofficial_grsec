@@ -112,7 +112,7 @@ config HAVE_AOUT
 
 config BINFMT_AOUT
 	tristate "Kernel support for a.out and ECOFF binaries"
-	depends on HAVE_AOUT
+	depends on HAVE_AOUT && BROKEN
 	---help---
 	  A.out (Assembler.OUTput) is a set of formats for libraries and
 	  executables used in the earliest versions of UNIX.  Linux used

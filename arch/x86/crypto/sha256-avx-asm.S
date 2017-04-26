@@ -49,6 +49,7 @@
 
 #ifdef CONFIG_AS_AVX
 #include <linux/linkage.h>
+#include <asm/alternative-asm.h>
 
 ## assume buffers not aligned
 #define    VMOVDQ vmovdqu
@@ -347,8 +348,7 @@ a = TMP_
 ## arg 3 : Num blocks
 ########################################################################
 .text
-ENTRY(sha256_transform_avx)
-.align 32
+RAP_ENTRY(sha256_transform_avx)
 	pushq   %rbx
 	pushq   %rbp
 	pushq   %r13
@@ -460,7 +460,7 @@ done_hash:
 	popq    %r13
 	popq    %rbp
 	popq    %rbx
-	ret
+	pax_ret sha256_transform_avx
 ENDPROC(sha256_transform_avx)
 
 .data

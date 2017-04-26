@@ -100,7 +100,7 @@ static int irq_last;
 static u32 *irq_count;
 static int num_irqs;
 
-static struct device_attribute **dev_attr;
+static device_attribute_no_const **dev_attr;
 static char **event_name;
 
 static u8 avg_sample = SAMPLE_16;

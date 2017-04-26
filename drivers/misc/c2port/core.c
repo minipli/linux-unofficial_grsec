@@ -918,7 +918,9 @@ struct c2port_device *c2port_device_register(char *name,
 		goto error_idr_alloc;
 	c2dev->id = ret;
 
-	bin_attr_flash_data.size = ops->blocks_num * ops->block_size;
+	pax_open_kernel();
+	const_cast(bin_attr_flash_data.size) = ops->blocks_num * ops->block_size;
+	pax_close_kernel();
 
 	c2dev->dev = device_create(c2port_class, NULL, 0, c2dev,
 				   "c2port%d", c2dev->id);

@@ -46,7 +46,7 @@ struct hypervisor_x86 {
 
 	/* pin current vcpu to specified physical cpu (run rarely) */
 	void		(*pin_vcpu)(int);
-};
+} __do_const;
 
 extern const struct hypervisor_x86 *x86_hyper;
 

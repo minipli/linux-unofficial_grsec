@@ -180,7 +180,7 @@ int __pci_read_base(struct pci_dev *dev, enum pci_bar_type type,
 	u16 orig_cmd;
 	struct pci_bus_region region, inverted_region;
 
-	mask = type ? PCI_ROM_ADDRESS_MASK : ~0;
+	mask = type ? (u32)PCI_ROM_ADDRESS_MASK : ~0;
 
 	/* No printks while decoding is disabled! */
 	if (!dev->mmio_always_on) {

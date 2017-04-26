@@ -304,7 +304,7 @@ check_list:
 		goto out_unlock_msg_ctx;
 	i = PKT_TYPE_SIZE + PKT_CTR_SIZE;
 	if (msg_ctx->msg) {
-		if (copy_to_user(&buf[i], packet_length, packet_length_size))
+		if (packet_length_size > sizeof(packet_length) || copy_to_user(&buf[i], packet_length, packet_length_size))
 			goto out_unlock_msg_ctx;
 		i += packet_length_size;
 		if (copy_to_user(&buf[i], msg_ctx->msg, msg_ctx->msg_size))

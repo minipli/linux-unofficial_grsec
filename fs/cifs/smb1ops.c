@@ -622,27 +622,27 @@ static void
 cifs_clear_stats(struct cifs_tcon *tcon)
 {
 #ifdef CONFIG_CIFS_STATS
-	atomic_set(&tcon->stats.cifs_stats.num_writes, 0);
-	atomic_set(&tcon->stats.cifs_stats.num_reads, 0);
-	atomic_set(&tcon->stats.cifs_stats.num_flushes, 0);
-	atomic_set(&tcon->stats.cifs_stats.num_oplock_brks, 0);
-	atomic_set(&tcon->stats.cifs_stats.num_opens, 0);
-	atomic_set(&tcon->stats.cifs_stats.num_posixopens, 0);
-	atomic_set(&tcon->stats.cifs_stats.num_posixmkdirs, 0);
-	atomic_set(&tcon->stats.cifs_stats.num_closes, 0);
-	atomic_set(&tcon->stats.cifs_stats.num_deletes, 0);
-	atomic_set(&tcon->stats.cifs_stats.num_mkdirs, 0);
-	atomic_set(&tcon->stats.cifs_stats.num_rmdirs, 0);
-	atomic_set(&tcon->stats.cifs_stats.num_renames, 0);
-	atomic_set(&tcon->stats.cifs_stats.num_t2renames, 0);
-	atomic_set(&tcon->stats.cifs_stats.num_ffirst, 0);
-	atomic_set(&tcon->stats.cifs_stats.num_fnext, 0);
-	atomic_set(&tcon->stats.cifs_stats.num_fclose, 0);
-	atomic_set(&tcon->stats.cifs_stats.num_hardlinks, 0);
-	atomic_set(&tcon->stats.cifs_stats.num_symlinks, 0);
-	atomic_set(&tcon->stats.cifs_stats.num_locks, 0);
-	atomic_set(&tcon->stats.cifs_stats.num_acl_get, 0);
-	atomic_set(&tcon->stats.cifs_stats.num_acl_set, 0);
+	atomic_set_unchecked(&tcon->stats.cifs_stats.num_writes, 0);
+	atomic_set_unchecked(&tcon->stats.cifs_stats.num_reads, 0);
+	atomic_set_unchecked(&tcon->stats.cifs_stats.num_flushes, 0);
+	atomic_set_unchecked(&tcon->stats.cifs_stats.num_oplock_brks, 0);
+	atomic_set_unchecked(&tcon->stats.cifs_stats.num_opens, 0);
+	atomic_set_unchecked(&tcon->stats.cifs_stats.num_posixopens, 0);
+	atomic_set_unchecked(&tcon->stats.cifs_stats.num_posixmkdirs, 0);
+	atomic_set_unchecked(&tcon->stats.cifs_stats.num_closes, 0);
+	atomic_set_unchecked(&tcon->stats.cifs_stats.num_deletes, 0);
+	atomic_set_unchecked(&tcon->stats.cifs_stats.num_mkdirs, 0);
+	atomic_set_unchecked(&tcon->stats.cifs_stats.num_rmdirs, 0);
+	atomic_set_unchecked(&tcon->stats.cifs_stats.num_renames, 0);
+	atomic_set_unchecked(&tcon->stats.cifs_stats.num_t2renames, 0);
+	atomic_set_unchecked(&tcon->stats.cifs_stats.num_ffirst, 0);
+	atomic_set_unchecked(&tcon->stats.cifs_stats.num_fnext, 0);
+	atomic_set_unchecked(&tcon->stats.cifs_stats.num_fclose, 0);
+	atomic_set_unchecked(&tcon->stats.cifs_stats.num_hardlinks, 0);
+	atomic_set_unchecked(&tcon->stats.cifs_stats.num_symlinks, 0);
+	atomic_set_unchecked(&tcon->stats.cifs_stats.num_locks, 0);
+	atomic_set_unchecked(&tcon->stats.cifs_stats.num_acl_get, 0);
+	atomic_set_unchecked(&tcon->stats.cifs_stats.num_acl_set, 0);
 #endif
 }
 
@@ -651,36 +651,36 @@ cifs_print_stats(struct seq_file *m, struct cifs_tcon *tcon)
 {
 #ifdef CONFIG_CIFS_STATS
 	seq_printf(m, " Oplocks breaks: %d",
-		   atomic_read(&tcon->stats.cifs_stats.num_oplock_brks));
+		   atomic_read_unchecked(&tcon->stats.cifs_stats.num_oplock_brks));
 	seq_printf(m, "\nReads:  %d Bytes: %llu",
-		   atomic_read(&tcon->stats.cifs_stats.num_reads),
+		   atomic_read_unchecked(&tcon->stats.cifs_stats.num_reads),
 		   (long long)(tcon->bytes_read));
 	seq_printf(m, "\nWrites: %d Bytes: %llu",
-		   atomic_read(&tcon->stats.cifs_stats.num_writes),
+		   atomic_read_unchecked(&tcon->stats.cifs_stats.num_writes),
 		   (long long)(tcon->bytes_written));
 	seq_printf(m, "\nFlushes: %d",
-		   atomic_read(&tcon->stats.cifs_stats.num_flushes));
+		   atomic_read_unchecked(&tcon->stats.cifs_stats.num_flushes));
 	seq_printf(m, "\nLocks: %d HardLinks: %d Symlinks: %d",
-		   atomic_read(&tcon->stats.cifs_stats.num_locks),
-		   atomic_read(&tcon->stats.cifs_stats.num_hardlinks),
-		   atomic_read(&tcon->stats.cifs_stats.num_symlinks));
+		   atomic_read_unchecked(&tcon->stats.cifs_stats.num_locks),
+		   atomic_read_unchecked(&tcon->stats.cifs_stats.num_hardlinks),
+		   atomic_read_unchecked(&tcon->stats.cifs_stats.num_symlinks));
 	seq_printf(m, "\nOpens: %d Closes: %d Deletes: %d",
-		   atomic_read(&tcon->stats.cifs_stats.num_opens),
-		   atomic_read(&tcon->stats.cifs_stats.num_closes),
-		   atomic_read(&tcon->stats.cifs_stats.num_deletes));
+		   atomic_read_unchecked(&tcon->stats.cifs_stats.num_opens),
+		   atomic_read_unchecked(&tcon->stats.cifs_stats.num_closes),
+		   atomic_read_unchecked(&tcon->stats.cifs_stats.num_deletes));
 	seq_printf(m, "\nPosix Opens: %d Posix Mkdirs: %d",
-		   atomic_read(&tcon->stats.cifs_stats.num_posixopens),
-		   atomic_read(&tcon->stats.cifs_stats.num_posixmkdirs));
+		   atomic_read_unchecked(&tcon->stats.cifs_stats.num_posixopens),
+		   atomic_read_unchecked(&tcon->stats.cifs_stats.num_posixmkdirs));
 	seq_printf(m, "\nMkdirs: %d Rmdirs: %d",
-		   atomic_read(&tcon->stats.cifs_stats.num_mkdirs),
-		   atomic_read(&tcon->stats.cifs_stats.num_rmdirs));
+		   atomic_read_unchecked(&tcon->stats.cifs_stats.num_mkdirs),
+		   atomic_read_unchecked(&tcon->stats.cifs_stats.num_rmdirs));
 	seq_printf(m, "\nRenames: %d T2 Renames %d",
-		   atomic_read(&tcon->stats.cifs_stats.num_renames),
-		   atomic_read(&tcon->stats.cifs_stats.num_t2renames));
+		   atomic_read_unchecked(&tcon->stats.cifs_stats.num_renames),
+		   atomic_read_unchecked(&tcon->stats.cifs_stats.num_t2renames));
 	seq_printf(m, "\nFindFirst: %d FNext %d FClose %d",
-		   atomic_read(&tcon->stats.cifs_stats.num_ffirst),
-		   atomic_read(&tcon->stats.cifs_stats.num_fnext),
-		   atomic_read(&tcon->stats.cifs_stats.num_fclose));
+		   atomic_read_unchecked(&tcon->stats.cifs_stats.num_ffirst),
+		   atomic_read_unchecked(&tcon->stats.cifs_stats.num_fnext),
+		   atomic_read_unchecked(&tcon->stats.cifs_stats.num_fclose));
 #endif
 }
 

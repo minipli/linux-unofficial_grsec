@@ -798,22 +798,22 @@ struct rtl8169_private {
 	struct mdio_ops {
 		void (*write)(struct rtl8169_private *, int, int);
 		int (*read)(struct rtl8169_private *, int);
-	} mdio_ops;
+	} __no_const mdio_ops;
 
 	struct pll_power_ops {
 		void (*down)(struct rtl8169_private *);
 		void (*up)(struct rtl8169_private *);
-	} pll_power_ops;
+	} __no_const pll_power_ops;
 
 	struct jumbo_ops {
 		void (*enable)(struct rtl8169_private *);
 		void (*disable)(struct rtl8169_private *);
-	} jumbo_ops;
+	} __no_const jumbo_ops;
 
 	struct csi_ops {
 		void (*write)(struct rtl8169_private *, int, int);
 		u32 (*read)(struct rtl8169_private *, int);
-	} csi_ops;
+	} __no_const csi_ops;
 
 	int (*set_speed)(struct net_device *, u8 aneg, u16 sp, u8 dpx, u32 adv);
 	int (*get_settings)(struct net_device *, struct ethtool_cmd *);

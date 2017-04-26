@@ -82,7 +82,7 @@ static inline int xen_safe_read_ulong(unsigned long *addr, unsigned long *val)
  * - get_phys_to_machine() is to be called by __pfn_to_mfn() only in special
  *   cases needing an extended handling.
  */
-static inline unsigned long __pfn_to_mfn(unsigned long pfn)
+static inline unsigned long __intentional_overflow(-1) __pfn_to_mfn(unsigned long pfn)
 {
 	unsigned long mfn;
 

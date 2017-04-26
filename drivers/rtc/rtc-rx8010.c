@@ -483,9 +483,11 @@ static int rx8010_probe(struct i2c_client *client,
 			dev_err(&client->dev, "unable to request IRQ\n");
 			client->irq = 0;
 		} else {
-			rx8010_rtc_ops.read_alarm = rx8010_read_alarm;
-			rx8010_rtc_ops.set_alarm = rx8010_set_alarm;
-			rx8010_rtc_ops.alarm_irq_enable = rx8010_alarm_irq_enable;
+			pax_open_kernel();
+			const_cast(rx8010_rtc_ops.read_alarm) = rx8010_read_alarm;
+			const_cast(rx8010_rtc_ops.set_alarm) = rx8010_set_alarm;
+			const_cast(rx8010_rtc_ops.alarm_irq_enable) = rx8010_alarm_irq_enable;
+			pax_close_kernel();
 		}
 	}
 

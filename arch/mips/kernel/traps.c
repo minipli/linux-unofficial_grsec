@@ -702,7 +702,18 @@ asmlinkage void do_ov(struct pt_regs *regs)
 	};
 
 	prev_state = exception_enter();
-	die_if_kernel("Integer overflow", regs);
+	if (unlikely(!user_mode(regs))) {
+
+#ifdef CONFIG_PAX_REFCOUNT
+		if (fixup_exception(regs)) {
+			pax_report_refcount_error(regs, NULL);
+			exception_exit(prev_state);
+			return;
+		}
+#endif
+
+		die("Integer overflow", regs);
+	}
 
 	force_sig_info(SIGFPE, &info, current);
 	exception_exit(prev_state);

@@ -1983,7 +1983,7 @@ static void panel_process_inputs(void)
 	}
 }
 
-static void panel_scan_timer(void)
+static void panel_scan_timer(unsigned long data)
 {
 	if (keypad.enabled && keypad_initialized) {
 		if (spin_trylock_irq(&pprt_lock)) {
@@ -2019,7 +2019,7 @@ static void init_scan_timer(void)
 	if (scan_timer.function)
 		return;		/* already started */
 
-	setup_timer(&scan_timer, (void *)&panel_scan_timer, 0);
+	setup_timer(&scan_timer, &panel_scan_timer, 0);
 	scan_timer.expires = jiffies + INPUT_POLL_TIME;
 	add_timer(&scan_timer);
 }

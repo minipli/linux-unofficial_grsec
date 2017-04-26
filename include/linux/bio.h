@@ -352,7 +352,7 @@ static inline void bip_set_seed(struct bio_integrity_payload *bip,
 #endif /* CONFIG_BLK_DEV_INTEGRITY */
 
 extern void bio_trim(struct bio *bio, int offset, int size);
-extern struct bio *bio_split(struct bio *bio, int sectors,
+extern struct bio *bio_split(struct bio *bio, unsigned int sectors,
 			     gfp_t gfp, struct bio_set *bs);
 
 /**
@@ -365,7 +365,7 @@ extern struct bio *bio_split(struct bio *bio, int sectors,
  * Returns a bio representing the next @sectors of @bio - if the bio is smaller
  * than @sectors, returns the original bio unchanged.
  */
-static inline struct bio *bio_next_split(struct bio *bio, int sectors,
+static inline struct bio *bio_next_split(struct bio *bio, unsigned int sectors,
 					 gfp_t gfp, struct bio_set *bs)
 {
 	if (sectors >= bio_sectors(bio))

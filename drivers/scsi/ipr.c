@@ -948,7 +948,7 @@ static void ipr_send_command(struct ipr_cmnd *ipr_cmd)
  **/
 static void ipr_do_req(struct ipr_cmnd *ipr_cmd,
 		       void (*done) (struct ipr_cmnd *),
-		       void (*timeout_func) (struct ipr_cmnd *), u32 timeout)
+		       void (*timeout_func) (unsigned long), u32 timeout)
 {
 	list_add_tail(&ipr_cmd->queue, &ipr_cmd->hrrq->hrrq_pending_q);
 
@@ -956,7 +956,7 @@ static void ipr_do_req(struct ipr_cmnd *ipr_cmd,
 
 	ipr_cmd->timer.data = (unsigned long) ipr_cmd;
 	ipr_cmd->timer.expires = jiffies + timeout;
-	ipr_cmd->timer.function = (void (*)(unsigned long))timeout_func;
+	ipr_cmd->timer.function = timeout_func;
 
 	add_timer(&ipr_cmd->timer);
 
@@ -1038,7 +1038,7 @@ static void ipr_init_ioadl(struct ipr_cmnd *ipr_cmd, dma_addr_t dma_addr,
  * 	none
  **/
 static void ipr_send_blocking_cmd(struct ipr_cmnd *ipr_cmd,
-				  void (*timeout_func) (struct ipr_cmnd *ipr_cmd),
+				  void (*timeout_func) (unsigned long ipr_cmd),
 				  u32 timeout)
 {
 	struct ipr_ioa_cfg *ioa_cfg = ipr_cmd->ioa_cfg;
@@ -1058,7 +1058,7 @@ static int ipr_get_hrrq_index(struct ipr_ioa_cfg *ioa_cfg)
 	if (ioa_cfg->hrrq_num == 1)
 		hrrq = 0;
 	else {
-		hrrq = atomic_add_return(1, &ioa_cfg->hrrq_index);
+		hrrq = atomic_add_return_unchecked(1, &ioa_cfg->hrrq_index);
 		hrrq = (hrrq % (ioa_cfg->hrrq_num - 1)) + 1;
 	}
 	return hrrq;
@@ -2622,8 +2622,9 @@ static void ipr_process_error(struct ipr_cmnd *ipr_cmd)
  * Return value:
  * 	none
  **/
-static void ipr_timeout(struct ipr_cmnd *ipr_cmd)
+static void ipr_timeout(unsigned long _ipr_cmd)
 {
+	struct ipr_cmnd *ipr_cmd = (struct ipr_cmnd *)_ipr_cmd;
 	unsigned long lock_flags = 0;
 	struct ipr_ioa_cfg *ioa_cfg = ipr_cmd->ioa_cfg;
 
@@ -2654,8 +2655,9 @@ static void ipr_timeout(struct ipr_cmnd *ipr_cmd)
  * Return value:
  * 	none
  **/
-static void ipr_oper_timeout(struct ipr_cmnd *ipr_cmd)
+static void ipr_oper_timeout(unsigned long _ipr_cmd)
 {
+	struct ipr_cmnd *ipr_cmd = (struct ipr_cmnd *)_ipr_cmd;
 	unsigned long lock_flags = 0;
 	struct ipr_ioa_cfg *ioa_cfg = ipr_cmd->ioa_cfg;
 
@@ -5348,8 +5350,9 @@ static void ipr_bus_reset_done(struct ipr_cmnd *ipr_cmd)
  * Return value:
  *	none
  **/
-static void ipr_abort_timeout(struct ipr_cmnd *ipr_cmd)
+static void ipr_abort_timeout(unsigned long _ipr_cmd)
 {
+	struct ipr_cmnd *ipr_cmd = (struct ipr_cmnd *)_ipr_cmd;
 	struct ipr_cmnd *reset_cmd;
 	struct ipr_ioa_cfg *ioa_cfg = ipr_cmd->ioa_cfg;
 	struct ipr_cmd_pkt *cmd_pkt;
@@ -8125,8 +8128,9 @@ static int ipr_ioafp_identify_hrrq(struct ipr_cmnd *ipr_cmd)
  * Return value:
  * 	none
  **/
-static void ipr_reset_timer_done(struct ipr_cmnd *ipr_cmd)
+static void ipr_reset_timer_done(unsigned long _ipr_cmd)
 {
+	struct ipr_cmnd *ipr_cmd = (struct ipr_cmnd *)_ipr_cmd;
 	struct ipr_ioa_cfg *ioa_cfg = ipr_cmd->ioa_cfg;
 	unsigned long lock_flags = 0;
 
@@ -8164,7 +8168,7 @@ static void ipr_reset_start_timer(struct ipr_cmnd *ipr_cmd,
 
 	ipr_cmd->timer.data = (unsigned long) ipr_cmd;
 	ipr_cmd->timer.expires = jiffies + timeout;
-	ipr_cmd->timer.function = (void (*)(unsigned long))ipr_reset_timer_done;
+	ipr_cmd->timer.function = ipr_reset_timer_done;
 	add_timer(&ipr_cmd->timer);
 }
 
@@ -8194,9 +8198,9 @@ static void ipr_init_ioa_mem(struct ipr_ioa_cfg *ioa_cfg)
 
 	ioa_cfg->identify_hrrq_index = 0;
 	if (ioa_cfg->hrrq_num == 1)
-		atomic_set(&ioa_cfg->hrrq_index, 0);
+		atomic_set_unchecked(&ioa_cfg->hrrq_index, 0);
 	else
-		atomic_set(&ioa_cfg->hrrq_index, 1);
+		atomic_set_unchecked(&ioa_cfg->hrrq_index, 1);
 
 	/* Zero out config table */
 	memset(ioa_cfg->u.cfg_table, 0, ioa_cfg->cfg_table_size);
@@ -8250,7 +8254,7 @@ static int ipr_reset_next_stage(struct ipr_cmnd *ipr_cmd)
 
 	ipr_cmd->timer.data = (unsigned long) ipr_cmd;
 	ipr_cmd->timer.expires = jiffies + stage_time * HZ;
-	ipr_cmd->timer.function = (void (*)(unsigned long))ipr_oper_timeout;
+	ipr_cmd->timer.function = ipr_oper_timeout;
 	ipr_cmd->done = ipr_reset_ioa_job;
 	add_timer(&ipr_cmd->timer);
 
@@ -8322,7 +8326,7 @@ static int ipr_reset_enable_ioa(struct ipr_cmnd *ipr_cmd)
 
 	ipr_cmd->timer.data = (unsigned long) ipr_cmd;
 	ipr_cmd->timer.expires = jiffies + (ioa_cfg->transop_timeout * HZ);
-	ipr_cmd->timer.function = (void (*)(unsigned long))ipr_oper_timeout;
+	ipr_cmd->timer.function = ipr_oper_timeout;
 	ipr_cmd->done = ipr_reset_ioa_job;
 	add_timer(&ipr_cmd->timer);
 	list_add_tail(&ipr_cmd->queue, &ipr_cmd->hrrq->hrrq_pending_q);
@@ -9310,7 +9314,7 @@ static void ipr_pci_perm_failure(struct pci_dev *pdev)
  * 	PCI_ERS_RESULT_NEED_RESET or PCI_ERS_RESULT_DISCONNECT
  */
 static pci_ers_result_t ipr_pci_error_detected(struct pci_dev *pdev,
-					       pci_channel_state_t state)
+					       enum pci_channel_state state)
 {
 	switch (state) {
 	case pci_channel_io_frozen:

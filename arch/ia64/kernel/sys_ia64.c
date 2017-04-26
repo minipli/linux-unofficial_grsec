@@ -28,6 +28,7 @@ arch_get_unmapped_area (struct file *filp, unsigned long addr, unsigned long len
 	unsigned long align_mask = 0;
 	struct mm_struct *mm = current->mm;
 	struct vm_unmapped_area_info info;
+	unsigned long offset = gr_rand_threadstack_offset(mm, filp, flags);
 
 	if (len > RGN_MAP_LIMIT)
 		return -ENOMEM;
@@ -43,6 +44,13 @@ arch_get_unmapped_area (struct file *filp, unsigned long addr, unsigned long len
 	if (REGION_NUMBER(addr) == RGN_HPAGE)
 		addr = 0;
 #endif
+
+#ifdef CONFIG_PAX_RANDMMAP
+	if (mm->pax_flags & MF_PAX_RANDMMAP)
+		addr = mm->free_area_cache;
+	else
+#endif
+
 	if (!addr)
 		addr = TASK_UNMAPPED_BASE;
 
@@ -61,6 +69,7 @@ arch_get_unmapped_area (struct file *filp, unsigned long addr, unsigned long len
 	info.high_limit = TASK_SIZE;
 	info.align_mask = align_mask;
 	info.align_offset = 0;
+	info.threadstack_offset = offset;
 	return vm_unmapped_area(&info);
 }
 

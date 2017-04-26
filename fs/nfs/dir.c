@@ -713,8 +713,9 @@ out:
  * We only need to convert from xdr once so future lookups are much simpler
  */
 static
-int nfs_readdir_filler(nfs_readdir_descriptor_t *desc, struct page* page)
+int nfs_readdir_filler(struct file *_desc, struct page* page)
 {
+	nfs_readdir_descriptor_t *desc = (nfs_readdir_descriptor_t *)_desc;
 	struct inode	*inode = file_inode(desc->file);
 	int ret;
 
@@ -749,7 +750,7 @@ struct page *get_cache_page(nfs_readdir_descriptor_t *desc)
 
 	for (;;) {
 		page = read_cache_page(desc->file->f_mapping,
-			desc->page_index, (filler_t *)nfs_readdir_filler, desc);
+			desc->page_index, nfs_readdir_filler, desc);
 		if (IS_ERR(page) || grab_page(page))
 			break;
 		put_page(page);

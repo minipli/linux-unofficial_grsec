@@ -71,7 +71,7 @@ module_param(default_rds_buf, uint, 0444);
 MODULE_PARM_DESC(default_rds_buf, "RDS buffer entries");
 
 /* Radio Nr */
-static u32 radio_nr = -1;
+static int radio_nr = -1;
 module_param(radio_nr, int, 0444);
 MODULE_PARM_DESC(radio_nr, "Radio Nr");
 

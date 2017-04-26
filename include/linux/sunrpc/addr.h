@@ -23,9 +23,9 @@ static inline unsigned short rpc_get_port(const struct sockaddr *sap)
 {
 	switch (sap->sa_family) {
 	case AF_INET:
-		return ntohs(((struct sockaddr_in *)sap)->sin_port);
+		return ntohs(((const struct sockaddr_in *)sap)->sin_port);
 	case AF_INET6:
-		return ntohs(((struct sockaddr_in6 *)sap)->sin6_port);
+		return ntohs(((const struct sockaddr_in6 *)sap)->sin6_port);
 	}
 	return 0;
 }
@@ -58,7 +58,7 @@ static inline bool rpc_cmp_addr4(const struct sockaddr *sap1,
 static inline bool __rpc_copy_addr4(struct sockaddr *dst,
 				    const struct sockaddr *src)
 {
-	const struct sockaddr_in *ssin = (struct sockaddr_in *) src;
+	const struct sockaddr_in *ssin = (const struct sockaddr_in *) src;
 	struct sockaddr_in *dsin = (struct sockaddr_in *) dst;
 
 	dsin->sin_family = ssin->sin_family;
@@ -177,7 +177,7 @@ static inline u32 rpc_get_scope_id(const struct sockaddr *sa)
 	if (sa->sa_family != AF_INET6)
 		return 0;
 
-	return ((struct sockaddr_in6 *) sa)->sin6_scope_id;
+	return ((const struct sockaddr_in6 *) sa)->sin6_scope_id;
 }
 
 #endif /* _LINUX_SUNRPC_ADDR_H */

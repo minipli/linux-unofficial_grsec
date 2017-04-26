@@ -48,6 +48,10 @@
 
 #define IA32_SYSCALL_VECTOR		0x80
 
+#define X86_REFCOUNT_VECTOR		0x81 /* Refcount Overflow or Underflow Exception */
+//#define X86_RAP_CALL_VECTOR		0x82 /* RAP Indirect Call Violation Exception */
+//#define X86_RAP_RET_VECTOR		0x83 /* RAP Function Return Violation Exception */
+
 /*
  * Vectors 0x30-0x3f are used for ISA interrupts.
  *   round up to the next 16-vector boundary

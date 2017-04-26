@@ -118,8 +118,8 @@ void __show_regs(struct pt_regs *regs)
 
 	show_regs_print_info(KERN_DEFAULT);
 
-	print_symbol("PC is at %s\n", instruction_pointer(regs));
-	print_symbol("LR is at %s\n", regs->ARM_lr);
+	printk("PC is at %pA\n", (void *)instruction_pointer(regs));
+	printk("LR is at %pA\n", (void *)regs->ARM_lr);
 	printk("pc : [<%08lx>]    lr : [<%08lx>]    psr: %08lx\n"
 	       "sp : %08lx  ip : %08lx  fp : %08lx\n",
 		regs->ARM_pc, regs->ARM_lr, regs->ARM_cpsr,
@@ -233,7 +233,7 @@ copy_thread(unsigned long clone_flags, unsigned long stack_start,
 
 	memset(&thread->cpu_context, 0, sizeof(struct cpu_context_save));
 
-#ifdef CONFIG_CPU_USE_DOMAINS
+#if defined(CONFIG_CPU_USE_DOMAINS) || defined(CONFIG_PAX_KERNEXEC) || defined(CONFIG_PAX_MEMORY_UDEREF)
 	/*
 	 * Copy the initial value of the domain access control register
 	 * from the current thread: thread->addr_limit will have been
@@ -336,7 +336,7 @@ static struct vm_area_struct gate_vma = {
 
 static int __init gate_vma_init(void)
 {
-	gate_vma.vm_page_prot = PAGE_READONLY_EXEC;
+	gate_vma.vm_page_prot = vm_get_page_prot(gate_vma.vm_flags);
 	return 0;
 }
 arch_initcall(gate_vma_init);
@@ -365,92 +365,14 @@ const char *arch_vma_name(struct vm_area_struct *vma)
 	return is_gate_vma(vma) ? "[vectors]" : NULL;
 }
 
-/* If possible, provide a placement hint at a random offset from the
- * stack for the sigpage and vdso pages.
- */
-static unsigned long sigpage_addr(const struct mm_struct *mm,
-				  unsigned int npages)
-{
-	unsigned long offset;
-	unsigned long first;
-	unsigned long last;
-	unsigned long addr;
-	unsigned int slots;
-
-	first = PAGE_ALIGN(mm->start_stack);
-
-	last = TASK_SIZE - (npages << PAGE_SHIFT);
-
-	/* No room after stack? */
-	if (first > last)
-		return 0;
-
-	/* Just enough room? */
-	if (first == last)
-		return first;
-
-	slots = ((last - first) >> PAGE_SHIFT) + 1;
-
-	offset = get_random_int() % slots;
-
-	addr = first + (offset << PAGE_SHIFT);
-
-	return addr;
-}
-
-static struct page *signal_page;
-extern struct page *get_signal_page(void);
-
-static const struct vm_special_mapping sigpage_mapping = {
-	.name = "[sigpage]",
-	.pages = &signal_page,
-};
-
 int arch_setup_additional_pages(struct linux_binprm *bprm, int uses_interp)
 {
 	struct mm_struct *mm = current->mm;
-	struct vm_area_struct *vma;
-	unsigned long npages;
-	unsigned long addr;
-	unsigned long hint;
-	int ret = 0;
-
-	if (!signal_page)
-		signal_page = get_signal_page();
-	if (!signal_page)
-		return -ENOMEM;
-
-	npages = 1; /* for sigpage */
-	npages += vdso_total_pages;
 
 	if (down_write_killable(&mm->mmap_sem))
 		return -EINTR;
-	hint = sigpage_addr(mm, npages);
-	addr = get_unmapped_area(NULL, hint, npages << PAGE_SHIFT, 0, 0);
-	if (IS_ERR_VALUE(addr)) {
-		ret = addr;
-		goto up_fail;
-	}
-
-	vma = _install_special_mapping(mm, addr, PAGE_SIZE,
-		VM_READ | VM_EXEC | VM_MAYREAD | VM_MAYWRITE | VM_MAYEXEC,
-		&sigpage_mapping);
-
-	if (IS_ERR(vma)) {
-		ret = PTR_ERR(vma);
-		goto up_fail;
-	}
-
-	mm->context.sigpage = addr;
-
-	/* Unlike the sigpage, failure to install the vdso is unlikely
-	 * to be fatal to the process, so no error check needed
-	 * here.
-	 */
-	arm_install_vdso(mm, addr + PAGE_SIZE);
-
- up_fail:
+	mm->context.sigpage = (PAGE_OFFSET + (get_random_int() % 0x3FFEFFE0)) & 0xFFFFFFFC;
 	up_write(&mm->mmap_sem);
-	return ret;
+	return 0;
 }
 #endif

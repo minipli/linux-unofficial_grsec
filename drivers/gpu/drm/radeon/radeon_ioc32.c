@@ -358,7 +358,7 @@ static int compat_radeon_cp_setparam(struct file *file, unsigned int cmd,
 	request = compat_alloc_user_space(sizeof(*request));
 	if (!access_ok(VERIFY_WRITE, request, sizeof(*request))
 	    || __put_user(req32.param, &request->param)
-	    || __put_user((void __user *)(unsigned long)req32.value,
+	    || __put_user((unsigned long)req32.value,
 			  &request->value))
 		return -EFAULT;
 
@@ -368,7 +368,7 @@ static int compat_radeon_cp_setparam(struct file *file, unsigned int cmd,
 #define compat_radeon_cp_setparam NULL
 #endif /* X86_64 || IA64 */
 
-static drm_ioctl_compat_t *radeon_compat_ioctls[] = {
+static drm_ioctl_compat_t radeon_compat_ioctls[] = {
 	[DRM_RADEON_CP_INIT] = compat_radeon_cp_init,
 	[DRM_RADEON_CLEAR] = compat_radeon_cp_clear,
 	[DRM_RADEON_STIPPLE] = compat_radeon_cp_stipple,
@@ -393,17 +393,13 @@ static drm_ioctl_compat_t *radeon_compat_ioctls[] = {
 long radeon_compat_ioctl(struct file *filp, unsigned int cmd, unsigned long arg)
 {
 	unsigned int nr = DRM_IOCTL_NR(cmd);
-	drm_ioctl_compat_t *fn = NULL;
 	int ret;
 
 	if (nr < DRM_COMMAND_BASE)
 		return drm_compat_ioctl(filp, cmd, arg);
 
-	if (nr < DRM_COMMAND_BASE + ARRAY_SIZE(radeon_compat_ioctls))
-		fn = radeon_compat_ioctls[nr - DRM_COMMAND_BASE];
-
-	if (fn != NULL)
-		ret = (*fn) (filp, cmd, arg);
+	if (nr < DRM_COMMAND_BASE + ARRAY_SIZE(radeon_compat_ioctls) && radeon_compat_ioctls[nr - DRM_COMMAND_BASE])
+		ret = (*radeon_compat_ioctls[nr - DRM_COMMAND_BASE]) (filp, cmd, arg);
 	else
 		ret = drm_ioctl(filp, cmd, arg);
 

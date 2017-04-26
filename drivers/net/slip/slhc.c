@@ -491,7 +491,7 @@ slhc_uncompress(struct slcompress *comp, unsigned char *icp, int isize)
 	register struct tcphdr *thp;
 	register struct iphdr *ip;
 	register struct cstate *cs;
-	int len, hdrlen;
+	long len, hdrlen;
 	unsigned char *cp = icp;
 
 	/* We've got a compressed packet; read the change byte */

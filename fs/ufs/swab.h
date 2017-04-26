@@ -22,7 +22,7 @@ enum {
 	BYTESEX_BE
 };
 
-static inline u64
+static inline u64 __intentional_overflow(-1)
 fs64_to_cpu(struct super_block *sbp, __fs64 n)
 {
 	if (UFS_SB(sbp)->s_bytesex == BYTESEX_LE)
@@ -40,7 +40,7 @@ cpu_to_fs64(struct super_block *sbp, u64 n)
 		return (__force __fs64)cpu_to_be64(n);
 }
 
-static inline u32
+static inline u32 __intentional_overflow(-1)
 fs32_to_cpu(struct super_block *sbp, __fs32 n)
 {
 	if (UFS_SB(sbp)->s_bytesex == BYTESEX_LE)

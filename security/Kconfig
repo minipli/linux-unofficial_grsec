@@ -4,6 +4,1066 @@
 
 menu "Security options"
 
+menu "Grsecurity"
+
+config ARCH_TRACK_EXEC_LIMIT
+	bool
+
+config PAX_PER_CPU_PGD
+	bool
+
+config TASK_SIZE_MAX_SHIFT
+	int
+	depends on X86_64
+	default 47 if !PAX_PER_CPU_PGD
+	default 42 if PAX_PER_CPU_PGD
+
+config PAX_ENABLE_PAE
+	bool
+	default y if (X86_32 && (MPENTIUM4 || MK8 || MPSC || MCORE2 || MATOM))
+
+config GRKERNSEC
+	bool "Grsecurity"
+	select CRYPTO
+	select CRYPTO_SHA256
+	select PROC_FS
+	select STOP_MACHINE
+	select TTY
+	select DEBUG_KERNEL
+	select DEBUG_LIST
+	select MULTIUSER
+	select BUG
+	help
+	  If you say Y here, you will be able to configure many features
+	  that will enhance the security of your system.  It is highly
+	  recommended that you say Y here and read through the help
+	  for each option so that you fully understand the features and
+	  can evaluate their usefulness for your machine.
+
+choice
+	prompt "Configuration Method"
+	depends on GRKERNSEC
+	default GRKERNSEC_CONFIG_CUSTOM
+	help
+
+config GRKERNSEC_CONFIG_AUTO
+	bool "Automatic"
+	help
+	  If you choose this configuration method, you'll be able to answer a small
+	  number of simple questions about how you plan to use this kernel.
+	  The settings of grsecurity and PaX will be automatically configured for
+	  the highest commonly-used settings within the provided constraints.
+
+	  If you require additional configuration, custom changes can still be made
+	  from the "custom configuration" menu.
+
+config GRKERNSEC_CONFIG_CUSTOM
+	bool "Custom"
+	help
+	  If you choose this configuration method, you'll be able to configure all
+	  grsecurity and PaX settings manually.  Via this method, no options are
+	  automatically enabled.
+
+	  Take note that if menuconfig is exited with this configuration method
+	  chosen, you will not be able to use the automatic configuration methods
+	  without starting again with a kernel configuration with no grsecurity
+	  or PaX options specified inside.
+
+endchoice
+
+choice
+	prompt "Usage Type"
+	depends on (GRKERNSEC && GRKERNSEC_CONFIG_AUTO)
+	default GRKERNSEC_CONFIG_SERVER
+	help
+
+config GRKERNSEC_CONFIG_SERVER
+	bool "Server"
+	help
+	  Choose this option if you plan to use this kernel on a server.
+
+config GRKERNSEC_CONFIG_DESKTOP
+	bool "Desktop"
+	help
+	  Choose this option if you plan to use this kernel on a desktop.
+
+endchoice
+
+choice
+	prompt "Virtualization Type"
+	depends on (GRKERNSEC && X86 && GRKERNSEC_CONFIG_AUTO)
+	default GRKERNSEC_CONFIG_VIRT_NONE
+	help
+
+config GRKERNSEC_CONFIG_VIRT_NONE
+	bool "None"
+	help
+	  Choose this option if this kernel will be run on bare metal.
+
+config GRKERNSEC_CONFIG_VIRT_GUEST
+	bool "Guest"
+	help
+	  Choose this option if this kernel will be run as a VM guest.
+
+config GRKERNSEC_CONFIG_VIRT_HOST
+	bool "Host"
+	help
+	  Choose this option if this kernel will be run as a VM host.
+
+endchoice
+
+choice
+	prompt "Virtualization Hardware"
+	depends on (GRKERNSEC && X86 && GRKERNSEC_CONFIG_AUTO && (GRKERNSEC_CONFIG_VIRT_GUEST || GRKERNSEC_CONFIG_VIRT_HOST))
+	help
+
+config GRKERNSEC_CONFIG_VIRT_EPT
+	bool "EPT/RVI Processor Support"
+	depends on X86
+	help
+	  Choose this option if your CPU supports the EPT or RVI features of 2nd-gen
+	  hardware virtualization.  This allows for additional kernel hardening protections
+	  to operate without additional performance impact.
+
+	  To see if your Intel processor supports EPT, see:
+	  http://ark.intel.com/Products/VirtualizationTechnology
+	  (Most Core i3/5/7 support EPT)
+
+	  To see if your AMD processor supports RVI, see:
+	  http://support.amd.com/us/kbarticles/Pages/GPU120AMDRVICPUsHyperVWin8.aspx
+
+config GRKERNSEC_CONFIG_VIRT_SOFT
+	bool "First-gen/No Hardware Virtualization"
+	help
+	  Choose this option if you use an Atom/Pentium/Core 2 processor that either doesn't
+	  support hardware virtualization or doesn't support the EPT/RVI extensions.
+
+endchoice
+
+choice
+	prompt "Virtualization Software"
+	depends on (GRKERNSEC && GRKERNSEC_CONFIG_AUTO && (GRKERNSEC_CONFIG_VIRT_GUEST || GRKERNSEC_CONFIG_VIRT_HOST))
+	help
+
+config GRKERNSEC_CONFIG_VIRT_XEN
+	bool "Xen"
+	help
+	  Choose this option if this kernel is running as a Xen guest or host.
+
+config GRKERNSEC_CONFIG_VIRT_VMWARE
+	bool "VMWare"
+	help
+	  Choose this option if this kernel is running as a VMWare guest or host.
+
+config GRKERNSEC_CONFIG_VIRT_KVM
+	bool "KVM"
+	help
+	  Choose this option if this kernel is running as a KVM guest or host.
+
+config GRKERNSEC_CONFIG_VIRT_VIRTUALBOX
+	bool "VirtualBox"
+	help
+	  Choose this option if this kernel is running as a VirtualBox guest or host.
+
+config GRKERNSEC_CONFIG_VIRT_HYPERV
+	bool "Hyper-V"
+	help
+	  Choose this option if this kernel is running as a Hyper-V guest.
+
+endchoice
+
+choice
+	prompt "Required Priorities"
+	depends on (GRKERNSEC && GRKERNSEC_CONFIG_AUTO)
+	default GRKERNSEC_CONFIG_PRIORITY_PERF
+	help
+
+config GRKERNSEC_CONFIG_PRIORITY_PERF
+	bool "Performance"
+	help
+	  Choose this option if performance is of highest priority for this deployment
+	  of grsecurity.  Features like UDEREF on a 64bit kernel, kernel stack clearing,
+	  clearing of structures intended for userland, and freed memory sanitizing will
+	  be disabled.
+
+config GRKERNSEC_CONFIG_PRIORITY_SECURITY
+	bool "Security"
+	help
+	  Choose this option if security is of highest priority for this deployment of
+	  grsecurity.  UDEREF, kernel stack clearing, clearing of structures intended
+	  for userland, and freed memory sanitizing will be enabled for this kernel.
+	  In a worst-case scenario, these features can introduce a 20% performance hit
+	  (UDEREF on x64 contributing half of this hit).
+
+endchoice
+
+menu "Default Special Groups"
+depends on (GRKERNSEC && GRKERNSEC_CONFIG_AUTO)
+
+config GRKERNSEC_PROC_GID
+	int "GID exempted from /proc restrictions"
+	default 1001
+	help
+	  Setting this GID determines which group will be exempted from
+	  grsecurity's /proc restrictions, allowing users of the specified
+	  group  to view network statistics and the existence of other users'
+	  processes on the system.  This GID may also be chosen at boot time
+	  via "grsec_proc_gid=" on the kernel commandline.
+
+config GRKERNSEC_TPE_UNTRUSTED_GID
+        int "GID for TPE-untrusted users"
+        depends on GRKERNSEC_CONFIG_SERVER && GRKERNSEC_TPE && !GRKERNSEC_TPE_INVERT
+        default 1005
+        help
+	  Setting this GID determines which group untrusted users should
+	  be added to.  These users will be placed under grsecurity's Trusted Path
+	  Execution mechanism, preventing them from executing their own binaries.
+	  The users will only be able to execute binaries in directories owned and
+	  writable only by the root user.  If the sysctl option is enabled, a sysctl
+	  option with name "tpe_gid" is created.
+
+config GRKERNSEC_TPE_TRUSTED_GID
+        int "GID for TPE-trusted users"
+        depends on GRKERNSEC_CONFIG_SERVER && GRKERNSEC_TPE && GRKERNSEC_TPE_INVERT
+        default 1005
+        help
+          Setting this GID determines what group TPE restrictions will be
+          *disabled* for.  If the sysctl option is enabled, a sysctl option
+          with name "tpe_gid" is created.
+
+config GRKERNSEC_SYMLINKOWN_GID
+        int "GID for users with kernel-enforced SymlinksIfOwnerMatch"
+        depends on GRKERNSEC_CONFIG_SERVER
+        default 1006
+        help
+          Setting this GID determines what group kernel-enforced
+          SymlinksIfOwnerMatch will be enabled for.  If the sysctl option
+          is enabled, a sysctl option with name "symlinkown_gid" is created.
+
+
+endmenu
+
+menu "Customize Configuration"
+depends on GRKERNSEC
+
+menu "PaX"
+
+config PAX
+	bool "Enable various PaX features"
+	default y if GRKERNSEC_CONFIG_AUTO
+	depends on GRKERNSEC && (ALPHA || ARM || AVR32 || IA64 || MIPS || PARISC || PPC || SPARC || X86)
+	help
+	  This allows you to enable various PaX features.  PaX adds
+	  intrusion prevention mechanisms to the kernel that reduce
+	  the risks posed by exploitable memory corruption bugs.
+
+menu "PaX Control"
+	depends on PAX
+
+config PAX_SOFTMODE
+	bool 'Support soft mode'
+	help
+	  Enabling this option will allow you to run PaX in soft mode, that
+	  is, PaX features will not be enforced by default, only on executables
+	  marked explicitly.  You must also enable PT_PAX_FLAGS or XATTR_PAX_FLAGS
+	  support as they are the only way to mark executables for soft mode use.
+
+	  Soft mode can be activated by using the "pax_softmode=1" kernel command
+	  line option on boot.  Furthermore you can control various PaX features
+	  at runtime via the entries in /proc/sys/kernel/pax.
+
+config PAX_EI_PAX
+	bool 'Use legacy ELF header marking'
+	default y if GRKERNSEC_CONFIG_AUTO
+	help
+	  Enabling this option will allow you to control PaX features on
+	  a per executable basis via the 'chpax' utility available at
+	  http://pax.grsecurity.net/.  The control flags will be read from
+	  an otherwise reserved part of the ELF header.  This marking has
+	  numerous drawbacks (no support for soft-mode, toolchain does not
+	  know about the non-standard use of the ELF header) therefore it
+	  has been deprecated in favour of PT_PAX_FLAGS and XATTR_PAX_FLAGS
+	  support.
+
+	  Note that if you enable PT_PAX_FLAGS or XATTR_PAX_FLAGS marking
+	  support as well, they will override the legacy EI_PAX marks.
+
+	  If you enable none of the marking options then all applications
+	  will run with PaX enabled on them by default.
+
+config PAX_PT_PAX_FLAGS
+	bool 'Use ELF program header marking'
+	default y if GRKERNSEC_CONFIG_AUTO
+	help
+	  Enabling this option will allow you to control PaX features on
+	  a per executable basis via the 'paxctl' utility available at
+	  http://pax.grsecurity.net/.  The control flags will be read from
+	  a PaX specific ELF program header (PT_PAX_FLAGS).  This marking
+	  has the benefits of supporting both soft mode and being fully
+	  integrated into the toolchain (the binutils patch is available
+	  from http://pax.grsecurity.net).
+
+	  Note that if you enable the legacy EI_PAX marking support as well,
+	  the EI_PAX marks will be overridden by the PT_PAX_FLAGS marks.
+
+	  If you enable both PT_PAX_FLAGS and XATTR_PAX_FLAGS support then you
+	  must make sure that the marks are the same if a binary has both marks.
+
+	  If you enable none of the marking options then all applications
+	  will run with PaX enabled on them by default.
+
+config PAX_XATTR_PAX_FLAGS
+	bool 'Use filesystem extended attributes marking'
+	default y if GRKERNSEC_CONFIG_AUTO
+	select CIFS_XATTR if CIFS
+	select EXT2_FS_XATTR if EXT2_FS
+	select EXT3_FS_XATTR if EXT3_FS
+	select F2FS_FS_XATTR if F2FS_FS
+	select JFFS2_FS_XATTR if JFFS2_FS
+	select REISERFS_FS_XATTR if REISERFS_FS
+	select SQUASHFS_XATTR if SQUASHFS
+	select TMPFS_XATTR if TMPFS
+	help
+	  Enabling this option will allow you to control PaX features on
+	  a per executable basis via the 'setfattr' utility.  The control
+	  flags will be read from the user.pax.flags extended attribute of
+	  the file.  This marking has the benefit of supporting binary-only
+	  applications that self-check themselves (e.g., skype) and would
+	  not tolerate chpax/paxctl changes.  The main drawback is that
+	  extended attributes are not supported by some filesystems (e.g.,
+	  isofs, udf, vfat) so copying files through such filesystems will
+	  lose the extended attributes and these PaX markings.
+
+	  Note that if you enable the legacy EI_PAX marking support as well,
+	  the EI_PAX marks will be overridden by the XATTR_PAX_FLAGS marks.
+
+	  If you enable both PT_PAX_FLAGS and XATTR_PAX_FLAGS support then you
+	  must make sure that the marks are the same if a binary has both marks.
+
+	  If you enable none of the marking options then all applications
+	  will run with PaX enabled on them by default.
+
+choice
+	prompt 'MAC system integration'
+	default PAX_HAVE_ACL_FLAGS
+	help
+	  Mandatory Access Control systems have the option of controlling
+	  PaX flags on a per executable basis, choose the method supported
+	  by your particular system.
+
+	  - "none": if your MAC system does not interact with PaX,
+	  - "direct": if your MAC system defines pax_set_initial_flags() itself,
+	  - "hook": if your MAC system uses the pax_set_initial_flags_func callback.
+
+	  NOTE: this option is for developers/integrators only.
+
+	config PAX_NO_ACL_FLAGS
+		bool 'none'
+
+	config PAX_HAVE_ACL_FLAGS
+		bool 'direct'
+
+	config PAX_HOOK_ACL_FLAGS
+		bool 'hook'
+endchoice
+
+endmenu
+
+menu "Non-executable pages"
+	depends on PAX
+
+config PAX_NOEXEC
+	bool "Enforce non-executable pages"
+	default y if GRKERNSEC_CONFIG_AUTO
+	depends on ALPHA || (ARM && (CPU_V6 || CPU_V6K || CPU_V7)) || IA64 || MIPS || PARISC || PPC || S390 || SPARC || X86
+	help
+	  By design some architectures do not allow for protecting memory
+	  pages against execution or even if they do, Linux does not make
+	  use of this feature.  In practice this means that if a page is
+	  readable (such as the stack or heap) it is also executable.
+
+	  There is a well known exploit technique that makes use of this
+	  fact and a common programming mistake where an attacker can
+	  introduce code of his choice somewhere in the attacked program's
+	  memory (typically the stack or the heap) and then execute it.
+
+	  If the attacked program was running with different (typically
+	  higher) privileges than that of the attacker, then he can elevate
+	  his own privilege level (e.g. get a root shell, write to files for
+	  which he does not have write access to, etc).
+
+	  Enabling this option will let you choose from various features
+	  that prevent the injection and execution of 'foreign' code in
+	  a program.
+
+	  This will also break programs that rely on the old behaviour and
+	  expect that dynamically allocated memory via the malloc() family
+	  of functions is executable (which it is not).  Notable examples
+	  are the XFree86 4.x server, the java runtime and wine.
+
+config PAX_PAGEEXEC
+	bool "Paging based non-executable pages"
+	default y if GRKERNSEC_CONFIG_AUTO
+	depends on PAX_NOEXEC && (!X86_32 || M586 || M586TSC || M586MMX || M686 || MPENTIUMII || MPENTIUMIII || MPENTIUMM || MCORE2 || MATOM || MPENTIUM4 || MPSC || MK7 || MK8 || MWINCHIPC6 || MWINCHIP2 || MWINCHIP3D || MVIAC3_2 || MVIAC7)
+	select ARCH_TRACK_EXEC_LIMIT if X86_32
+	help
+	  This implementation is based on the paging feature of the CPU.
+	  On i386 without hardware non-executable bit support there is a
+	  variable but usually low performance impact, however on Intel's
+	  P4 core based CPUs it is very high so you should not enable this
+	  for kernels meant to be used on such CPUs.
+
+	  On alpha, avr32, ia64, parisc, sparc, sparc64, x86_64 and i386
+	  with hardware non-executable bit support there is no performance
+	  impact, on ppc the impact is negligible.
+
+	  Note that several architectures require various emulations due to
+	  badly designed userland ABIs, this will cause a performance impact
+	  but will disappear as soon as userland is fixed. For example, ppc
+	  userland MUST have been built with secure-plt by a recent toolchain.
+
+config PAX_SEGMEXEC
+	bool "Segmentation based non-executable pages"
+	default y if GRKERNSEC_CONFIG_AUTO
+	depends on PAX_NOEXEC && X86_32
+	help
+	  This implementation is based on the segmentation feature of the
+	  CPU and has a very small performance impact, however applications
+	  will be limited to a 1.5 GB address space instead of the normal
+	  3 GB.
+
+config PAX_EMUTRAMP
+	bool "Emulate trampolines"
+	default y if PARISC || GRKERNSEC_CONFIG_AUTO
+	depends on (PAX_PAGEEXEC || PAX_SEGMEXEC) && (PARISC || X86)
+	help
+	  There are some programs and libraries that for one reason or
+	  another attempt to execute special small code snippets from
+	  non-executable memory pages.  Most notable examples are the
+	  signal handler return code generated by the kernel itself and
+	  the GCC trampolines.
+
+	  If you enabled CONFIG_PAX_PAGEEXEC or CONFIG_PAX_SEGMEXEC then
+	  such programs will no longer work under your kernel.
+
+	  As a remedy you can say Y here and use the 'chpax' or 'paxctl'
+	  utilities to enable trampoline emulation for the affected programs
+	  yet still have the protection provided by the non-executable pages.
+
+	  On parisc you MUST enable this option and EMUSIGRT as well, otherwise
+	  your system will not even boot.
+
+	  Alternatively you can say N here and use the 'chpax' or 'paxctl'
+	  utilities to disable CONFIG_PAX_PAGEEXEC and CONFIG_PAX_SEGMEXEC
+	  for the affected files.
+
+	  NOTE: enabling this feature *may* open up a loophole in the
+	  protection provided by non-executable pages that an attacker
+	  could abuse.  Therefore the best solution is to not have any
+	  files on your system that would require this option.  This can
+	  be achieved by not using libc5 (which relies on the kernel
+	  signal handler return code) and not using or rewriting programs
+	  that make use of the nested function implementation of GCC.
+	  Skilled users can just fix GCC itself so that it implements
+	  nested function calls in a way that does not interfere with PaX.
+
+config PAX_EMUSIGRT
+	bool "Automatically emulate sigreturn trampolines"
+	depends on PAX_EMUTRAMP && PARISC
+	default y
+	help
+	  Enabling this option will have the kernel automatically detect
+	  and emulate signal return trampolines executing on the stack
+	  that would otherwise lead to task termination.
+
+	  This solution is intended as a temporary one for users with
+	  legacy versions of libc (libc5, glibc 2.0, uClibc before 0.9.17,
+	  Modula-3 runtime, etc) or executables linked to such, basically
+	  everything that does not specify its own SA_RESTORER function in
+	  normal executable memory like glibc 2.1+ does.
+
+	  On parisc you MUST enable this option, otherwise your system will
+	  not even boot.
+
+	  NOTE: this feature cannot be disabled on a per executable basis
+	  and since it *does* open up a loophole in the protection provided
+	  by non-executable pages, the best solution is to not have any
+	  files on your system that would require this option.
+
+config PAX_MPROTECT
+	bool "Restrict mprotect()"
+	default y if GRKERNSEC_CONFIG_AUTO
+	depends on (PAX_PAGEEXEC || PAX_SEGMEXEC)
+	help
+	  Enabling this option will prevent programs from
+	   - changing the executable status of memory pages that were
+	     not originally created as executable,
+	   - making read-only executable pages writable again,
+	   - creating executable pages from anonymous memory,
+	   - making read-only-after-relocations (RELRO) data pages writable again.
+
+	  You should say Y here to complete the protection provided by
+	  the enforcement of non-executable pages.
+
+	  NOTE: you can use the 'chpax' or 'paxctl' utilities to control
+	  this feature on a per file basis.
+
+config PAX_MPROTECT_COMPAT
+	bool "Use legacy/compat protection demoting (read help)"
+	depends on PAX_MPROTECT
+	default n
+	help
+	  The current implementation of PAX_MPROTECT denies RWX allocations/mprotects
+	  by sending the proper error code to the application.  For some older
+	  userland, this can cause problems with applications that assume such
+	  allocations will not be prevented by PaX or SELinux and other access
+	  control systems and have no fallback mechanisms.  For modern distros,
+	  this option should generally be set to 'N'.
+
+config PAX_ELFRELOCS
+	bool "Allow ELF text relocations (read help)"
+	depends on PAX_MPROTECT
+	default n
+	help
+	  Non-executable pages and mprotect() restrictions are effective
+	  in preventing the introduction of new executable code into an
+	  attacked task's address space.  There remain only two venues
+	  for this kind of attack: if the attacker can execute already
+	  existing code in the attacked task then he can either have it
+	  create and mmap() a file containing his code or have it mmap()
+	  an already existing ELF library that does not have position
+	  independent code in it and use mprotect() on it to make it
+	  writable and copy his code there.  While protecting against
+	  the former approach is beyond PaX, the latter can be prevented
+	  by having only PIC ELF libraries on one's system (which do not
+	  need to relocate their code).  If you are sure this is your case,
+	  as is the case with all modern Linux distributions, then leave
+	  this option disabled.  You should say 'n' here.
+
+config PAX_ETEXECRELOCS
+	bool "Allow ELF ET_EXEC text relocations"
+	depends on PAX_MPROTECT && (ALPHA || IA64 || PARISC)
+	select PAX_ELFRELOCS
+	default y
+	help
+	  On some architectures there are incorrectly created applications
+	  that require text relocations and would not work without enabling
+	  this option.  If you are an alpha, ia64 or parisc user, you should
+	  enable this option and disable it once you have made sure that
+	  none of your applications need it.
+
+config PAX_EMUPLT
+	bool "Automatically emulate ELF PLT"
+	depends on PAX_MPROTECT && (ALPHA || PARISC || SPARC)
+	default y
+	help
+	  Enabling this option will have the kernel automatically detect
+	  and emulate the Procedure Linkage Table entries in ELF files.
+	  On some architectures such entries are in writable memory, and
+	  become non-executable leading to task termination.  Therefore
+	  it is mandatory that you enable this option on alpha, parisc,
+	  sparc and sparc64, otherwise your system would not even boot.
+
+	  NOTE: this feature *does* open up a loophole in the protection
+	  provided by the non-executable pages, therefore the proper
+	  solution is to modify the toolchain to produce a PLT that does
+	  not need to be writable.
+
+config PAX_DLRESOLVE
+	bool 'Emulate old glibc resolver stub'
+	depends on PAX_EMUPLT && SPARC
+	default n
+	help
+	  This option is needed if userland has an old glibc (before 2.4)
+	  that puts a 'save' instruction into the runtime generated resolver
+	  stub that needs special emulation.
+
+config PAX_KERNEXEC
+	bool "Enforce non-executable kernel pages"
+	default y if GRKERNSEC_CONFIG_AUTO && (!X86 || GRKERNSEC_CONFIG_VIRT_NONE || (GRKERNSEC_CONFIG_VIRT_EPT && GRKERNSEC_CONFIG_VIRT_GUEST) || (GRKERNSEC_CONFIG_VIRT_EPT && GRKERNSEC_CONFIG_VIRT_KVM))
+	depends on (X86 || (ARM && (CPU_V6 || CPU_V6K || CPU_V7) && !(ARM_LPAE && MODULES))) && !XEN
+	select PAX_PER_CPU_PGD if X86_64 || (X86_32 && X86_PAE)
+	select ARM_KERNMEM_PERMS if ARM
+	help
+	  This is the kernel land equivalent of PAGEEXEC and MPROTECT,
+	  that is, enabling this option will make it harder to inject
+	  and execute 'foreign' code in kernel memory itself.
+
+	  Note that on amd64, CONFIG_EFI enabled with "efi=old_map" on
+	  the kernel command-line will result in an RWX physical map.
+
+	  Likewise, the EFI runtime services are necessarily mapped as
+	  RWX.  If CONFIG_EFI is enabled on an EFI-capable system, it
+	  is recommended that you boot with "noefi" on the kernel
+	  command-line if possible to eliminate the mapping.
+
+config PAX_KERNEXEC_PLUGIN
+	bool
+	depends on GCC_PLUGINS && X86_64
+
+choice
+	prompt "Code Pointer Instrumentation Method"
+	default PAX_KERNEXEC_PLUGIN_METHOD_BTS
+	depends on GCC_PLUGINS && X86_64 && (PAX_KERNEXEC || PAX_RAP)
+	help
+	  KERNEXEC on amd64 is not as secure as its i386 variant due to the
+	  lack of certain processor features. This option can bring back some
+	  of the security by forcing all code pointers at runtime to fall into
+	  kernel memory. This is achieved via compile time instrumentation of
+	  all code pointer dereferences (indirect calls and function returns).
+
+	  While there are alternative mechanisms (SMEP, UDEREF) that can achieve
+	  the same or even more, they also have their own drawbacks in terms of
+	  performance impact and/or being processor dependent so this feature
+	  offers a choice by having a low performance impact and being processor
+	  independent.
+
+	  If you enabled RAP (see PAX_RAP) and have an amd64 processor that does
+	  not support SMEP then you must also enable a KERNEXEC code pointer
+	  instrumentation method.
+
+	  Note that binary modules cannot be instrumented by this approach.
+
+	  Note that the implementation requires a gcc with plugin support,
+	  i.e., gcc 4.5 or newer.  You may need to install the supporting
+	  headers explicitly in addition to the normal gcc package.
+
+	config PAX_KERNEXEC_PLUGIN_METHOD_NONE
+		bool "none"
+		help
+		  In case your processor supports Supervisor Mode Execution
+		  Prevention (SMEP) you should choose this option to disable
+		  compile time instrumentation.
+
+		  Note that the kernel will refuse to boot if SMEP is not
+		  supported by the processor or is disabled on the kernel
+		  command line.
+
+	config PAX_KERNEXEC_PLUGIN_METHOD_BTS
+		bool "bts"
+		select PAX_KERNEXEC_PLUGIN
+		help
+		  This method is compatible with binary only modules but has
+		  a higher runtime overhead.
+
+	config PAX_KERNEXEC_PLUGIN_METHOD_OR
+		bool "or"
+		depends on !PARAVIRT
+		select PAX_KERNEXEC_PLUGIN
+		help
+		  This method is incompatible with binary only modules but has
+		  a lower runtime overhead.
+endchoice
+
+config PAX_KERNEXEC_MODULE_TEXT
+	int "Minimum amount of memory reserved for module code"
+	default "8" if (!GRKERNSEC_CONFIG_AUTO || GRKERNSEC_CONFIG_SERVER)
+	default "12" if (GRKERNSEC_CONFIG_AUTO && GRKERNSEC_CONFIG_DESKTOP)
+	depends on PAX_KERNEXEC && X86_32
+	help
+	  Due to implementation details the kernel must reserve a fixed
+	  amount of memory for runtime allocated code (such as modules)
+	  at compile time that cannot be changed at runtime.  Here you
+	  can specify the minimum amount in MB that will be reserved.
+	  Due to the same implementation details this size will always
+	  be rounded up to the next 2/4 MB boundary (depends on PAE) so
+	  the actually available memory for runtime allocated code will
+	  usually be more than this minimum.
+
+	  The default 4 MB should be enough for most users but if you have
+	  an excessive number of modules (e.g., most distribution configs
+	  compile many drivers as modules) or use huge modules such as
+	  nvidia's kernel driver, you will need to adjust this amount.
+	  A good rule of thumb is to look at your currently loaded kernel
+	  modules and add up their sizes.
+
+endmenu
+
+menu "Address Space Layout Randomization"
+	depends on PAX
+
+config PAX_ASLR
+	bool "Address Space Layout Randomization"
+	default y if GRKERNSEC_CONFIG_AUTO
+	help
+	  Many if not most exploit techniques rely on the knowledge of
+	  certain addresses in the attacked program.  The following options
+	  will allow the kernel to apply a certain amount of randomization
+	  to specific parts of the program thereby forcing an attacker to
+	  guess them in most cases.  Any failed guess will most likely crash
+	  the attacked program which allows the kernel to detect such attempts
+	  and react on them.  PaX itself provides no reaction mechanisms,
+	  instead it is strongly encouraged that you make use of grsecurity's
+	  (http://www.grsecurity.net/) built-in crash detection features or
+	  develop one yourself.
+
+	  By saying Y here you can choose to randomize the following areas:
+	   - top of the task's kernel stack
+	   - top of the task's userland stack
+	   - base address for mmap() requests that do not specify one
+	     (this includes all libraries)
+	   - base address of the main executable
+
+	  It is strongly recommended to say Y here as address space layout
+	  randomization has negligible impact on performance yet it provides
+	  a very effective protection.
+
+	  NOTE: you can use the 'chpax' or 'paxctl' utilities to control
+	  this feature on a per file basis.
+
+config PAX_RANDKSTACK
+	bool "Randomize kernel stack base"
+	default y if GRKERNSEC_CONFIG_AUTO && !(GRKERNSEC_CONFIG_VIRT_HOST && GRKERNSEC_CONFIG_VIRT_VIRTUALBOX)
+	depends on X86_TSC && X86
+	help
+	  By saying Y here the kernel will randomize every task's kernel
+	  stack on every system call.  This will not only force an attacker
+	  to guess it but also prevent him from making use of possible
+	  leaked information about it.
+
+	  Since the kernel stack is a rather scarce resource, randomization
+	  may cause unexpected stack overflows, therefore you should very
+	  carefully test your system.  Note that once enabled in the kernel
+	  configuration, this feature cannot be disabled on a per file basis.
+
+config PAX_RANDUSTACK
+	bool
+
+config PAX_RANDMMAP
+	bool "Randomize user stack and mmap() bases"
+	default y if GRKERNSEC_CONFIG_AUTO
+	depends on PAX_ASLR
+	select PAX_RANDUSTACK
+	help
+	  By saying Y here the kernel will randomize every task's userland
+	  stack and use a randomized base address for mmap() requests that
+	  do not specify one themselves.
+
+	  The stack randomization is done in two steps where the second
+	  one may apply a big amount of shift to the top of the stack and
+	  cause problems for programs that want to use lots of memory (more
+	  than 2.5 GB if SEGMEXEC is not active, or 1.25 GB when it is).
+
+	  As a result of mmap randomization all dynamically loaded libraries
+	  will appear at random addresses and therefore be harder to exploit
+	  by a technique where an attacker attempts to execute library code
+	  for his purposes (e.g. spawn a shell from an exploited program that
+	  is running at an elevated privilege level).
+
+	  Furthermore, if a program is relinked as a dynamic ELF file, its
+	  base address will be randomized as well, completing the full
+	  randomization of the address space layout.  Attacking such programs
+	  becomes a guess game.  You can find an example of doing this at
+	  http://pax.grsecurity.net/et_dyn.tar.gz and practical samples at
+	  http://www.grsecurity.net/grsec-gcc-specs.tar.gz .
+
+	  NOTE: you can use the 'chpax' or 'paxctl' utilities to control this
+	  feature on a per file basis.
+
+endmenu
+
+menu "Miscellaneous hardening features"
+
+config PAX_MEMORY_SANITIZE
+	bool "Sanitize all freed memory"
+	default y if (GRKERNSEC_CONFIG_AUTO && GRKERNSEC_CONFIG_PRIORITY_SECURITY)
+	help
+	  By saying Y here the kernel will erase memory pages and slab objects
+	  as soon as they are freed.  This in turn reduces the lifetime of data
+	  stored in them, making it less likely that sensitive information such
+	  as passwords, cryptographic secrets, etc stay in memory for too long.
+
+	  This is especially useful for programs whose runtime is short, long
+	  lived processes and the kernel itself benefit from this as long as
+	  they ensure timely freeing of memory that may hold sensitive
+	  information.
+
+	  A nice side effect of the sanitization of slab objects is the
+	  reduction of possible info leaks caused by padding bytes within the
+	  leaky structures.  Use-after-free bugs for structures containing
+	  pointers can also be detected as dereferencing the sanitized pointer
+	  will generate an access violation.
+
+	  The tradeoff is performance impact, on a single CPU system kernel
+	  compilation sees a 3% slowdown, other systems and workloads may vary
+	  and you are advised to test this feature on your expected workload
+	  before deploying it.
+
+	  The slab sanitization feature excludes a few slab caches per default
+	  for performance reasons.  To extend the feature to cover those as
+	  well, pass "pax_sanitize_slab=full" as kernel command line parameter.
+
+	  To reduce the performance penalty by sanitizing pages only, albeit
+	  limiting the effectiveness of this feature at the same time, slab
+	  sanitization can be disabled with the kernel command line parameter
+	  "pax_sanitize_slab=off".
+
+	  Note that this feature does not protect data stored in live pages,
+	  e.g., process memory swapped to disk may stay there for a long time.
+
+config PAX_MEMORY_STACKLEAK
+	bool "Sanitize kernel stack"
+	default y if (GRKERNSEC_CONFIG_AUTO && GRKERNSEC_CONFIG_PRIORITY_SECURITY)
+	depends on X86 && GCC_PLUGINS
+	help
+	  By saying Y here the kernel will erase the kernel stack before it
+	  returns from a system call.  This in turn reduces the information
+	  that a kernel stack leak bug can reveal.
+
+	  Note that such a bug can still leak information that was put on
+	  the stack by the current system call (the one eventually triggering
+	  the bug) but traces of earlier system calls on the kernel stack
+	  cannot leak anymore.
+
+	  The tradeoff is performance impact: on a single CPU system kernel
+	  compilation sees a 1% slowdown, other systems and workloads may vary
+	  and you are advised to test this feature on your expected workload
+	  before deploying it.
+
+	  Note that the full feature requires a gcc with plugin support,
+	  i.e., gcc 4.5 or newer.  You may need to install the supporting
+	  headers explicitly in addition to the normal gcc package.  Using
+	  older gcc versions means that functions with large enough stack
+	  frames may leave uninitialized memory behind that may be exposed
+	  to a later syscall leaking the stack.
+
+config PAX_MEMORY_STRUCTLEAK
+	bool "Forcibly initialize local variables copied to userland"
+	default y if (GRKERNSEC_CONFIG_AUTO && GRKERNSEC_CONFIG_PRIORITY_SECURITY)
+	depends on GCC_PLUGINS
+	help
+	  By saying Y here the kernel will zero initialize some local
+	  variables that are going to be copied to userland.  This in
+	  turn prevents unintended information leakage from the kernel
+	  stack should later code forget to explicitly set all parts of
+	  the copied variable.
+
+	  The tradeoff is less performance impact than PAX_MEMORY_STACKLEAK
+	  at a much smaller coverage.
+
+	  Note that the implementation requires a gcc with plugin support,
+	  i.e., gcc 4.5 or newer.  You may need to install the supporting
+	  headers explicitly in addition to the normal gcc package.
+
+config PAX_MEMORY_UDEREF
+	bool "Prevent invalid userland pointer dereference"
+	default y if GRKERNSEC_CONFIG_AUTO && !(X86_64 && GRKERNSEC_CONFIG_PRIORITY_PERF) && !(X86_64 && GRKERNSEC_CONFIG_VIRT_HOST && GRKERNSEC_CONFIG_VIRT_VIRTUALBOX) && (!X86 || GRKERNSEC_CONFIG_VIRT_NONE || GRKERNSEC_CONFIG_VIRT_EPT)
+	depends on (X86 || (ARM && (CPU_V6 || CPU_V6K || CPU_V7) && !ARM_LPAE)) && !UML_X86 && !XEN
+	select PAX_PER_CPU_PGD if X86_64
+	help
+	  By saying Y here the kernel will be prevented from dereferencing
+	  userland pointers in contexts where the kernel expects only kernel
+	  pointers.  This is both a useful runtime debugging feature and a
+	  security measure that prevents exploiting a class of kernel bugs.
+
+	  The tradeoff is that some virtualization solutions may experience
+	  a huge slowdown and therefore you should not enable this feature
+	  for kernels meant to run in such environments.  Whether a given VM
+	  solution is affected or not is best determined by simply trying it
+	  out, the performance impact will be obvious right on boot as this
+	  mechanism engages from very early on.  A good rule of thumb is that
+	  VMs running on CPUs without hardware virtualization support (i.e.,
+	  the majority of IA-32 CPUs) will likely experience the slowdown.
+
+	  On X86_64 the kernel will make use of PCID support when available
+	  (Intel's Westmere, Sandy Bridge, etc) for better security (default)
+	  or performance impact.  Pass pax_weakuderef on the kernel command
+	  line to choose the latter.
+
+config PAX_REFCOUNT
+	bool "Prevent various kernel object reference counter overflows"
+	default y if GRKERNSEC_CONFIG_AUTO
+	depends on GRKERNSEC && ((ARM && (CPU_V6 || CPU_V6K || CPU_V7)) || MIPS || PPC || SPARC64 || X86)
+	help
+	  By saying Y here the kernel will detect and prevent overflowing
+	  various (but not all) kinds of object reference counters.  Such
+	  overflows can normally occur due to bugs only and are often, if
+	  not always, exploitable.
+
+	  The tradeoff is that data structures protected by an overflowed
+	  refcount will never be freed and therefore will leak memory.  Note
+	  that this leak also happens even without this protection but in
+	  that case the overflow can eventually trigger the freeing of the
+	  data structure while it is still being used elsewhere, resulting
+	  in the exploitable situation that this feature prevents.
+
+	  Since this has a negligible performance impact, you should enable
+	  this feature.
+
+config PAX_USERCOPY
+	bool "Harden memory copies between kernel and userland"
+	default y if GRKERNSEC_CONFIG_AUTO
+	depends on GRKERNSEC && HAVE_ARCH_HARDENED_USERCOPY
+	select HARDENED_USERCOPY
+	help
+	  By saying Y here the kernel will enforce the size of heap objects
+	  when they are copied in either direction between the kernel and
+	  userland, even if only a part of the heap object is copied.
+
+	  Specifically, this checking prevents information leaking from the
+	  kernel heap during kernel to userland copies (if the kernel heap
+	  object is otherwise fully initialized) and prevents kernel heap
+	  overflows during userland to kernel copies.
+
+	  Note that the current implementation provides the strictest bounds
+	  checks for the SLUB allocator.
+
+	  Enabling this option also enables per-slab cache protection against
+	  data in a given cache being copied into/out of via userland
+	  accessors.  Though the whitelist of regions will be reduced over
+	  time, it notably protects important data structures like task structs.
+
+	  If frame pointers are enabled on x86, this option will also restrict
+	  copies into and out of the kernel stack to local variables within a
+	  single frame.
+
+	  Since this has a negligible performance impact, you should enable
+	  this feature.
+
+config PAX_CONSTIFY_PLUGIN
+	bool "Automatically constify eligible structures"
+	default y
+	depends on !UML && PAX_KERNEXEC && GCC_PLUGINS
+	help
+	  By saying Y here the compiler will automatically constify a class
+	  of types that contain only function pointers.  This reduces the
+	  kernel's attack surface and also produces a better memory layout.
+
+	  Note that the implementation requires a gcc with plugin support,
+	  i.e., gcc 4.5 or newer.  You may need to install the supporting
+	  headers explicitly in addition to the normal gcc package.
+
+	  Note that if some code really has to modify constified variables
+	  then the source code will have to be patched to allow it.  Examples
+	  can be found in PaX itself (the no_const attribute) and for some
+	  out-of-tree modules at http://www.grsecurity.net/~paxguy1/ .
+
+
+config PAX_USERCOPY_DEBUG
+	bool
+	depends on X86 && PAX_USERCOPY
+	default n
+
+config PAX_SIZE_OVERFLOW
+	bool "Prevent various integer overflows in function size parameters"
+	default y if GRKERNSEC_CONFIG_AUTO
+	depends on GCC_PLUGINS
+	depends on !SPARC64 && !ARM64
+	help
+	  By saying Y here the kernel recomputes expressions of function
+	  arguments marked by a size_overflow attribute with double integer
+	  precision (DImode/TImode for 32/64 bit integer types).
+
+	  If the recomputed argument does not fit the original type then the
+	  event is logged. If the pax_size_overflow_report_only parameter is
+	  NOT passed on the kernel command line at boot then the triggering
+	  process will also be killed.
+
+	  Homepage: https://github.com/ephox-gcc-plugins/size_overflow
+	  Blog: http://forums.grsecurity.net/viewtopic.php?f=7&t=3043
+
+	  Note that the implementation requires a gcc with plugin support,
+	  i.e., gcc 4.5 or newer.  You may need to install the supporting
+	  headers explicitly in addition to the normal gcc package.
+
+config PAX_SIZE_OVERFLOW_EXTRA
+	bool "Increase coverage of size overflow checking"
+	default y if GRKERNSEC_CONFIG_AUTO
+	depends on PAX_SIZE_OVERFLOW
+	help
+	  By saying Y here the kernel will instrument more size argument
+	  calculations that off-line static analysis tracked back through
+	  indirect function calls, structure fields and global variables.
+
+	  This greatly increases coverage and thus security however there
+	  are also more false positives and the performance impact is higher
+	  as well.
+
+config PAX_INITIFY
+	bool "Free more kernel memory after init"
+	depends on GCC_PLUGINS
+	help
+	  The kernel has a mechanism to free up code and data memory that is
+	  only used during kernel or module initialization.  Enabling this
+	  feature will teach the compiler to find more such code and data
+	  that can be freed after initialization.
+
+config HAVE_PAX_INITIFY_INIT_EXIT
+	bool
+	depends on GCC_PLUGINS
+	help
+	  Move functions to the exit section if they are called by __init and
+	  __exit functions too.
+
+config PAX_INITIFY_INIT_EXIT
+	bool
+	depends on PAX_INITIFY && HAVE_PAX_INITIFY_INIT_EXIT
+
+config PAX_INITIFY_VERBOSE
+	bool "Free more kernel memory after init (verbose mode)"
+	depends on GCC_PLUGINS && PAX_INITIFY
+	help
+	  Print all initified strings and all functions which should be
+	  __init/__exit.
+
+	  Note that the candidates identified for __init/__exit markings
+	  depend on the current kernel configuration and thus should be
+	  verified manually before the source code is patched.
+
+config PAX_LATENT_ENTROPY
+	bool "Generate some entropy during boot and runtime"
+	default y if GRKERNSEC_CONFIG_AUTO
+	depends on GCC_PLUGINS
+	select GCC_PLUGIN_LATENT_ENTROPY
+	help
+	  By saying Y here the kernel will instrument some kernel code to
+	  extract some entropy from both original and artificially created
+	  program state.  This will help especially embedded systems where
+	  there is little 'natural' source of entropy normally.  The cost
+	  is some slowdown of the boot process (about 0.5%) and fork and
+	  irq processing.
+
+	  When pax_extra_latent_entropy is passed on the kernel command line,
+	  entropy will be extracted from up to the first 4GB of RAM while the
+	  runtime memory allocator is being initialized.  This costs even more
+	  slowdown of the boot process.
+
+	  Note that the implementation requires a gcc with plugin support,
+	  i.e., gcc 4.5 or newer.  You may need to install the supporting
+	  headers explicitly in addition to the normal gcc package.
+
+	  Note that entropy extracted this way is not cryptographically
+	  secure!
+
+config PAX_RAP
+	bool "Prevent code reuse attacks"
+	depends on X86_64 && GCC_PLUGINS
+	default y if GRKERNSEC_CONFIG_AUTO
+	help
+	  By saying Y here the kernel will check indirect control transfers
+	  in order to detect and prevent attacks that try to hijack control
+	  flow by overwriting code pointers.
+
+	  If you have an amd64 processor that does not support SMEP then you
+	  must also enable a KERNEXEC code pointer instrumentation method
+	  (see PAX_KERNEXEC_PLUGIN).
+
+	  Note that binary modules cannot be instrumented by this approach.
+
+	  Note that the implementation requires a gcc with plugin support,
+	  i.e., gcc 4.5 or newer.  You may need to install the supporting
+	  headers explicitly in addition to the normal gcc package.
+
+endmenu
+
+endmenu
+
+source grsecurity/Kconfig
+
+endmenu
+
+endmenu
+
 source security/keys/Kconfig
 
 config SECURITY_DMESG_RESTRICT
@@ -104,7 +1164,7 @@ config INTEL_TXT
 config LSM_MMAP_MIN_ADDR
 	int "Low address space for LSM to protect from user allocation"
 	depends on SECURITY && SECURITY_SELINUX
-	default 32768 if ARM || (ARM64 && COMPAT)
+	default 32768 if ALPHA || ARM || (ARM64 && COMPAT) || PARISC || SPARC32
 	default 65536
 	help
 	  This is the portion of low virtual memory which should be protected
@@ -118,13 +1178,6 @@ config LSM_MMAP_MIN_ADDR
 	  this low address space will need the permission specific to the
 	  systems running LSM.
 
-config HAVE_HARDENED_USERCOPY_ALLOCATOR
-	bool
-	help
-	  The heap allocator implements __check_heap_object() for
-	  validating memory ranges against heap object sizes in
-	  support of CONFIG_HARDENED_USERCOPY.
-
 config HAVE_ARCH_HARDENED_USERCOPY
 	bool
 	help
@@ -134,23 +1187,14 @@ config HAVE_ARCH_HARDENED_USERCOPY
 	  copy_to_user() and copy_from_user().
 
 config HARDENED_USERCOPY
-	bool "Harden memory copies between kernel and userspace"
-	depends on HAVE_ARCH_HARDENED_USERCOPY
-	depends on HAVE_HARDENED_USERCOPY_ALLOCATOR
-	select BUG
-	help
-	  This option checks for obviously wrong memory regions when
-	  copying memory to/from the kernel (via copy_to_user() and
-	  copy_from_user() functions) by rejecting memory ranges that
-	  are larger than the specified heap object, span multiple
-	  separately allocates pages, are not on the process stack,
-	  or are part of the kernel text. This kills entire classes
-	  of heap overflow exploits and similar kernel memory exposures.
+	bool
+	select BUG if BROKEN_SECURITY
 
 config HARDENED_USERCOPY_PAGESPAN
 	bool "Refuse to copy allocations that span multiple pages"
 	depends on HARDENED_USERCOPY
 	depends on EXPERT
+	depends on BROKEN_SECURITY
 	help
 	  When a multi-page allocation is done without __GFP_COMP,
 	  hardened usercopy will reject attempts to copy it. There are,
@@ -205,4 +1249,3 @@ config DEFAULT_SECURITY
 	default "" if DEFAULT_SECURITY_DAC
 
 endmenu
-

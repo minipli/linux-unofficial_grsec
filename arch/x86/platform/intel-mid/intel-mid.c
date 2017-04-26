@@ -62,9 +62,9 @@
 enum intel_mid_timer_options intel_mid_timer_options;
 
 /* intel_mid_ops to store sub arch ops */
-static struct intel_mid_ops *intel_mid_ops;
+static const struct intel_mid_ops *intel_mid_ops;
 /* getter function for sub arch ops*/
-static void *(*get_intel_mid_ops[])(void) = INTEL_MID_OPS_INIT;
+static const void *(*get_intel_mid_ops[])(void) = INTEL_MID_OPS_INIT;
 enum intel_mid_cpu_type __intel_mid_cpu_chip;
 EXPORT_SYMBOL_GPL(__intel_mid_cpu_chip);
 
@@ -77,9 +77,10 @@ static void intel_mid_power_off(void)
 	intel_scu_ipc_simple_command(IPCMSG_COLD_OFF, 1);
 };
 
-static void intel_mid_reboot(void)
+static void __noreturn intel_mid_reboot(void)
 {
 	intel_scu_ipc_simple_command(IPCMSG_COLD_BOOT, 0);
+	BUG();
 }
 
 static unsigned long __init intel_mid_calibrate_tsc(void)

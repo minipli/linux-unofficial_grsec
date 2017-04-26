@@ -122,7 +122,7 @@ static void icu_unmask_irq(struct irq_data *d)
 	}
 }
 
-struct irq_chip icu_irq_chip = {
+irq_chip_no_const icu_irq_chip __read_only = {
 	.name		= "icu_irq",
 	.irq_mask	= icu_mask_irq,
 	.irq_mask_ack	= icu_mask_ack_irq,

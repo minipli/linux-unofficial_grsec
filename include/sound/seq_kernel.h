@@ -80,7 +80,7 @@ int snd_seq_kernel_client_ctl(int client, unsigned int cmd, void *arg);
 #define SNDRV_SEQ_EXT_USRPTR	0x80000000
 #define SNDRV_SEQ_EXT_CHAINED	0x40000000
 
-typedef int (*snd_seq_dump_func_t)(void *ptr, void *buf, int count);
+typedef int (*snd_seq_dump_func_t)(void *ptr, const void *buf, int count);
 int snd_seq_expand_var_event(const struct snd_seq_event *event, int count, char *buf,
 			     int in_kernel, int size_aligned);
 int snd_seq_dump_var_event(const struct snd_seq_event *event,

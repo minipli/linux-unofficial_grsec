@@ -81,7 +81,9 @@
 	BUG_ON((uintptr_t)(dest_buf) & (FNCPY_ALIGN - 1) ||		\
 		(__funcp_address & ~(uintptr_t)1 & (FNCPY_ALIGN - 1)));	\
 									\
+	pax_open_kernel();						\
 	memcpy(dest_buf, (void const *)(__funcp_address & ~1), size);	\
+	pax_close_kernel();						\
 	flush_icache_range((unsigned long)(dest_buf),			\
 		(unsigned long)(dest_buf) + (size));			\
 									\

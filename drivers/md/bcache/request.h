@@ -33,7 +33,7 @@ struct data_insert_op {
 };
 
 unsigned bch_get_congested(struct cache_set *);
-void bch_data_insert(struct closure *cl);
+void bch_data_insert(struct work_struct *work);
 
 void bch_cached_dev_request_init(struct cached_dev *dc);
 void bch_flash_dev_request_init(struct bcache_device *d);

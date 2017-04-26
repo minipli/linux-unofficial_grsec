@@ -1613,7 +1613,9 @@ static int mmci_probe(struct amba_device *dev,
 	mmc->caps |= MMC_CAP_CMD23;
 
 	if (variant->busy_detect) {
-		mmci_ops.card_busy = mmci_card_busy;
+		pax_open_kernel();
+		const_cast(mmci_ops.card_busy) = mmci_card_busy;
+		pax_close_kernel();
 		mmci_write_datactrlreg(host, MCI_ST_DPSM_BUSYMODE);
 		mmc->caps |= MMC_CAP_WAIT_WHILE_BUSY;
 		mmc->max_busy_timeout = 0;

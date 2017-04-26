@@ -142,7 +142,7 @@ static void vlsi_ring_debug(struct vlsi_ring *r)
 	printk(KERN_DEBUG "%s - ring %p / size %u / mask 0x%04x / len %u / dir %d / hw %p\n",
 		__func__, r, r->size, r->mask, r->len, r->dir, r->rd[0].hw);
 	printk(KERN_DEBUG "%s - head = %d / tail = %d\n", __func__,
-		atomic_read(&r->head) & r->mask, atomic_read(&r->tail) & r->mask);
+		atomic_read_unchecked(&r->head) & r->mask, atomic_read_unchecked(&r->tail) & r->mask);
 	for (i = 0; i < r->size; i++) {
 		rd = &r->rd[i];
 		printk(KERN_DEBUG "%s - ring descr %u: ", __func__, i);
@@ -301,8 +301,8 @@ static void vlsi_proc_ring(struct seq_file *seq, struct vlsi_ring *r)
 
 	seq_printf(seq, "size %u / mask 0x%04x / len %u / dir %d / hw %p\n",
 		r->size, r->mask, r->len, r->dir, r->rd[0].hw);
-	h = atomic_read(&r->head) & r->mask;
-	t = atomic_read(&r->tail) & r->mask;
+	h = atomic_read_unchecked(&r->head) & r->mask;
+	t = atomic_read_unchecked(&r->tail) & r->mask;
 	seq_printf(seq, "head = %d / tail = %d ", h, t);
 	if (h == t)
 		seq_printf(seq, "(empty)\n");
@@ -410,8 +410,8 @@ static struct vlsi_ring *vlsi_alloc_ring(struct pci_dev *pdev, struct ring_descr
 	r->rd = (struct ring_descr *)(r+1);
 	r->mask = size - 1;
 	r->size = size;
-	atomic_set(&r->head, 0);
-	atomic_set(&r->tail, 0);
+	atomic_set_unchecked(&r->head, 0);
+	atomic_set_unchecked(&r->tail, 0);
 
 	for (i = 0; i < size; i++) {
 		rd = r->rd + i;
@@ -1268,10 +1268,10 @@ static int vlsi_init_chip(struct pci_dev *pdev)
 		iobase+VLSI_PIO_RINGSIZE);	
 
 	ptr = inw(iobase+VLSI_PIO_RINGPTR);
-	atomic_set(&idev->rx_ring->head, RINGPTR_GET_RX(ptr));
-	atomic_set(&idev->rx_ring->tail, RINGPTR_GET_RX(ptr));
-	atomic_set(&idev->tx_ring->head, RINGPTR_GET_TX(ptr));
-	atomic_set(&idev->tx_ring->tail, RINGPTR_GET_TX(ptr));
+	atomic_set_unchecked(&idev->rx_ring->head, RINGPTR_GET_RX(ptr));
+	atomic_set_unchecked(&idev->rx_ring->tail, RINGPTR_GET_RX(ptr));
+	atomic_set_unchecked(&idev->tx_ring->head, RINGPTR_GET_TX(ptr));
+	atomic_set_unchecked(&idev->tx_ring->tail, RINGPTR_GET_TX(ptr));
 
 	vlsi_set_baud(idev, iobase);	/* idev->new_baud used as provided by caller */
 

@@ -467,15 +467,15 @@ static void _rtl_init_deferred_work(struct ieee80211_hw *hw)
 	rtlpriv->works.hw = hw;
 	rtlpriv->works.rtl_wq = alloc_workqueue("%s", 0, 0, rtlpriv->cfg->name);
 	INIT_DELAYED_WORK(&rtlpriv->works.watchdog_wq,
-			  (void *)rtl_watchdog_wq_callback);
+			  rtl_watchdog_wq_callback);
 	INIT_DELAYED_WORK(&rtlpriv->works.ips_nic_off_wq,
-			  (void *)rtl_ips_nic_off_wq_callback);
+			  rtl_ips_nic_off_wq_callback);
 	INIT_DELAYED_WORK(&rtlpriv->works.ps_work,
-			  (void *)rtl_swlps_wq_callback);
+			  rtl_swlps_wq_callback);
 	INIT_DELAYED_WORK(&rtlpriv->works.ps_rfon_wq,
-			  (void *)rtl_swlps_rfon_wq_callback);
+			  rtl_swlps_rfon_wq_callback);
 	INIT_DELAYED_WORK(&rtlpriv->works.fwevt_wq,
-			  (void *)rtl_fwevt_wq_callback);
+			  rtl_fwevt_wq_callback);
 
 }
 
@@ -1559,7 +1559,7 @@ void rtl_beacon_statistic(struct ieee80211_hw *hw, struct sk_buff *skb)
 }
 EXPORT_SYMBOL_GPL(rtl_beacon_statistic);
 
-void rtl_watchdog_wq_callback(void *data)
+void rtl_watchdog_wq_callback(struct work_struct *data)
 {
 	struct rtl_works *rtlworks = container_of_dwork_rtl(data,
 							    struct rtl_works,
@@ -1722,7 +1722,7 @@ void rtl_watch_dog_timer_callback(unsigned long data)
 	mod_timer(&rtlpriv->works.watchdog_timer,
 		  jiffies + MSECS(RTL_WATCH_DOG_TIME));
 }
-void rtl_fwevt_wq_callback(void *data)
+void rtl_fwevt_wq_callback(struct work_struct *data)
 {
 	struct rtl_works *rtlworks =
 		container_of_dwork_rtl(data, struct rtl_works, fwevt_wq);

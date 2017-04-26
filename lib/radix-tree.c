@@ -67,7 +67,7 @@ struct radix_tree_preload {
 	/* nodes->private_data points to next preallocated node */
 	struct radix_tree_node *nodes;
 };
-static DEFINE_PER_CPU(struct radix_tree_preload, radix_tree_preloads) = { 0, };
+static DEFINE_PER_CPU(struct radix_tree_preload, radix_tree_preloads);
 
 static inline void *node_to_entry(void *ptr)
 {

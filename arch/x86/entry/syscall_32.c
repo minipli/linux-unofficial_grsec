@@ -6,11 +6,19 @@
 #include <asm/asm-offsets.h>
 #include <asm/syscall.h>
 
+#ifdef CONFIG_PAX_RAP
+#define __SYSCALL_I386(nr, sym, qual) extern asmlinkage long rap_##sym(unsigned long, unsigned long, unsigned long, unsigned long, unsigned long, unsigned long) ;
+#else
 #define __SYSCALL_I386(nr, sym, qual) extern asmlinkage long sym(unsigned long, unsigned long, unsigned long, unsigned long, unsigned long, unsigned long) ;
+#endif
 #include <asm/syscalls_32.h>
 #undef __SYSCALL_I386
 
+#ifdef CONFIG_PAX_RAP
+#define __SYSCALL_I386(nr, sym, qual) [nr] = rap_##sym,
+#else
 #define __SYSCALL_I386(nr, sym, qual) [nr] = sym,
+#endif
 
 extern asmlinkage long sys_ni_syscall(unsigned long, unsigned long, unsigned long, unsigned long, unsigned long, unsigned long);
 

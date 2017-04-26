@@ -10,6 +10,7 @@ menuconfig KMEMCHECK
 	depends on SLUB || SLAB
 	depends on !CC_OPTIMIZE_FOR_SIZE
 	depends on !FUNCTION_TRACER
+	depends on !PAX_INITIFY
 	select FRAME_POINTER
 	select STACKTRACE
 	default n

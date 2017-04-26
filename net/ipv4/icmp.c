@@ -1228,7 +1228,7 @@ fail:
 	return err;
 }
 
-static struct pernet_operations __net_initdata icmp_sk_ops = {
+static struct pernet_operations __net_initconst icmp_sk_ops = {
        .init = icmp_sk_init,
        .exit = icmp_sk_exit,
 };

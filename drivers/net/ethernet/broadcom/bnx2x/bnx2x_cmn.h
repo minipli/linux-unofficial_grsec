@@ -1125,7 +1125,7 @@ static inline u8 bnx2x_get_path_func_num(struct bnx2x *bp)
 static inline void bnx2x_init_bp_objs(struct bnx2x *bp)
 {
 	/* RX_MODE controlling object */
-	bnx2x_init_rx_mode_obj(bp, &bp->rx_mode_obj);
+	bnx2x_init_rx_mode_obj(bp);
 
 	/* multicast configuration controlling object */
 	bnx2x_init_mcast_obj(bp, &bp->mcast_obj, bp->fp->cl_id, bp->fp->cid,

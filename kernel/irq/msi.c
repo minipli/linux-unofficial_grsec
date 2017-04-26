@@ -236,16 +236,18 @@ static void msi_domain_update_dom_ops(struct msi_domain_info *info)
 		return;
 	}
 
+	pax_open_kernel();
 	if (ops->get_hwirq == NULL)
-		ops->get_hwirq = msi_domain_ops_default.get_hwirq;
+		const_cast(ops->get_hwirq) = msi_domain_ops_default.get_hwirq;
 	if (ops->msi_init == NULL)
-		ops->msi_init = msi_domain_ops_default.msi_init;
+		const_cast(ops->msi_init) = msi_domain_ops_default.msi_init;
 	if (ops->msi_check == NULL)
-		ops->msi_check = msi_domain_ops_default.msi_check;
+		const_cast(ops->msi_check) = msi_domain_ops_default.msi_check;
 	if (ops->msi_prepare == NULL)
-		ops->msi_prepare = msi_domain_ops_default.msi_prepare;
+		const_cast(ops->msi_prepare) = msi_domain_ops_default.msi_prepare;
 	if (ops->set_desc == NULL)
-		ops->set_desc = msi_domain_ops_default.set_desc;
+		const_cast(ops->set_desc) = msi_domain_ops_default.set_desc;
+	pax_close_kernel();
 }
 
 static void msi_domain_update_chip_ops(struct msi_domain_info *info)
@@ -253,8 +255,11 @@ static void msi_domain_update_chip_ops(struct msi_domain_info *info)
 	struct irq_chip *chip = info->chip;
 
 	BUG_ON(!chip || !chip->irq_mask || !chip->irq_unmask);
-	if (!chip->irq_set_affinity)
-		chip->irq_set_affinity = msi_domain_set_affinity;
+	if (!chip->irq_set_affinity) {
+		pax_open_kernel();
+		const_cast(chip->irq_set_affinity) = msi_domain_set_affinity;
+		pax_close_kernel();
+	}
 }
 
 /**

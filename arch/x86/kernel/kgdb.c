@@ -229,7 +229,10 @@ static void kgdb_correct_hw_break(void)
 		bp->attr.bp_addr = breakinfo[breakno].addr;
 		bp->attr.bp_len = breakinfo[breakno].len;
 		bp->attr.bp_type = breakinfo[breakno].type;
-		info->address = breakinfo[breakno].addr;
+		if (breakinfo[breakno].type == X86_BREAKPOINT_EXECUTE)
+			info->address = ktla_ktva(breakinfo[breakno].addr);
+		else
+			info->address = breakinfo[breakno].addr;
 		info->len = breakinfo[breakno].len;
 		info->type = breakinfo[breakno].type;
 		val = arch_install_hw_breakpoint(bp);
@@ -476,12 +479,12 @@ int kgdb_arch_handle_exception(int e_vector, int signo, int err_code,
 	case 'k':
 		/* clear the trace bit */
 		linux_regs->flags &= ~X86_EFLAGS_TF;
-		atomic_set(&kgdb_cpu_doing_single_step, -1);
+		atomic_set_unchecked(&kgdb_cpu_doing_single_step, -1);
 
 		/* set the trace bit if we're stepping */
 		if (remcomInBuffer[0] == 's') {
 			linux_regs->flags |= X86_EFLAGS_TF;
-			atomic_set(&kgdb_cpu_doing_single_step,
+			atomic_set_unchecked(&kgdb_cpu_doing_single_step,
 				   raw_smp_processor_id());
 		}
 
@@ -551,7 +554,7 @@ static int __kgdb_notify(struct die_args *args, unsigned long cmd)
 
 	switch (cmd) {
 	case DIE_DEBUG:
-		if (atomic_read(&kgdb_cpu_doing_single_step) != -1) {
+		if (atomic_read_unchecked(&kgdb_cpu_doing_single_step) != -1) {
 			if (user_mode(regs))
 				return single_step_cont(regs, args);
 			break;
@@ -754,11 +757,11 @@ int kgdb_arch_set_breakpoint(struct kgdb_bkpt *bpt)
 	char opc[BREAK_INSTR_SIZE];
 
 	bpt->type = BP_BREAKPOINT;
-	err = probe_kernel_read(bpt->saved_instr, (char *)bpt->bpt_addr,
+	err = probe_kernel_read(bpt->saved_instr, (const void *)ktla_ktva(bpt->bpt_addr),
 				BREAK_INSTR_SIZE);
 	if (err)
 		return err;
-	err = probe_kernel_write((char *)bpt->bpt_addr,
+	err = probe_kernel_write((void *)ktla_ktva(bpt->bpt_addr),
 				 arch_kgdb_ops.gdb_bpt_instr, BREAK_INSTR_SIZE);
 	if (!err)
 		return err;
@@ -770,7 +773,7 @@ int kgdb_arch_set_breakpoint(struct kgdb_bkpt *bpt)
 		return -EBUSY;
 	text_poke((void *)bpt->bpt_addr, arch_kgdb_ops.gdb_bpt_instr,
 		  BREAK_INSTR_SIZE);
-	err = probe_kernel_read(opc, (char *)bpt->bpt_addr, BREAK_INSTR_SIZE);
+	err = probe_kernel_read(opc, (const void *)ktla_ktva(bpt->bpt_addr), BREAK_INSTR_SIZE);
 	if (err)
 		return err;
 	if (memcmp(opc, arch_kgdb_ops.gdb_bpt_instr, BREAK_INSTR_SIZE))
@@ -794,13 +797,13 @@ int kgdb_arch_remove_breakpoint(struct kgdb_bkpt *bpt)
 	if (mutex_is_locked(&text_mutex))
 		goto knl_write;
 	text_poke((void *)bpt->bpt_addr, bpt->saved_instr, BREAK_INSTR_SIZE);
-	err = probe_kernel_read(opc, (char *)bpt->bpt_addr, BREAK_INSTR_SIZE);
+	err = probe_kernel_read(opc, (const void *)ktla_ktva(bpt->bpt_addr), BREAK_INSTR_SIZE);
 	if (err || memcmp(opc, bpt->saved_instr, BREAK_INSTR_SIZE))
 		goto knl_write;
 	return err;
 
 knl_write:
-	return probe_kernel_write((char *)bpt->bpt_addr,
+	return probe_kernel_write((void *)ktla_ktva(bpt->bpt_addr),
 				  (char *)bpt->saved_instr, BREAK_INSTR_SIZE);
 }
 

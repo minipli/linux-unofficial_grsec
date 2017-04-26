@@ -288,19 +288,19 @@ extern unsigned long preset_lpj;
 extern unsigned int jiffies_to_msecs(const unsigned long j);
 extern unsigned int jiffies_to_usecs(const unsigned long j);
 
-static inline u64 jiffies_to_nsecs(const unsigned long j)
+static inline u64 __intentional_overflow(-1) jiffies_to_nsecs(const unsigned long j)
 {
 	return (u64)jiffies_to_usecs(j) * NSEC_PER_USEC;
 }
 
-extern unsigned long __msecs_to_jiffies(const unsigned int m);
+extern unsigned long __msecs_to_jiffies(const unsigned int m) __intentional_overflow(-1);
 #if HZ <= MSEC_PER_SEC && !(MSEC_PER_SEC % HZ)
 /*
  * HZ is equal to or smaller than 1000, and 1000 is a nice round
  * multiple of HZ, divide with the factor between them, but round
  * upwards:
  */
-static inline unsigned long _msecs_to_jiffies(const unsigned int m)
+static inline unsigned long __intentional_overflow(-1) _msecs_to_jiffies(const unsigned int m)
 {
 	return (m + (MSEC_PER_SEC / HZ) - 1) / (MSEC_PER_SEC / HZ);
 }
@@ -311,7 +311,7 @@ static inline unsigned long _msecs_to_jiffies(const unsigned int m)
  *
  * But first make sure the multiplication result cannot overflow:
  */
-static inline unsigned long _msecs_to_jiffies(const unsigned int m)
+static inline unsigned long __intentional_overflow(-1) _msecs_to_jiffies(const unsigned int m)
 {
 	if (m > jiffies_to_msecs(MAX_JIFFY_OFFSET))
 		return MAX_JIFFY_OFFSET;
@@ -322,7 +322,7 @@ static inline unsigned long _msecs_to_jiffies(const unsigned int m)
  * Generic case - multiply, round and divide. But first check that if
  * we are doing a net multiplication, that we wouldn't overflow:
  */
-static inline unsigned long _msecs_to_jiffies(const unsigned int m)
+static inline unsigned long __intentional_overflow(-1) _msecs_to_jiffies(const unsigned int m)
 {
 	if (HZ > MSEC_PER_SEC && m > jiffies_to_msecs(MAX_JIFFY_OFFSET))
 		return MAX_JIFFY_OFFSET;
@@ -366,14 +366,14 @@ static __always_inline unsigned long msecs_to_jiffies(const unsigned int m)
 	}
 }
 
-extern unsigned long __usecs_to_jiffies(const unsigned int u);
+extern unsigned long __usecs_to_jiffies(const unsigned int u) __intentional_overflow(-1);
 #if !(USEC_PER_SEC % HZ)
-static inline unsigned long _usecs_to_jiffies(const unsigned int u)
+static inline unsigned long __intentional_overflow(-1) _usecs_to_jiffies(const unsigned int u)
 {
 	return (u + (USEC_PER_SEC / HZ) - 1) / (USEC_PER_SEC / HZ);
 }
 #else
-static inline unsigned long _usecs_to_jiffies(const unsigned int u)
+static inline unsigned long __intentional_overflow(-1) _usecs_to_jiffies(const unsigned int u)
 {
 	return (USEC_TO_HZ_MUL32 * u + USEC_TO_HZ_ADJ32)
 		>> USEC_TO_HZ_SHR32;

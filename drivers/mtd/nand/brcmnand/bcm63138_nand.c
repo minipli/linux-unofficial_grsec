@@ -81,8 +81,10 @@ static int bcm63138_nand_probe(struct platform_device *pdev)
 	if (IS_ERR(priv->base))
 		return PTR_ERR(priv->base);
 
+	pax_open_kernel();
 	soc->ctlrdy_ack = bcm63138_nand_intc_ack;
 	soc->ctlrdy_set_enabled = bcm63138_nand_intc_set;
+	pax_close_kernel();
 
 	return brcmnand_probe(pdev, soc);
 }

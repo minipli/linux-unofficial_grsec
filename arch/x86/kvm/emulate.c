@@ -25,6 +25,7 @@
 #include <asm/kvm_emulate.h>
 #include <linux/stringify.h>
 #include <asm/debugreg.h>
+#include <linux/linkage.h>
 
 #include "x86.h"
 #include "tss.h"
@@ -220,7 +221,7 @@ struct opcode {
 		void (*fastop)(struct fastop *fake);
 	} u;
 	int (*check_perm)(struct x86_emulate_ctxt *ctxt);
-};
+} __rap_hash;
 
 struct group_dual {
 	struct opcode mod012[8];
@@ -424,25 +425,6 @@ static int fastop(struct x86_emulate_ctxt *ctxt, void (*fop)(struct fastop *));
 
 asm(".global kvm_fastop_exception \n"
     "kvm_fastop_exception: xor %esi, %esi; ret");
-
-FOP_START(setcc)
-FOP_SETCC(seto)
-FOP_SETCC(setno)
-FOP_SETCC(setc)
-FOP_SETCC(setnc)
-FOP_SETCC(setz)
-FOP_SETCC(setnz)
-FOP_SETCC(setbe)
-FOP_SETCC(setnbe)
-FOP_SETCC(sets)
-FOP_SETCC(setns)
-FOP_SETCC(setp)
-FOP_SETCC(setnp)
-FOP_SETCC(setl)
-FOP_SETCC(setnl)
-FOP_SETCC(setle)
-FOP_SETCC(setnle)
-FOP_END;
 
 FOP_START(salc) "pushf; sbb %al, %al; popf \n\t" FOP_RET
 FOP_END;
@@ -1006,14 +988,82 @@ static int em_bsr_c(struct x86_emulate_ctxt *ctxt)
 	return fastop(ctxt, em_bsr);
 }
 
-static __always_inline u8 test_cc(unsigned int condition, unsigned long flags)
+static unsigned int test_cc(unsigned int condition, unsigned int flags)
 {
-	u8 rc;
-	void (*fop)(void) = (void *)em_setcc + 4 * (condition & 0xf);
+	unsigned int rc;
 
-	flags = (flags & EFLAGS_MASK) | X86_EFLAGS_IF;
-	asm("push %[flags]; popf; call *%[fastop]"
-	    : "=a"(rc) : [fastop]"r"(fop), [flags]"r"(flags));
+	switch (condition & 0xf) {
+	case 0:
+		rc = flags & X86_EFLAGS_OF;
+		break;
+
+	case 1:
+		rc = ~flags & X86_EFLAGS_OF;
+		break;
+
+	case 2:
+		rc = flags & X86_EFLAGS_CF;
+		break;
+
+	case 3:
+		rc = ~flags & X86_EFLAGS_CF;
+		break;
+
+	case 4:
+		rc = flags & X86_EFLAGS_ZF;
+		break;
+
+	case 5:
+		rc = ~flags & X86_EFLAGS_ZF;
+		break;
+
+	case 6:
+		rc = flags & (X86_EFLAGS_CF | X86_EFLAGS_ZF);
+		break;
+
+	case 7:
+		rc = (flags & (X86_EFLAGS_CF | X86_EFLAGS_ZF)) ? 0 : 1;
+		break;
+
+	case 8:
+		rc = flags & X86_EFLAGS_SF;
+		break;
+
+	case 9:
+		rc = ~flags & X86_EFLAGS_SF;
+		break;
+
+	case 10:
+		rc = flags & X86_EFLAGS_PF;
+		break;
+
+	case 11:
+		rc = ~flags & X86_EFLAGS_PF;
+		break;
+
+	case 12:
+		rc = flags & X86_EFLAGS_SF;
+		rc ^= (flags & X86_EFLAGS_OF) >> (X86_EFLAGS_OF_BIT - X86_EFLAGS_SF_BIT);
+		break;
+
+	case 13:
+		rc = ~flags & X86_EFLAGS_SF;
+		rc ^= (flags & X86_EFLAGS_OF) >> (X86_EFLAGS_OF_BIT - X86_EFLAGS_SF_BIT);
+		break;
+
+	case 14:
+		rc = flags & X86_EFLAGS_SF;
+		rc ^= (flags & X86_EFLAGS_OF) >> (X86_EFLAGS_OF_BIT - X86_EFLAGS_SF_BIT);
+		rc |= flags & X86_EFLAGS_ZF;
+		break;
+
+	case 15:
+		rc = ~flags & X86_EFLAGS_SF;
+		rc ^= (flags & X86_EFLAGS_OF) >> (X86_EFLAGS_OF_BIT - X86_EFLAGS_SF_BIT);
+		rc &= (~flags & X86_EFLAGS_ZF) << (X86_EFLAGS_SF_BIT - X86_EFLAGS_ZF_BIT);
+		break;
+	}
+
 	return rc;
 }
 
@@ -1959,7 +2009,7 @@ static int em_push_sreg(struct x86_emulate_ctxt *ctxt)
 static int em_pop_sreg(struct x86_emulate_ctxt *ctxt)
 {
 	int seg = ctxt->src2.val;
-	unsigned long selector;
+	u16 selector;
 	int rc;
 
 	rc = emulate_pop(ctxt, &selector, 2);
@@ -1971,7 +2021,7 @@ static int em_pop_sreg(struct x86_emulate_ctxt *ctxt)
 	if (ctxt->op_bytes > 2)
 		rsp_increment(ctxt, ctxt->op_bytes - 2);
 
-	rc = load_segment_descriptor(ctxt, (u16)selector, seg);
+	rc = load_segment_descriptor(ctxt, selector, seg);
 	return rc;
 }
 
@@ -4059,7 +4109,7 @@ static int check_cr_write(struct x86_emulate_ctxt *ctxt)
 	int cr = ctxt->modrm_reg;
 	u64 efer = 0;
 
-	static u64 cr_reserved_bits[] = {
+	static const u64 cr_reserved_bits[] = {
 		0xffffffff00000000ULL,
 		0, 0, 0, /* CR3 checked later */
 		CR4_RESERVED_BITS,
@@ -5147,7 +5197,10 @@ done_prefixes:
 	if (ctxt->d == 0)
 		return EMULATION_FAILED;
 
-	ctxt->execute = opcode.u.execute;
+	if (ctxt->d & Fastop)
+		ctxt->u.fastop = opcode.u.fastop;
+	else
+		ctxt->u.execute = opcode.u.execute;
 
 	if (unlikely(ctxt->ud) && likely(!(ctxt->d & EmulateOnUD)))
 		return EMULATION_FAILED;
@@ -5286,7 +5339,7 @@ static int fastop(struct x86_emulate_ctxt *ctxt, void (*fop)(struct fastop *))
 	if (!(ctxt->d & ByteOp))
 		fop += __ffs(ctxt->dst.bytes) * FASTOP_SIZE;
 
-	asm("push %[flags]; popf; call *%[fastop]; pushf; pop %[flags]\n"
+	asm("push %[flags]; popf;" PAX_INDIRECT_CALL("*%[fastop]", "opcode.u.fastop") "; pushf; pop %[flags]\n"
 	    : "+a"(ctxt->dst.val), "+d"(ctxt->src.val), [flags]"+D"(flags),
 	      [fastop]"+S"(fop), "+r"(__sp)
 	    : "c"(ctxt->src2.val));
@@ -5454,15 +5507,14 @@ special_insn:
 	else
 		ctxt->eflags &= ~X86_EFLAGS_RF;
 
-	if (ctxt->execute) {
+	if (ctxt->u.execute) {
 		if (ctxt->d & Fastop) {
-			void (*fop)(struct fastop *) = (void *)ctxt->execute;
-			rc = fastop(ctxt, fop);
+			rc = fastop(ctxt, ctxt->u.fastop);
 			if (rc != X86EMUL_CONTINUE)
 				goto done;
 			goto writeback;
 		}
-		rc = ctxt->execute(ctxt);
+		rc = ctxt->u.execute(ctxt);
 		if (rc != X86EMUL_CONTINUE)
 			goto done;
 		goto writeback;

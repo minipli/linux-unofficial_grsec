@@ -194,6 +194,7 @@ struct irlmp_cb {
 /* Prototype declarations */
 int  irlmp_init(void);
 void irlmp_cleanup(void);
+void irlmp_kfree(void *arg);
 struct lsap_cb *irlmp_open_lsap(__u8 slsap, notify_t *notify, __u8 pid);
 void irlmp_close_lsap( struct lsap_cb *self);
 

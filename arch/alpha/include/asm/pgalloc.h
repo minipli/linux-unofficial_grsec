@@ -29,6 +29,12 @@ pgd_populate(struct mm_struct *mm, pgd_t *pgd, pmd_t *pmd)
 	pgd_set(pgd, pmd);
 }
 
+static inline void
+pgd_populate_kernel(struct mm_struct *mm, pgd_t *pgd, pmd_t *pmd)
+{
+	pgd_populate(mm, pgd, pmd);
+}
+
 extern pgd_t *pgd_alloc(struct mm_struct *mm);
 
 static inline void

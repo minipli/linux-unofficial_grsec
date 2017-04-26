@@ -189,9 +189,9 @@ unsigned long sparc64_kern_sec_context __read_mostly;
 int num_kernel_image_mappings;
 
 #ifdef CONFIG_DEBUG_DCFLUSH
-atomic_t dcpage_flushes = ATOMIC_INIT(0);
+atomic_unchecked_t dcpage_flushes = ATOMIC_INIT(0);
 #ifdef CONFIG_SMP
-atomic_t dcpage_flushes_xcall = ATOMIC_INIT(0);
+atomic_unchecked_t dcpage_flushes_xcall = ATOMIC_INIT(0);
 #endif
 #endif
 
@@ -199,7 +199,7 @@ inline void flush_dcache_page_impl(struct page *page)
 {
 	BUG_ON(tlb_type == hypervisor);
 #ifdef CONFIG_DEBUG_DCFLUSH
-	atomic_inc(&dcpage_flushes);
+	atomic_inc_unchecked(&dcpage_flushes);
 #endif
 
 #ifdef DCACHE_ALIASING_POSSIBLE
@@ -462,10 +462,10 @@ void mmu_info(struct seq_file *m)
 
 #ifdef CONFIG_DEBUG_DCFLUSH
 	seq_printf(m, "DCPageFlushes\t: %d\n",
-		   atomic_read(&dcpage_flushes));
+		   atomic_read_unchecked(&dcpage_flushes));
 #ifdef CONFIG_SMP
 	seq_printf(m, "DCPageFlushesXC\t: %d\n",
-		   atomic_read(&dcpage_flushes_xcall));
+		   atomic_read_unchecked(&dcpage_flushes_xcall));
 #endif /* CONFIG_SMP */
 #endif /* CONFIG_DEBUG_DCFLUSH */
 }

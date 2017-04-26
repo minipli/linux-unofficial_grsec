@@ -804,7 +804,7 @@ static inline void set_linear_ip(struct pt_regs *regs, unsigned long ip)
 	regs->cs = kernel_ip(ip) ? __KERNEL_CS : __USER_CS;
 	if (regs->flags & X86_VM_MASK)
 		regs->flags ^= (PERF_EFLAGS_VM | X86_VM_MASK);
-	regs->ip = ip;
+	regs->ip = kernel_ip(ip) ? ktva_ktla(ip) : ip;
 }
 
 ssize_t x86_event_sysfs_show(char *page, u64 config, u64 event);

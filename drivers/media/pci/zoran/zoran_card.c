@@ -1356,7 +1356,7 @@ static int zoran_probe(struct pci_dev *pdev, const struct pci_device_id *ent)
 	if (zr->card.video_codec) {
 		codec_name = codecid_to_modulename(zr->card.video_codec);
 		if (codec_name) {
-			result = request_module(codec_name);
+			result = request_module("%s", codec_name);
 			if (result) {
 				dprintk(1,
 					KERN_ERR
@@ -1368,7 +1368,7 @@ static int zoran_probe(struct pci_dev *pdev, const struct pci_device_id *ent)
 	if (zr->card.video_vfe) {
 		vfe_name = codecid_to_modulename(zr->card.video_vfe);
 		if (vfe_name) {
-			result = request_module(vfe_name);
+			result = request_module("%s", vfe_name);
 			if (result < 0) {
 				dprintk(1,
 					KERN_ERR

@@ -41,6 +41,9 @@ menu "General setup"
 config BROKEN
 	bool
 
+config BROKEN_SECURITY
+	bool
+
 config BROKEN_ON_SMP
 	bool
 	depends on BROKEN || !SMP
@@ -298,7 +301,8 @@ config FHANDLE
 
 config USELIB
 	bool "uselib syscall"
-	def_bool ALPHA || M68K || SPARC || X86_32 || IA32_EMULATION
+	default n
+	depends on !GRKERNSEC
 	help
 	  This option enables the uselib syscall, a system call used in the
 	  dynamic linker from libc5 and earlier.  glibc does not use this
@@ -642,6 +646,7 @@ config RCU_FAST_NO_HZ
 config TREE_RCU_TRACE
 	def_bool RCU_TRACE && ( TREE_RCU || PREEMPT_RCU )
 	select DEBUG_FS
+	depends on !GRKERNSEC_KMEM
 	help
 	  This option provides tracing for the TREE_RCU and
 	  PREEMPT_RCU implementations, permitting Makefile to
@@ -1168,6 +1173,7 @@ endif # CGROUPS
 config CHECKPOINT_RESTORE
 	bool "Checkpoint/restore support" if EXPERT
 	select PROC_CHILDREN
+	depends on !GRKERNSEC
 	default n
 	help
 	  Enables additional kernel features in a sake of checkpoint/restore.
@@ -1641,7 +1647,7 @@ config ADVISE_SYSCALLS
 config USERFAULTFD
 	bool "Enable userfaultfd() system call"
 	select ANON_INODES
-	depends on MMU
+	depends on MMU && !GRKERNSEC
 	help
 	  Enable the userfaultfd() system call that allows to intercept and
 	  handle page faults in userland.
@@ -1754,7 +1760,7 @@ config SLUB_DEBUG
 
 config COMPAT_BRK
 	bool "Disable heap randomization"
-	default y
+	default n
 	help
 	  Randomizing heap placement makes heap exploits harder, but it
 	  also breaks ancient binaries (including anything libc5 based).
@@ -1772,7 +1778,6 @@ choice
 
 config SLAB
 	bool "SLAB"
-	select HAVE_HARDENED_USERCOPY_ALLOCATOR
 	help
 	  The regular slab allocator that is established and known to work
 	  well in all environments. It organizes cache hot objects in
@@ -1780,7 +1785,6 @@ config SLAB
 
 config SLUB
 	bool "SLUB (Unqueued Allocator)"
-	select HAVE_HARDENED_USERCOPY_ALLOCATOR
 	help
 	   SLUB is a slab allocator that minimizes cache line usage
 	   instead of managing queues of cached objects (SLAB approach).

@@ -145,7 +145,7 @@ struct rxrpc_call *rxrpc_alloc_call(gfp_t gfp)
 	spin_lock_init(&call->lock);
 	rwlock_init(&call->state_lock);
 	atomic_set(&call->usage, 1);
-	call->debug_id = atomic_inc_return(&rxrpc_debug_id);
+	call->debug_id = atomic_inc_return_unchecked(&rxrpc_debug_id);
 
 	memset(&call->sock_node, 0xed, sizeof(call->sock_node));
 

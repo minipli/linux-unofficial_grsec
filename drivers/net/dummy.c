@@ -167,7 +167,7 @@ static int dummy_validate(struct nlattr *tb[], struct nlattr *data[])
 	return 0;
 }
 
-static struct rtnl_link_ops dummy_link_ops __read_mostly = {
+static struct rtnl_link_ops dummy_link_ops = {
 	.kind		= DRV_NAME,
 	.setup		= dummy_setup,
 	.validate	= dummy_validate,

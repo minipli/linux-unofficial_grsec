@@ -176,7 +176,7 @@ print:
 		   atomic_read(&conn->usage),
 		   rxrpc_conn_states[conn->state],
 		   key_serial(conn->params.key),
-		   atomic_read(&conn->serial),
+		   atomic_read_unchecked(&conn->serial),
 		   conn->hi_serial);
 
 	return 0;

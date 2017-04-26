@@ -513,7 +513,7 @@ static int sh_dmae_nmi_handler(struct notifier_block *self,
 	return ret;
 }
 
-static struct notifier_block sh_dmae_nmi_notifier __read_mostly = {
+static struct notifier_block sh_dmae_nmi_notifier = {
 	.notifier_call	= sh_dmae_nmi_handler,
 
 	/* Run before NMI debug handler and KGDB */

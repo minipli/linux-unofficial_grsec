@@ -347,7 +347,7 @@ struct subsys_interface {
 	struct list_head node;
 	int (*add_dev)(struct device *dev, struct subsys_interface *sif);
 	void (*remove_dev)(struct device *dev, struct subsys_interface *sif);
-};
+} __do_const;
 
 int subsys_interface_register(struct subsys_interface *sif);
 void subsys_interface_unregister(struct subsys_interface *sif);
@@ -543,7 +543,7 @@ struct device_type {
 	void (*release)(struct device *dev);
 
 	const struct dev_pm_ops *pm;
-};
+} __do_const;
 
 /* interface for exporting device attributes */
 struct device_attribute {
@@ -553,11 +553,12 @@ struct device_attribute {
 	ssize_t (*store)(struct device *dev, struct device_attribute *attr,
 			 const char *buf, size_t count);
 };
+typedef struct device_attribute __no_const device_attribute_no_const;
 
 struct dev_ext_attribute {
 	struct device_attribute attr;
 	void *var;
-};
+} __do_const;
 
 ssize_t device_show_ulong(struct device *dev, struct device_attribute *attr,
 			  char *buf);

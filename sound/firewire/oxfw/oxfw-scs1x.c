@@ -291,9 +291,9 @@ static void midi_capture_trigger(struct snd_rawmidi_substream *stream, int up)
 
 	if (up) {
 		scs->input_escape_count = 0;
-		ACCESS_ONCE(scs->input) = stream;
+		ACCESS_ONCE_RW(scs->input) = stream;
 	} else {
-		ACCESS_ONCE(scs->input) = NULL;
+		ACCESS_ONCE_RW(scs->input) = NULL;
 	}
 }
 
@@ -325,10 +325,10 @@ static void midi_playback_trigger(struct snd_rawmidi_substream *stream, int up)
 		scs->transaction_bytes = 0;
 		scs->error = false;
 
-		ACCESS_ONCE(scs->output) = stream;
+		ACCESS_ONCE_RW(scs->output) = stream;
 		schedule_work(&scs->work);
 	} else {
-		ACCESS_ONCE(scs->output) = NULL;
+		ACCESS_ONCE_RW(scs->output) = NULL;
 	}
 }
 static void midi_playback_drain(struct snd_rawmidi_substream *stream)

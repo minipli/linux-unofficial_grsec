@@ -758,7 +758,7 @@ static inline bool vnic_hit_low_watermark(struct visornic_devdata *devdata,
  *	can be called again.
  *	Returns NETDEV_TX_OK.
  */
-static int
+static netdev_tx_t
 visornic_xmit(struct sk_buff *skb, struct net_device *netdev)
 {
 	struct visornic_devdata *devdata;

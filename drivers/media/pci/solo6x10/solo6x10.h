@@ -216,7 +216,7 @@ struct solo_dev {
 
 	/* P2M DMA Engine */
 	struct solo_p2m_dev	p2m_dev[SOLO_NR_P2M];
-	atomic_t		p2m_count;
+	atomic_unchecked_t	p2m_count;
 	int			p2m_jiffies;
 	unsigned int		p2m_timeouts;
 

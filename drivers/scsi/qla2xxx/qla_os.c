@@ -301,12 +301,12 @@ struct scsi_transport_template *qla2xxx_transport_vport_template = NULL;
  */
 
 __inline__ void
-qla2x00_start_timer(scsi_qla_host_t *vha, void *func, unsigned long interval)
+qla2x00_start_timer(scsi_qla_host_t *vha, void (*func)(unsigned long), unsigned long interval)
 {
 	init_timer(&vha->timer);
 	vha->timer.expires = jiffies + interval * HZ;
 	vha->timer.data = (unsigned long)vha;
-	vha->timer.function = (void (*)(unsigned long))func;
+	vha->timer.function = func;
 	add_timer(&vha->timer);
 	vha->timer_active = 1;
 }
@@ -1534,8 +1534,10 @@ qla2x00_config_dma_addressing(struct qla_hw_data *ha)
 		    !pci_set_consistent_dma_mask(ha->pdev, DMA_BIT_MASK(64))) {
 			/* Ok, a 64bit DMA mask is applicable. */
 			ha->flags.enable_64bit_addressing = 1;
-			ha->isp_ops->calc_req_entries = qla2x00_calc_iocbs_64;
-			ha->isp_ops->build_iocbs = qla2x00_build_scsi_iocbs_64;
+			pax_open_kernel();
+			const_cast(ha->isp_ops->calc_req_entries) = qla2x00_calc_iocbs_64;
+			const_cast(ha->isp_ops->build_iocbs) = qla2x00_build_scsi_iocbs_64;
+			pax_close_kernel();
 			return;
 		}
 	}
@@ -5416,8 +5418,9 @@ qla2x00_rst_aen(scsi_qla_host_t *vha)
 * Context: Interrupt
 ***************************************************************************/
 void
-qla2x00_timer(scsi_qla_host_t *vha)
+qla2x00_timer(unsigned long _vha)
 {
+	scsi_qla_host_t *vha = (scsi_qla_host_t *)_vha;
 	unsigned long	cpu_flags = 0;
 	int		start_dpc = 0;
 	int		index;
@@ -5679,7 +5682,7 @@ qla2x00_release_firmware(void)
 }
 
 static pci_ers_result_t
-qla2xxx_pci_error_detected(struct pci_dev *pdev, pci_channel_state_t state)
+qla2xxx_pci_error_detected(struct pci_dev *pdev, enum pci_channel_state state)
 {
 	scsi_qla_host_t *vha = pci_get_drvdata(pdev);
 	struct qla_hw_data *ha = vha->hw;

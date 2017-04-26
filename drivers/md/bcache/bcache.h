@@ -433,12 +433,12 @@ struct cache {
 
 	/* The rest of this all shows up in sysfs */
 #define IO_ERROR_SHIFT		20
-	atomic_t		io_errors;
-	atomic_t		io_count;
+	atomic_unchecked_t	io_errors;
+	atomic_unchecked_t	io_count;
 
-	atomic_long_t		meta_sectors_written;
-	atomic_long_t		btree_sectors_written;
-	atomic_long_t		sectors_written;
+	atomic_long_unchecked_t	meta_sectors_written;
+	atomic_long_unchecked_t	btree_sectors_written;
+	atomic_long_unchecked_t	sectors_written;
 };
 
 struct gc_stat {

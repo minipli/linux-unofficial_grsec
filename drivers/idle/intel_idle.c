@@ -1257,36 +1257,46 @@ static void bxt_idle_state_table_update(void)
 	rdmsrl(MSR_PKGC6_IRTL, msr);
 	usec = irtl_2_usec(msr);
 	if (usec) {
-		bxt_cstates[2].exit_latency = usec;
-		bxt_cstates[2].target_residency = usec;
+		pax_open_kernel();
+		const_cast(bxt_cstates[2].exit_latency) = usec;
+		const_cast(bxt_cstates[2].target_residency) = usec;
+		pax_close_kernel();
 	}
 
 	rdmsrl(MSR_PKGC7_IRTL, msr);
 	usec = irtl_2_usec(msr);
 	if (usec) {
-		bxt_cstates[3].exit_latency = usec;
-		bxt_cstates[3].target_residency = usec;
+		pax_open_kernel();
+		const_cast(bxt_cstates[3].exit_latency) = usec;
+		const_cast(bxt_cstates[3].target_residency) = usec;
+		pax_close_kernel();
 	}
 
 	rdmsrl(MSR_PKGC8_IRTL, msr);
 	usec = irtl_2_usec(msr);
 	if (usec) {
-		bxt_cstates[4].exit_latency = usec;
-		bxt_cstates[4].target_residency = usec;
+		pax_open_kernel();
+		const_cast(bxt_cstates[4].exit_latency) = usec;
+		const_cast(bxt_cstates[4].target_residency) = usec;
+		pax_close_kernel();
 	}
 
 	rdmsrl(MSR_PKGC9_IRTL, msr);
 	usec = irtl_2_usec(msr);
 	if (usec) {
-		bxt_cstates[5].exit_latency = usec;
-		bxt_cstates[5].target_residency = usec;
+		pax_open_kernel();
+		const_cast(bxt_cstates[5].exit_latency) = usec;
+		const_cast(bxt_cstates[5].target_residency) = usec;
+		pax_close_kernel();
 	}
 
 	rdmsrl(MSR_PKGC10_IRTL, msr);
 	usec = irtl_2_usec(msr);
 	if (usec) {
-		bxt_cstates[6].exit_latency = usec;
-		bxt_cstates[6].target_residency = usec;
+		pax_open_kernel();
+		const_cast(bxt_cstates[6].exit_latency) = usec;
+		const_cast(bxt_cstates[6].target_residency) = usec;
+		pax_close_kernel();
 	}
 
 }
@@ -1329,8 +1339,10 @@ static void sklh_idle_state_table_update(void)
 			return;
 	}
 
-	skl_cstates[5].disabled = 1;	/* C8-SKL */
-	skl_cstates[6].disabled = 1;	/* C9-SKL */
+	pax_open_kernel();
+	const_cast(skl_cstates[5].disabled) = 1;	/* C8-SKL */
+	const_cast(skl_cstates[6].disabled) = 1;	/* C9-SKL */
+	pax_close_kernel();
 }
 /*
  * intel_idle_state_table_update()

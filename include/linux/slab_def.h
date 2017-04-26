@@ -40,7 +40,7 @@ struct kmem_cache {
 /* 4) cache creation/removal */
 	const char *name;
 	struct list_head list;
-	int refcount;
+	atomic_t refcount;
 	int object_size;
 	int align;
 
@@ -56,10 +56,14 @@ struct kmem_cache {
 	unsigned long node_allocs;
 	unsigned long node_frees;
 	unsigned long node_overflow;
-	atomic_t allochit;
-	atomic_t allocmiss;
-	atomic_t freehit;
-	atomic_t freemiss;
+	atomic_unchecked_t allochit;
+	atomic_unchecked_t allocmiss;
+	atomic_unchecked_t freehit;
+	atomic_unchecked_t freemiss;
+#ifdef CONFIG_PAX_MEMORY_SANITIZE
+	atomic_unchecked_t sanitized;
+	atomic_unchecked_t not_sanitized;
+#endif
 #ifdef CONFIG_DEBUG_SLAB_LEAK
 	atomic_t store_user_clean;
 #endif
@@ -83,6 +87,9 @@ struct kmem_cache {
 #ifdef CONFIG_SLAB_FREELIST_RANDOM
 	unsigned int *random_seq;
 #endif
+
+	size_t useroffset;	/* USERCOPY region offset */
+	size_t usersize;	/* USERCOPY region size */
 
 	struct kmem_cache_node *node[MAX_NUMNODES];
 };

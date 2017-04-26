@@ -56,7 +56,7 @@ int sysctl_slot_timeout = SLOT_TIMEOUT * 1000 / HZ;
 int sysctl_warn_noreply_time = 3;
 
 extern void irlap_queue_xmit(struct irlap_cb *self, struct sk_buff *skb);
-static void __irlap_close(struct irlap_cb *self);
+static void __irlap_close(void *_self);
 static void irlap_init_qos_capabilities(struct irlap_cb *self,
 					struct qos_info *qos_user);
 
@@ -95,7 +95,7 @@ void irlap_cleanup(void)
 {
 	IRDA_ASSERT(irlap != NULL, return;);
 
-	hashbin_delete(irlap, (FREE_FUNC) __irlap_close);
+	hashbin_delete(irlap, __irlap_close);
 }
 
 /*
@@ -177,8 +177,10 @@ EXPORT_SYMBOL(irlap_open);
  *    Remove IrLAP and all allocated memory. Stop any pending timers.
  *
  */
-static void __irlap_close(struct irlap_cb *self)
+static void __irlap_close(void *_self)
 {
+	struct irlap_cb *self = _self;
+
 	IRDA_ASSERT(self != NULL, return;);
 	IRDA_ASSERT(self->magic == LAP_MAGIC, return;);
 
@@ -482,6 +484,11 @@ void irlap_disconnect_indication(struct irlap_cb *self, LAP_REASON reason)
  *    Start one single discovery operation.
  *
  */
+static void irlap_kfree(void *arg)
+{
+	kfree(arg);
+}
+
 void irlap_discovery_request(struct irlap_cb *self, discovery_t *discovery)
 {
 	struct irlap_info info;
@@ -513,7 +520,7 @@ void irlap_discovery_request(struct irlap_cb *self, discovery_t *discovery)
 	/* Check if last discovery request finished in time, or if
 	 * it was aborted due to the media busy flag. */
 	if (self->discovery_log != NULL) {
-		hashbin_delete(self->discovery_log, (FREE_FUNC) kfree);
+		hashbin_delete(self->discovery_log, irlap_kfree);
 		self->discovery_log = NULL;
 	}
 

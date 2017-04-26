@@ -85,7 +85,7 @@ struct hvsi_struct {
 	int n_outbuf;
 	uint32_t vtermno;
 	uint32_t virq;
-	atomic_t seqno; /* HVSI packet sequence number */
+	atomic_unchecked_t seqno; /* HVSI packet sequence number */
 	uint16_t mctrl;
 	uint8_t state;  /* HVSI protocol state */
 	uint8_t flags;
@@ -297,7 +297,7 @@ static int hvsi_version_respond(struct hvsi_struct *hp, uint16_t query_seqno)
 
 	packet.hdr.type = VS_QUERY_RESPONSE_PACKET_HEADER;
 	packet.hdr.len = sizeof(struct hvsi_query_response);
-	packet.hdr.seqno = cpu_to_be16(atomic_inc_return(&hp->seqno));
+	packet.hdr.seqno = cpu_to_be16(atomic_inc_return_unchecked(&hp->seqno));
 	packet.verb = cpu_to_be16(VSV_SEND_VERSION_NUMBER);
 	packet.u.version = HVSI_VERSION;
 	packet.query_seqno = cpu_to_be16(query_seqno+1);
@@ -557,7 +557,7 @@ static int hvsi_query(struct hvsi_struct *hp, uint16_t verb)
 
 	packet.hdr.type = VS_QUERY_PACKET_HEADER;
 	packet.hdr.len = sizeof(struct hvsi_query);
-	packet.hdr.seqno = cpu_to_be16(atomic_inc_return(&hp->seqno));
+	packet.hdr.seqno = cpu_to_be16(atomic_inc_return_unchecked(&hp->seqno));
 	packet.verb = cpu_to_be16(verb);
 
 	pr_debug("%s: sending %i bytes\n", __func__, packet.hdr.len);
@@ -599,7 +599,7 @@ static int hvsi_set_mctrl(struct hvsi_struct *hp, uint16_t mctrl)
 	int wrote;
 
 	packet.hdr.type = VS_CONTROL_PACKET_HEADER;
-	packet.hdr.seqno = cpu_to_be16(atomic_inc_return(&hp->seqno));
+	packet.hdr.seqno = cpu_to_be16(atomic_inc_return_unchecked(&hp->seqno));
 	packet.hdr.len = sizeof(struct hvsi_control);
 	packet.verb = cpu_to_be16(VSV_SET_MODEM_CTL);
 	packet.mask = cpu_to_be32(HVSI_TSDTR);
@@ -682,7 +682,7 @@ static int hvsi_put_chars(struct hvsi_struct *hp, const char *buf, int count)
 	BUG_ON(count > HVSI_MAX_OUTGOING_DATA);
 
 	packet.hdr.type = VS_DATA_PACKET_HEADER;
-	packet.hdr.seqno = cpu_to_be16(atomic_inc_return(&hp->seqno));
+	packet.hdr.seqno = cpu_to_be16(atomic_inc_return_unchecked(&hp->seqno));
 	packet.hdr.len = count + sizeof(struct hvsi_header);
 	memcpy(&packet.data, buf, count);
 
@@ -699,7 +699,7 @@ static void hvsi_close_protocol(struct hvsi_struct *hp)
 	struct hvsi_control packet __ALIGNED__;
 
 	packet.hdr.type = VS_CONTROL_PACKET_HEADER;
-	packet.hdr.seqno = cpu_to_be16(atomic_inc_return(&hp->seqno));
+	packet.hdr.seqno = cpu_to_be16(atomic_inc_return_unchecked(&hp->seqno));
 	packet.hdr.len = 6;
 	packet.verb = cpu_to_be16(VSV_CLOSE_PROTOCOL);
 
@@ -727,7 +727,7 @@ static int hvsi_open(struct tty_struct *tty, struct file *filp)
 
 	tty_port_tty_set(&hp->port, tty);
 	spin_lock_irqsave(&hp->lock, flags);
-	hp->port.count++;
+	atomic_inc(&hp->port.count);
 	atomic_set(&hp->seqno, 0);
 	h_vio_signal(hp->vtermno, VIO_IRQ_ENABLE);
 	spin_unlock_irqrestore(&hp->lock, flags);
@@ -784,7 +784,7 @@ static void hvsi_close(struct tty_struct *tty, struct file *filp)
 
 	spin_lock_irqsave(&hp->lock, flags);
 
-	if (--hp->port.count == 0) {
+	if (atomic_dec_return(&hp->port.count) == 0) {
 		tty_port_tty_set(&hp->port, NULL);
 		hp->inbuf_end = hp->inbuf; /* discard remaining partial packets */
 
@@ -817,9 +817,9 @@ static void hvsi_close(struct tty_struct *tty, struct file *filp)
 
 			spin_lock_irqsave(&hp->lock, flags);
 		}
-	} else if (hp->port.count < 0)
+	} else if (atomic_read(&hp->port.count) < 0)
 		printk(KERN_ERR "hvsi_close %lu: oops, count is %d\n",
-		       hp - hvsi_ports, hp->port.count);
+		       hp - hvsi_ports, atomic_read(&hp->port.count));
 
 	spin_unlock_irqrestore(&hp->lock, flags);
 }
@@ -834,7 +834,7 @@ static void hvsi_hangup(struct tty_struct *tty)
 	tty_port_tty_set(&hp->port, NULL);
 
 	spin_lock_irqsave(&hp->lock, flags);
-	hp->port.count = 0;
+	atomic_set(&hp->port.count, 0);
 	hp->n_outbuf = 0;
 	spin_unlock_irqrestore(&hp->lock, flags);
 }

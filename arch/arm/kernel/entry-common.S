@@ -11,17 +11,45 @@
 #include <asm/assembler.h>
 #include <asm/unistd.h>
 #include <asm/ftrace.h>
+#include <asm/domain.h>
 #include <asm/unwind.h>
+
+#include "entry-header.S"
 
 #ifdef CONFIG_NEED_RET_TO_USER
 #include <mach/entry-macro.S>
 #else
 	.macro  arch_ret_to_user, tmp1, tmp2
+#if defined(CONFIG_PAX_KERNEXEC) || defined(CONFIG_PAX_MEMORY_UDEREF)
+	@ save regs
+	stmdb	sp!, {r1, r2}
+	@ read DACR from cpu_domain into r1
+	mov     r2, sp
+	@ assume 8K pages, since we have to split the immediate in two
+	bic     r2, r2, #(0x1fc0)
+	bic     r2, r2, #(0x3f)
+	ldr     r1, [r2, #TI_CPU_DOMAIN]
+#ifdef CONFIG_PAX_KERNEXEC
+	@ set type of DOMAIN_KERNEL to DOMAIN_KERNELCLIENT
+	bic     r1, r1, #(domain_val(DOMAIN_KERNEL, 3))
+	orr     r1, r1, #(domain_val(DOMAIN_KERNEL, DOMAIN_KERNELCLIENT))
+#endif
+#ifdef CONFIG_PAX_MEMORY_UDEREF
+	@ set current DOMAIN_USER to DOMAIN_UDEREF
+	bic     r1, r1, #(domain_val(DOMAIN_USER, 3))
+	orr     r1, r1, #(domain_val(DOMAIN_USER, DOMAIN_UDEREF))
+#endif
+	@ write r1 to current_thread_info()->cpu_domain
+	str     r1, [r2, #TI_CPU_DOMAIN]
+	@ write r1 to DACR
+	mcr     p15, 0, r1, c3, c0, 0
+	@ instruction sync
+	instr_sync
+	@ restore regs
+	ldmia	sp!, {r1, r2}
+#endif
 	.endm
 #endif
-
-#include "entry-header.S"
-
 
 	.align	5
 #if !(IS_ENABLED(CONFIG_TRACE_IRQFLAGS) || IS_ENABLED(CONFIG_CONTEXT_TRACKING))
@@ -36,7 +64,9 @@ ret_fast_syscall:
  UNWIND(.cantunwind	)
 	disable_irq_notrace			@ disable interrupts
 	ldr	r1, [tsk, #TI_FLAGS]		@ re-check for syscall tracing
-	tst	r1, #_TIF_SYSCALL_WORK | _TIF_WORK_MASK
+	tst	r1, #_TIF_SYSCALL_WORK
+	bne	fast_work_pending
+	tst	r1, #_TIF_WORK_MASK
 	bne	fast_work_pending
 
 	/* perform architecture specific actions before user return */
@@ -62,7 +92,9 @@ ret_fast_syscall:
 	str	r0, [sp, #S_R0 + S_OFF]!	@ save returned r0
 	disable_irq_notrace			@ disable interrupts
 	ldr	r1, [tsk, #TI_FLAGS]		@ re-check for syscall tracing
-	tst	r1, #_TIF_SYSCALL_WORK | _TIF_WORK_MASK
+	tst	r1, #_TIF_SYSCALL_WORK
+	bne	__sys_trace_return_nosave
+	tst	r1, #_TIF_WORK_MASK
 	beq	no_work_pending
  UNWIND(.fnend		)
 ENDPROC(ret_fast_syscall)
@@ -198,6 +230,12 @@ ENTRY(vector_swi)
 #endif
 
 	uaccess_disable tbl
+
+	/*
+	 * do this here to avoid a performance hit of wrapping the code above
+	 * that directly dereferences userland to parse the SWI instruction
+	 */
+	pax_enter_kernel_user
 
 	adr	tbl, sys_call_table		@ load syscall table pointer
 

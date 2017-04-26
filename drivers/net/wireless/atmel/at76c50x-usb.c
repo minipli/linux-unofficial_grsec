@@ -353,7 +353,7 @@ static int at76_dfu_get_state(struct usb_device *udev, u8 *state)
 }
 
 /* Convert timeout from the DFU status to jiffies */
-static inline unsigned long at76_get_timeout(struct dfu_status *s)
+static inline unsigned long __intentional_overflow(-1) at76_get_timeout(struct dfu_status *s)
 {
 	return msecs_to_jiffies((s->poll_timeout[2] << 16)
 				| (s->poll_timeout[1] << 8)

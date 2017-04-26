@@ -349,7 +349,7 @@ static int send_write(struct svcxprt_rdma *xprt, struct svc_rqst *rqstp,
 	write_wr.remote_addr = to;
 
 	/* Post It */
-	atomic_inc(&rdma_stat_write);
+	atomic_inc_unchecked(&rdma_stat_write);
 	if (svc_rdma_send(xprt, &write_wr.wr))
 		goto err;
 	return write_len - bc;

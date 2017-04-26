@@ -432,13 +432,13 @@ static void fxtract(FPU_REG *st0_ptr, u_char st0_tag)
 #endif /* PARANOID */
 }
 
-static void fdecstp(void)
+static void fdecstp(FPU_REG *st0_ptr, u_char st0_tag)
 {
 	clear_C1();
 	top--;
 }
 
-static void fincstp(void)
+static void fincstp(FPU_REG *st0_ptr, u_char st0_tag)
 {
 	clear_C1();
 	top++;
@@ -605,6 +605,11 @@ static int fsin(FPU_REG *st0_ptr, u_char tag)
 		single_arg_error(st0_ptr, tag);
 		return 1;
 	}
+}
+
+static void _fsin(FPU_REG *st0_ptr, u_char tag)
+{
+	fsin(st0_ptr, tag);
 }
 
 static int f_cos(FPU_REG *st0_ptr, u_char tag)
@@ -1625,7 +1630,7 @@ static void fscale(FPU_REG *st0_ptr, u_char st0_tag)
 
 static FUNC_ST0 const trig_table_a[] = {
 	f2xm1, fyl2x, fptan, fpatan,
-	fxtract, fprem1, (FUNC_ST0) fdecstp, (FUNC_ST0) fincstp
+	fxtract, fprem1, fdecstp, fincstp
 };
 
 void FPU_triga(void)
@@ -1634,7 +1639,7 @@ void FPU_triga(void)
 }
 
 static FUNC_ST0 const trig_table_b[] = {
-	fprem, fyl2xp1, fsqrt_, fsincos, frndint_, fscale, (FUNC_ST0) fsin, fcos
+	fprem, fyl2xp1, fsqrt_, fsincos, frndint_, fscale, _fsin, fcos
 };
 
 void FPU_trigb(void)

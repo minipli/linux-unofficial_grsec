@@ -136,7 +136,7 @@ static bool __init found_memconsole(void)
 	return false;
 }
 
-static struct dmi_system_id memconsole_dmi_table[] __initdata = {
+static const struct dmi_system_id memconsole_dmi_table[] __initconst = {
 	{
 		.ident = "Google Board",
 		.matches = {
@@ -155,7 +155,10 @@ static int __init memconsole_init(void)
 	if (!found_memconsole())
 		return -ENODEV;
 
-	memconsole_bin_attr.size = memconsole_length;
+	pax_open_kernel();
+	const_cast(memconsole_bin_attr.size) = memconsole_length;
+	pax_close_kernel();
+
 	return sysfs_create_bin_file(firmware_kobj, &memconsole_bin_attr);
 }
 

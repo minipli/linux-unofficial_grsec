@@ -988,13 +988,13 @@ static int compat_table_info(const struct xt_table_info *info,
 #endif
 
 static int get_info(struct net *net, void __user *user,
-		    const int *len, int compat)
+		    int len, int compat)
 {
 	char name[XT_TABLE_MAXNAMELEN];
 	struct xt_table *t;
 	int ret;
 
-	if (*len != sizeof(struct ip6t_getinfo))
+	if (len != sizeof(struct ip6t_getinfo))
 		return -EINVAL;
 
 	if (copy_from_user(name, user, sizeof(name)) != 0)
@@ -1029,7 +1029,7 @@ static int get_info(struct net *net, void __user *user,
 		info.size = private->size;
 		strcpy(info.name, name);
 
-		if (copy_to_user(user, &info, *len) != 0)
+		if (copy_to_user(user, &info, len) != 0)
 			ret = -EFAULT;
 		else
 			ret = 0;
@@ -1683,7 +1683,7 @@ compat_do_ip6t_get_ctl(struct sock *sk, int cmd, void __user *user, int *len)
 
 	switch (cmd) {
 	case IP6T_SO_GET_INFO:
-		ret = get_info(sock_net(sk), user, len, 1);
+		ret = get_info(sock_net(sk), user, *len, 1);
 		break;
 	case IP6T_SO_GET_ENTRIES:
 		ret = compat_get_entries(sock_net(sk), user, len);
@@ -1729,7 +1729,7 @@ do_ip6t_get_ctl(struct sock *sk, int cmd, void __user *user, int *len)
 
 	switch (cmd) {
 	case IP6T_SO_GET_INFO:
-		ret = get_info(sock_net(sk), user, len, 0);
+		ret = get_info(sock_net(sk), user, *len, 0);
 		break;
 
 	case IP6T_SO_GET_ENTRIES:

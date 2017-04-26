@@ -58,7 +58,7 @@ struct pdp_ctx {
 	struct in_addr		ms_addr_ip4;
 	struct in_addr		sgsn_addr_ip4;
 
-	atomic_t		tx_seq;
+	atomic_unchecked_t	tx_seq;
 	struct rcu_head		rcu_head;
 };
 
@@ -407,7 +407,7 @@ static inline void gtp0_push_header(struct sk_buff *skb, struct pdp_ctx *pctx)
 	gtp0->flags	= 0x1e; /* v0, GTP-non-prime. */
 	gtp0->type	= GTP_TPDU;
 	gtp0->length	= htons(payload_len);
-	gtp0->seq	= htons((atomic_inc_return(&pctx->tx_seq) - 1) % 0xffff);
+	gtp0->seq	= htons((atomic_inc_return_unchecked(&pctx->tx_seq) - 1) % 0xffff);
 	gtp0->flow	= htons(pctx->u.v0.flow);
 	gtp0->number	= 0xff;
 	gtp0->spare[0]	= gtp0->spare[1] = gtp0->spare[2] = 0xff;
@@ -751,7 +751,7 @@ nla_put_failure:
 	return -EMSGSIZE;
 }
 
-static struct rtnl_link_ops gtp_link_ops __read_mostly = {
+static struct rtnl_link_ops gtp_link_ops = {
 	.kind		= "gtp",
 	.maxtype	= IFLA_GTP_MAX,
 	.policy		= gtp_policy,
@@ -959,7 +959,7 @@ static int ipv4_pdp_add(struct net_device *dev, struct genl_info *info)
 		return -ENOMEM;
 
 	ipv4_pdp_fill(pctx, info);
-	atomic_set(&pctx->tx_seq, 0);
+	atomic_set_unchecked(&pctx->tx_seq, 0);
 
 	switch (pctx->gtp_version) {
 	case GTP_V0:

@@ -35,6 +35,7 @@ static inline void pgd_set(pgd_t * pgdp, pmd_t * pmdp)
 }
 
 #define pgd_populate(MM, PGD, PMD)      pgd_set(PGD, PMD)
+#define pgd_populate_kernel(MM, PGD, PMD)      pgd_populate((MM), (PGD), (PMD))
 
 static inline pmd_t *pmd_alloc_one(struct mm_struct *mm,
 				   unsigned long address)

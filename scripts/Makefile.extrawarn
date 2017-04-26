@@ -28,6 +28,10 @@ warning-1 += $(call cc-option, -Wunused-const-variable)
 warning-1 += $(call cc-disable-warning, missing-field-initializers)
 warning-1 += $(call cc-disable-warning, sign-compare)
 
+#warning-1 += $(call cc-option, -Wnull-dereference)
+warning-1 += $(call cc-option, -Wduplicated-cond)
+warning-1 += $(call cc-option, -Wlogical-op)
+
 warning-2 := -Waggregate-return
 warning-2 += -Wcast-align
 warning-2 += -Wdisabled-optimization

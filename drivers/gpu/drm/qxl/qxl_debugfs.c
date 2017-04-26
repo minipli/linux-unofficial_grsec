@@ -42,10 +42,10 @@ qxl_debugfs_irq_received(struct seq_file *m, void *data)
 	struct drm_info_node *node = (struct drm_info_node *) m->private;
 	struct qxl_device *qdev = node->minor->dev->dev_private;
 
-	seq_printf(m, "%d\n", atomic_read(&qdev->irq_received));
-	seq_printf(m, "%d\n", atomic_read(&qdev->irq_received_display));
-	seq_printf(m, "%d\n", atomic_read(&qdev->irq_received_cursor));
-	seq_printf(m, "%d\n", atomic_read(&qdev->irq_received_io_cmd));
+	seq_printf(m, "%d\n", atomic_read_unchecked(&qdev->irq_received));
+	seq_printf(m, "%d\n", atomic_read_unchecked(&qdev->irq_received_display));
+	seq_printf(m, "%d\n", atomic_read_unchecked(&qdev->irq_received_cursor));
+	seq_printf(m, "%d\n", atomic_read_unchecked(&qdev->irq_received_io_cmd));
 	seq_printf(m, "%d\n", qdev->irq_received_error);
 	return 0;
 }

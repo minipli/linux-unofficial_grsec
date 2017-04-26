@@ -18,6 +18,7 @@
 #include <asm/domain.h>
 #include <asm/unified.h>
 #include <asm/compiler.h>
+#include <asm/pgtable.h>
 
 #ifndef CONFIG_HAVE_EFFICIENT_UNALIGNED_ACCESS
 #include <asm-generic/uaccess-unaligned.h>
@@ -50,35 +51,6 @@ struct exception_table_entry
 extern int fixup_exception(struct pt_regs *regs);
 
 /*
- * These two functions allow hooking accesses to userspace to increase
- * system integrity by ensuring that the kernel can not inadvertantly
- * perform such accesses (eg, via list poison values) which could then
- * be exploited for priviledge escalation.
- */
-static inline unsigned int uaccess_save_and_enable(void)
-{
-#ifdef CONFIG_CPU_SW_DOMAIN_PAN
-	unsigned int old_domain = get_domain();
-
-	/* Set the current domain access to permit user accesses */
-	set_domain((old_domain & ~domain_mask(DOMAIN_USER)) |
-		   domain_val(DOMAIN_USER, DOMAIN_CLIENT));
-
-	return old_domain;
-#else
-	return 0;
-#endif
-}
-
-static inline void uaccess_restore(unsigned int flags)
-{
-#ifdef CONFIG_CPU_SW_DOMAIN_PAN
-	/* Restore the user access mask */
-	set_domain(flags);
-#endif
-}
-
-/*
  * These two are intentionally not defined anywhere - if the kernel
  * code generates any references to them, that's a bug.
  */
@@ -99,10 +71,69 @@ extern int __put_user_bad(void);
 static inline void set_fs(mm_segment_t fs)
 {
 	current_thread_info()->addr_limit = fs;
-	modify_domain(DOMAIN_KERNEL, fs ? DOMAIN_CLIENT : DOMAIN_MANAGER);
+	modify_domain(DOMAIN_KERNEL, fs ? DOMAIN_KERNELCLIENT : DOMAIN_MANAGER);
 }
 
 #define segment_eq(a, b)	((a) == (b))
+
+#define __HAVE_ARCH_PAX_OPEN_USERLAND
+#define __HAVE_ARCH_PAX_CLOSE_USERLAND
+
+static inline void pax_open_userland(void)
+{
+
+#ifdef CONFIG_PAX_MEMORY_UDEREF
+	if (segment_eq(get_fs(), USER_DS)) {
+		BUG_ON(test_domain(DOMAIN_USER, DOMAIN_UDEREF));
+		modify_domain(DOMAIN_USER, DOMAIN_UDEREF);
+	}
+#endif
+
+}
+
+static inline void pax_close_userland(void)
+{
+
+#ifdef CONFIG_PAX_MEMORY_UDEREF
+	if (segment_eq(get_fs(), USER_DS)) {
+		BUG_ON(test_domain(DOMAIN_USER, DOMAIN_NOACCESS));
+		modify_domain(DOMAIN_USER, DOMAIN_NOACCESS);
+	}
+#endif
+
+}
+
+/*
+ * These two functions allow hooking accesses to userspace to increase
+ * system integrity by ensuring that the kernel can not inadvertantly
+ * perform such accesses (eg, via list poison values) which could then
+ * be exploited for priviledge escalation.
+ */
+static inline unsigned int uaccess_save_and_enable(void)
+{
+#ifdef CONFIG_CPU_SW_DOMAIN_PAN
+	unsigned int old_domain = get_domain();
+
+	/* Set the current domain access to permit user accesses */
+	set_domain((old_domain & ~domain_mask(DOMAIN_USER)) |
+		   domain_val(DOMAIN_USER, DOMAIN_CLIENT));
+
+	return old_domain;
+#else
+	pax_open_userland();
+	return 0;
+#endif
+}
+
+static inline void uaccess_restore(unsigned int flags)
+{
+#ifdef CONFIG_CPU_SW_DOMAIN_PAN
+	/* Restore the user access mask */
+	set_domain(flags);
+#else
+	pax_close_userland();
+#endif
+}
 
 /* We use 33-bit arithmetic here... */
 #define __range_ok(addr, size) ({ \
@@ -268,6 +299,7 @@ static inline void set_fs(mm_segment_t fs)
 
 #endif /* CONFIG_MMU */
 
+#define access_ok_noprefault(type, addr, size) access_ok((type), (addr), (size))
 #define access_ok(type, addr, size)	(__range_ok(addr, size) == 0)
 
 #define user_addr_max() \
@@ -474,10 +506,10 @@ do {									\
 
 
 #ifdef CONFIG_MMU
-extern unsigned long __must_check
+extern unsigned long __must_check __size_overflow(3)
 arm_copy_from_user(void *to, const void __user *from, unsigned long n);
 
-static inline unsigned long __must_check
+static inline unsigned long __must_check __size_overflow(3)
 __copy_from_user(void *to, const void __user *from, unsigned long n)
 {
 	unsigned int __ua_flags;
@@ -489,9 +521,9 @@ __copy_from_user(void *to, const void __user *from, unsigned long n)
 	return n;
 }
 
-extern unsigned long __must_check
+extern unsigned long __must_check __size_overflow(3)
 arm_copy_to_user(void __user *to, const void *from, unsigned long n);
-extern unsigned long __must_check
+extern unsigned long __must_check __size_overflow(3)
 __copy_to_user_std(void __user *to, const void *from, unsigned long n);
 
 static inline unsigned long __must_check
@@ -511,9 +543,9 @@ __copy_to_user(void __user *to, const void *from, unsigned long n)
 #endif
 }
 
-extern unsigned long __must_check
+extern unsigned long __must_check __size_overflow(2)
 arm_clear_user(void __user *addr, unsigned long n);
-extern unsigned long __must_check
+extern unsigned long __must_check __size_overflow(2)
 __clear_user_std(void __user *addr, unsigned long n);
 
 static inline unsigned long __must_check
@@ -534,6 +566,10 @@ __clear_user(void __user *addr, unsigned long n)
 static inline unsigned long __must_check copy_from_user(void *to, const void __user *from, unsigned long n)
 {
 	unsigned long res = n;
+
+	if ((long)n < 0)
+		return n;
+
 	if (likely(access_ok(VERIFY_READ, from, n)))
 		res = __copy_from_user(to, from, n);
 	if (unlikely(res))
@@ -543,6 +579,9 @@ static inline unsigned long __must_check copy_from_user(void *to, const void __u
 
 static inline unsigned long __must_check copy_to_user(void __user *to, const void *from, unsigned long n)
 {
+	if ((long)n < 0)
+		return n;
+
 	if (access_ok(VERIFY_WRITE, to, n))
 		n = __copy_to_user(to, from, n);
 	return n;

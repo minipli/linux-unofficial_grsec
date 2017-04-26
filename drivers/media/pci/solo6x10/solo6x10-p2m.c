@@ -73,7 +73,7 @@ int solo_p2m_dma_desc(struct solo_dev *solo_dev,
 
 	/* Get next ID. According to Softlogic, 6110 has problems on !=0 P2M */
 	if (solo_dev->type != SOLO_DEV_6110 && multi_p2m) {
-		p2m_id = atomic_inc_return(&solo_dev->p2m_count) % SOLO_NR_P2M;
+		p2m_id = atomic_inc_return_unchecked(&solo_dev->p2m_count) % SOLO_NR_P2M;
 		if (p2m_id < 0)
 			p2m_id = -p2m_id;
 	}

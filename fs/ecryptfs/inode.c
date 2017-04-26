@@ -643,7 +643,7 @@ static char *ecryptfs_readlink_lower(struct dentry *dentry, size_t *bufsiz)
 	old_fs = get_fs();
 	set_fs(get_ds());
 	rc = d_inode(lower_dentry)->i_op->readlink(lower_dentry,
-						   (char __user *)lower_buf,
+						   (char __force_user *)lower_buf,
 						   PATH_MAX);
 	set_fs(old_fs);
 	if (rc < 0)

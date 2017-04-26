@@ -231,6 +231,10 @@ static inline bool capable(int cap)
 {
 	return true;
 }
+static inline bool capable_nolog(int cap)
+{
+	return true;
+}
 static inline bool ns_capable(struct user_namespace *ns, int cap)
 {
 	return true;
@@ -242,10 +246,14 @@ static inline bool ns_capable_noaudit(struct user_namespace *ns, int cap)
 #endif /* CONFIG_MULTIUSER */
 extern bool privileged_wrt_inode_uidgid(struct user_namespace *ns, const struct inode *inode);
 extern bool capable_wrt_inode_uidgid(const struct inode *inode, int cap);
+extern bool capable_wrt_inode_uidgid_nolog(const struct inode *inode, int cap);
 extern bool file_ns_capable(const struct file *file, struct user_namespace *ns, int cap);
+extern bool capable_nolog(int cap);
 extern bool ptracer_capable(struct task_struct *tsk, struct user_namespace *ns);
 
 /* audit system wants to get cap info from files as well */
 extern int get_vfs_caps_from_disk(const struct dentry *dentry, struct cpu_vfs_cap_data *cpu_caps);
+
+extern int is_privileged_binary(const struct dentry *dentry);
 
 #endif /* !_LINUX_CAPABILITY_H */

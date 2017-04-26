@@ -142,7 +142,7 @@ struct inode *afs_iget_autocell(struct inode *dir, const char *dev_name,
 	struct afs_vnode *vnode;
 	struct super_block *sb;
 	struct inode *inode;
-	static atomic_t afs_autocell_ino;
+	static atomic_unchecked_t afs_autocell_ino;
 
 	_enter("{%x:%u},%*.*s,",
 	       AFS_FS_I(dir)->fid.vid, AFS_FS_I(dir)->fid.vnode,
@@ -155,7 +155,7 @@ struct inode *afs_iget_autocell(struct inode *dir, const char *dev_name,
 	data.fid.unique = 0;
 	data.fid.vnode = 0;
 
-	inode = iget5_locked(sb, atomic_inc_return(&afs_autocell_ino),
+	inode = iget5_locked(sb, atomic_inc_return_unchecked(&afs_autocell_ino),
 			     afs_iget5_autocell_test, afs_iget5_set,
 			     &data);
 	if (!inode) {

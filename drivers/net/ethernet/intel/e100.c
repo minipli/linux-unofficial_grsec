@@ -3106,7 +3106,7 @@ static void e100_shutdown(struct pci_dev *pdev)
  * @pdev: Pointer to PCI device
  * @state: The current pci connection state
  */
-static pci_ers_result_t e100_io_error_detected(struct pci_dev *pdev, pci_channel_state_t state)
+static pci_ers_result_t e100_io_error_detected(struct pci_dev *pdev, enum pci_channel_state state)
 {
 	struct net_device *netdev = pci_get_drvdata(pdev);
 	struct nic *nic = netdev_priv(netdev);

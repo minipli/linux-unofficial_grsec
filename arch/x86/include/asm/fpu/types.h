@@ -276,6 +276,39 @@ union fpregs_state {
  */
 struct fpu {
 	/*
+	 * @state:
+	 *
+	 * In-memory copy of all FPU registers that we save/restore
+	 * over context switches. If the task is using the FPU then
+	 * the registers in the FPU are more recent than this state
+	 * copy. If the task context-switches away then they get
+	 * saved here and represent the FPU state.
+	 *
+	 * After context switches there may be a (short) time period
+	 * during which the in-FPU hardware registers are unchanged
+	 * and still perfectly match this state, if the tasks
+	 * scheduled afterwards are not using the FPU.
+	 *
+	 * This is the 'lazy restore' window of optimization, which
+	 * we track though 'fpu_fpregs_owner_ctx' and 'fpu->last_cpu'.
+	 *
+	 * We detect whether a subsequent task uses the FPU via setting
+	 * CR0::TS to 1, which causes any FPU use to raise a #NM fault.
+	 *
+	 * During this window, if the task gets scheduled again, we
+	 * might be able to skip having to do a restore from this
+	 * memory buffer to the hardware registers - at the cost of
+	 * incurring the overhead of #NM fault traps.
+	 *
+	 * Note that on modern CPUs that support the XSAVEOPT (or other
+	 * optimized XSAVE instructions), we don't use #NM traps anymore,
+	 * as the hardware can track whether FPU registers need saving
+	 * or not. On such CPUs we activate the non-lazy ('eagerfpu')
+	 * logic, which unconditionally saves/restores all FPU state
+	 * across context switches. (if FPU state exists.)
+	 */
+	union fpregs_state		*state;
+	/*
 	 * @last_cpu:
 	 *
 	 * Records the last CPU on which this context was loaded into
@@ -332,43 +365,6 @@ struct fpu {
 	 * deal with bursty apps that only use the FPU for a short time:
 	 */
 	unsigned char			counter;
-	/*
-	 * @state:
-	 *
-	 * In-memory copy of all FPU registers that we save/restore
-	 * over context switches. If the task is using the FPU then
-	 * the registers in the FPU are more recent than this state
-	 * copy. If the task context-switches away then they get
-	 * saved here and represent the FPU state.
-	 *
-	 * After context switches there may be a (short) time period
-	 * during which the in-FPU hardware registers are unchanged
-	 * and still perfectly match this state, if the tasks
-	 * scheduled afterwards are not using the FPU.
-	 *
-	 * This is the 'lazy restore' window of optimization, which
-	 * we track though 'fpu_fpregs_owner_ctx' and 'fpu->last_cpu'.
-	 *
-	 * We detect whether a subsequent task uses the FPU via setting
-	 * CR0::TS to 1, which causes any FPU use to raise a #NM fault.
-	 *
-	 * During this window, if the task gets scheduled again, we
-	 * might be able to skip having to do a restore from this
-	 * memory buffer to the hardware registers - at the cost of
-	 * incurring the overhead of #NM fault traps.
-	 *
-	 * Note that on modern CPUs that support the XSAVEOPT (or other
-	 * optimized XSAVE instructions), we don't use #NM traps anymore,
-	 * as the hardware can track whether FPU registers need saving
-	 * or not. On such CPUs we activate the non-lazy ('eagerfpu')
-	 * logic, which unconditionally saves/restores all FPU state
-	 * across context switches. (if FPU state exists.)
-	 */
-	union fpregs_state		state;
-	/*
-	 * WARNING: 'state' is dynamically-sized.  Do not put
-	 * anything after it here.
-	 */
 };
 
 #endif /* _ASM_X86_FPU_H */

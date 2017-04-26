@@ -288,7 +288,7 @@ int __init intel_mid_pci_init(void)
 	pci_mmcfg_late_init();
 	pcibios_enable_irq = intel_mid_pci_irq_enable;
 	pcibios_disable_irq = intel_mid_pci_irq_disable;
-	pci_root_ops = intel_mid_pci_ops;
+	memcpy((void *)&pci_root_ops, &intel_mid_pci_ops, sizeof pci_root_ops);
 	pci_soc_mode = 1;
 	/* Continue with standard init */
 	return 1;

@@ -1208,7 +1208,7 @@ static void dma_block_input(struct net_device *dev, int count,
 /*====================================================================*/
 
 static void dma_block_output(struct net_device *dev, int count,
-			     const u_char *buf, const int start_page)
+			     const u_char *buf, int start_page)
 {
     unsigned int nic_base = dev->base_addr;
     struct pcnet_dev *info = PRIV(dev);
@@ -1387,7 +1387,7 @@ static void shmem_block_input(struct net_device *dev, int count,
 /*====================================================================*/
 
 static void shmem_block_output(struct net_device *dev, int count,
-			       const u_char *buf, const int start_page)
+			       const u_char *buf, int start_page)
 {
     void __iomem *shmem = ei_status.mem + (start_page << 8);
     shmem -= ei_status.tx_start_page << 8;

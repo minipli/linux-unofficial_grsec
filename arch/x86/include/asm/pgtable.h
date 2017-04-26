@@ -54,6 +54,7 @@ extern struct mm_struct *pgd_page_get_mm(struct page *page);
 
 #ifndef __PAGETABLE_PUD_FOLDED
 #define set_pgd(pgdp, pgd)		native_set_pgd(pgdp, pgd)
+#define set_pgd_batched(pgdp, pgd)	native_set_pgd_batched(pgdp, pgd)
 #define pgd_clear(pgd)			native_pgd_clear(pgd)
 #endif
 
@@ -88,12 +89,53 @@ extern struct mm_struct *pgd_page_get_mm(struct page *page);
 
 #define arch_end_context_switch(prev)	do {} while(0)
 
+#define pax_open_kernel()	native_pax_open_kernel()
+#define pax_close_kernel()	native_pax_close_kernel()
 #endif	/* CONFIG_PARAVIRT */
+
+#define  __HAVE_ARCH_PAX_OPEN_KERNEL
+#define  __HAVE_ARCH_PAX_CLOSE_KERNEL
+
+#ifdef CONFIG_PAX_KERNEXEC
+static inline unsigned long native_pax_open_kernel(void)
+{
+	unsigned long cr0;
+
+	preempt_disable();
+	barrier();
+	cr0 = read_cr0() ^ X86_CR0_WP;
+	BUG_ON(cr0 & X86_CR0_WP);
+	write_cr0(cr0);
+	barrier();
+	return cr0 ^ X86_CR0_WP;
+}
+
+static inline unsigned long native_pax_close_kernel(void)
+{
+	unsigned long cr0;
+
+	barrier();
+	cr0 = read_cr0() ^ X86_CR0_WP;
+	BUG_ON(!(cr0 & X86_CR0_WP));
+	write_cr0(cr0);
+	barrier();
+	preempt_enable_no_resched();
+	return cr0 ^ X86_CR0_WP;
+}
+#else
+static inline unsigned long native_pax_open_kernel(void) { return 0; }
+static inline unsigned long native_pax_close_kernel(void) { return 0; }
+#endif
 
 /*
  * The following only work if pte_present() is true.
  * Undefined behaviour if not..
  */
+static inline int pte_user(pte_t pte)
+{
+	return pte_val(pte) & _PAGE_USER;
+}
+
 static inline int pte_dirty(pte_t pte)
 {
 	return pte_flags(pte) & _PAGE_DIRTY;
@@ -168,6 +210,11 @@ static inline unsigned long pud_pfn(pud_t pud)
 	return (pud_val(pud) & pud_pfn_mask(pud)) >> PAGE_SHIFT;
 }
 
+static inline unsigned long pgd_pfn(pgd_t pgd)
+{
+	return (pgd_val(pgd) & PTE_PFN_MASK) >> PAGE_SHIFT;
+}
+
 #define pte_page(pte)	pfn_to_page(pte_pfn(pte))
 
 static inline int pmd_large(pmd_t pte)
@@ -224,9 +271,29 @@ static inline pte_t pte_wrprotect(pte_t pte)
 	return pte_clear_flags(pte, _PAGE_RW);
 }
 
+static inline pte_t pte_mkread(pte_t pte)
+{
+	return __pte(pte_val(pte) | _PAGE_USER);
+}
+
 static inline pte_t pte_mkexec(pte_t pte)
 {
-	return pte_clear_flags(pte, _PAGE_NX);
+#ifdef CONFIG_X86_PAE
+	if (__supported_pte_mask & _PAGE_NX)
+		return pte_clear_flags(pte, _PAGE_NX);
+	else
+#endif
+		return pte_set_flags(pte, _PAGE_USER);
+}
+
+static inline pte_t pte_exprotect(pte_t pte)
+{
+#ifdef CONFIG_X86_PAE
+	if (__supported_pte_mask & _PAGE_NX)
+		return pte_set_flags(pte, _PAGE_NX);
+	else
+#endif
+		return pte_clear_flags(pte, _PAGE_USER);
 }
 
 static inline pte_t pte_mkdirty(pte_t pte)
@@ -431,7 +498,7 @@ static inline pgprot_t pgprot_modify(pgprot_t oldprot, pgprot_t newprot)
 
 #define canon_pgprot(p) __pgprot(massage_pgprot(p))
 
-static inline int is_new_memtype_allowed(u64 paddr, unsigned long size,
+static inline int is_new_memtype_allowed(u64 paddr, u64 size,
 					 enum page_cache_mode pcm,
 					 enum page_cache_mode new_pcm)
 {
@@ -474,6 +541,16 @@ pte_t *populate_extra_pte(unsigned long vaddr);
 #endif
 
 #ifndef __ASSEMBLY__
+
+#ifdef CONFIG_PAX_PER_CPU_PGD
+extern pgd_t cpu_pgd[NR_CPUS][2][PTRS_PER_PGD];
+enum cpu_pgd_type {kernel = 0, user = 1};
+static inline pgd_t *get_cpu_pgd(unsigned int cpu, enum cpu_pgd_type type)
+{
+	return cpu_pgd[cpu][type];
+}
+#endif
+
 #include <linux/mm_types.h>
 #include <linux/mmdebug.h>
 #include <linux/log2.h>
@@ -675,7 +752,7 @@ static inline unsigned long pgd_page_vaddr(pgd_t pgd)
  * Currently stuck as a macro due to indirect forward reference to
  * linux/mmzone.h's __section_mem_map_addr() definition:
  */
-#define pgd_page(pgd)		pfn_to_page(pgd_val(pgd) >> PAGE_SHIFT)
+#define pgd_page(pgd)		pfn_to_page((pgd_val(pgd) & PTE_PFN_MASK) >> PAGE_SHIFT)
 
 /* to find an entry in a page-table-directory. */
 static inline unsigned long pud_index(unsigned long address)
@@ -690,7 +767,7 @@ static inline pud_t *pud_offset(pgd_t *pgd, unsigned long address)
 
 static inline int pgd_bad(pgd_t pgd)
 {
-	return (pgd_flags(pgd) & ~_PAGE_USER) != _KERNPG_TABLE;
+	return (pgd_flags(pgd) & ~(_PAGE_USER | _PAGE_NX)) != _KERNPG_TABLE;
 }
 
 static inline int pgd_none(pgd_t pgd)
@@ -719,7 +796,12 @@ static inline int pgd_none(pgd_t pgd)
  * pgd_offset() returns a (pgd_t *)
  * pgd_index() is used get the offset into the pgd page's array of pgd_t's;
  */
-#define pgd_offset(mm, address) ((mm)->pgd + pgd_index((address)))
+#define pgd_offset(mm, address) ((mm)->pgd + pgd_index(address))
+
+#ifdef CONFIG_PAX_PER_CPU_PGD
+#define pgd_offset_cpu(cpu, type, address) (get_cpu_pgd(cpu, type) + pgd_index(address))
+#endif
+
 /*
  * a shortcut which implies the use of the kernel's pgd, instead
  * of a process's
@@ -729,6 +811,25 @@ static inline int pgd_none(pgd_t pgd)
 
 #define KERNEL_PGD_BOUNDARY	pgd_index(PAGE_OFFSET)
 #define KERNEL_PGD_PTRS		(PTRS_PER_PGD - KERNEL_PGD_BOUNDARY)
+
+#ifdef CONFIG_X86_32
+#define USER_PGD_PTRS		KERNEL_PGD_BOUNDARY
+#else
+#define TASK_SIZE_MAX_SHIFT CONFIG_TASK_SIZE_MAX_SHIFT
+#define USER_PGD_PTRS		(_AC(1,UL) << (TASK_SIZE_MAX_SHIFT - PGDIR_SHIFT))
+
+#ifdef CONFIG_PAX_MEMORY_UDEREF
+#ifdef __ASSEMBLY__
+#define pax_user_shadow_base	pax_user_shadow_base(%rip)
+#else
+extern unsigned long pax_user_shadow_base;
+extern pgdval_t clone_pgd_mask;
+#endif
+#else
+#define pax_user_shadow_base	(0UL)
+#endif
+
+#endif
 
 #ifndef __ASSEMBLY__
 
@@ -901,10 +1002,23 @@ static inline void pmdp_set_wrprotect(struct mm_struct *mm,
  * dst and src can be on the same page, but the range must not overlap,
  * and must not cross a page boundary.
  */
-static inline void clone_pgd_range(pgd_t *dst, pgd_t *src, int count)
+static inline void clone_pgd_range(pgd_t *dst, const pgd_t *src, int count)
 {
-       memcpy(dst, src, count * sizeof(pgd_t));
+	pax_open_kernel();
+	while (count--)
+		*dst++ = *src++;
+	pax_close_kernel();
 }
+
+#ifdef CONFIG_PAX_PER_CPU_PGD
+extern void __clone_user_pgds(pgd_t *dst, const pgd_t *src);
+#endif
+
+#if defined(CONFIG_X86_64) && defined(CONFIG_PAX_MEMORY_UDEREF)
+extern void __shadow_user_pgds(pgd_t *dst, const pgd_t *src);
+#else
+static inline void __shadow_user_pgds(pgd_t *dst, const pgd_t *src) {}
+#endif
 
 #define PTE_SHIFT ilog2(PTRS_PER_PTE)
 static inline int page_level_shift(enum pg_level level)

@@ -93,9 +93,9 @@ struct packet_fanout {
 struct packet_rollover {
 	int			sock;
 	struct rcu_head		rcu;
-	atomic_long_t		num;
-	atomic_long_t		num_huge;
-	atomic_long_t		num_failed;
+	atomic_long_unchecked_t	num;
+	atomic_long_unchecked_t	num_huge;
+	atomic_long_unchecked_t	num_failed;
 #define ROLLOVER_HLEN	(L1_CACHE_BYTES / sizeof(u32))
 	u32			history[ROLLOVER_HLEN] ____cacheline_aligned;
 } ____cacheline_aligned_in_smp;

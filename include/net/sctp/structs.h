@@ -202,10 +202,12 @@ struct sctp_sock {
 	/* Flags controlling Heartbeat, SACK delay, and Path MTU Discovery. */
 	__u32 param_flags;
 
-	struct sctp_initmsg initmsg;
 	struct sctp_rtoinfo rtoinfo;
 	struct sctp_paddrparams paddrparam;
-	struct sctp_event_subscribe subscribe;
+	struct {
+		struct sctp_event_subscribe subscribe;
+		struct sctp_initmsg initmsg;
+	};
 	struct sctp_assocparams assocparams;
 
 	int user_frag;
@@ -514,7 +516,7 @@ struct sctp_pf {
 	void (*to_sk_saddr)(union sctp_addr *, struct sock *sk);
 	void (*to_sk_daddr)(union sctp_addr *, struct sock *sk);
 	struct sctp_af *af;
-};
+} __do_const;
 
 
 /* Structure to track chunk fragments that have been acked, but peer

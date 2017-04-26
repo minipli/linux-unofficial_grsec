@@ -15,53 +15,34 @@
 #include <asm/asm.h>
 #include <asm/smap.h>
 #include <asm/export.h>
+#include <asm/pgtable.h>
+#include <asm/frame.h>
 
-/* Standard copy_to_user with segment limit checking */
-ENTRY(_copy_to_user)
-	mov PER_CPU_VAR(current_task), %rax
-	movq %rdi,%rcx
-	addq %rdx,%rcx
-	jc bad_to_user
-	cmpq TASK_addr_limit(%rax),%rcx
-	ja bad_to_user
-	ALTERNATIVE_2 "jmp copy_user_generic_unrolled",		\
-		      "jmp copy_user_generic_string",		\
-		      X86_FEATURE_REP_GOOD,			\
-		      "jmp copy_user_enhanced_fast_string",	\
-		      X86_FEATURE_ERMS
-ENDPROC(_copy_to_user)
-EXPORT_SYMBOL(_copy_to_user)
-
-/* Standard copy_from_user with segment limit checking */
-ENTRY(_copy_from_user)
-	mov PER_CPU_VAR(current_task), %rax
-	movq %rsi,%rcx
-	addq %rdx,%rcx
-	jc bad_from_user
-	cmpq TASK_addr_limit(%rax),%rcx
-	ja bad_from_user
-	ALTERNATIVE_2 "jmp copy_user_generic_unrolled",		\
-		      "jmp copy_user_generic_string",		\
-		      X86_FEATURE_REP_GOOD,			\
-		      "jmp copy_user_enhanced_fast_string",	\
-		      X86_FEATURE_ERMS
-ENDPROC(_copy_from_user)
-EXPORT_SYMBOL(_copy_from_user)
-
+.macro ALIGN_DESTINATION
+	/* check for bad alignment of destination */
+	movl %edi,%ecx
+	andl $7,%ecx
+	jz 102f				/* already aligned */
+	subl $8,%ecx
+	negl %ecx
+	subl %ecx,%edx
+100:	movb (%rsi),%al
+101:	movb %al,(%rdi)
+	incq %rsi
+	incq %rdi
+	decl %ecx
+	jnz 100b
+102:
 
 	.section .fixup,"ax"
-	/* must zero dest */
-ENTRY(bad_from_user)
-bad_from_user:
-	movl %edx,%ecx
-	xorl %eax,%eax
-	rep
-	stosb
-bad_to_user:
-	movl %edx,%eax
-	ret
-ENDPROC(bad_from_user)
+103:	addl %ecx,%edx			/* ecx is zerorest also */
+	FRAME_END
+	jmp copy_user_handle_tail
 	.previous
+
+	_ASM_EXTABLE(100b,103b)
+	_ASM_EXTABLE(101b,103b)
+.endm
 
 /*
  * copy_user_generic_unrolled - memory copy with exception handling.
@@ -77,7 +58,8 @@ ENDPROC(bad_from_user)
  * eax uncopied bytes or 0 if successful.
  */
 ENTRY(copy_user_generic_unrolled)
-	ASM_STAC
+	FRAME_BEGIN
+	ASM_USER_ACCESS_BEGIN
 	cmpl $8,%edx
 	jb 20f		/* less then 8 bytes, go to byte copy loop */
 	ALIGN_DESTINATION
@@ -125,8 +107,9 @@ ENTRY(copy_user_generic_unrolled)
 	decl %ecx
 	jnz 21b
 23:	xor %eax,%eax
-	ASM_CLAC
-	ret
+	ASM_USER_ACCESS_END
+	FRAME_END
+	pax_ret copy_user_generic_unrolled
 
 	.section .fixup,"ax"
 30:	shll $6,%ecx
@@ -135,7 +118,8 @@ ENTRY(copy_user_generic_unrolled)
 40:	leal (%rdx,%rcx,8),%edx
 	jmp 60f
 50:	movl %ecx,%edx
-60:	jmp copy_user_handle_tail /* ecx is zerorest also */
+60:	FRAME_END
+	jmp copy_user_handle_tail /* ecx is zerorest also */
 	.previous
 
 	_ASM_EXTABLE(1b,30b)
@@ -180,7 +164,8 @@ EXPORT_SYMBOL(copy_user_generic_unrolled)
  * eax uncopied bytes or 0 if successful.
  */
 ENTRY(copy_user_generic_string)
-	ASM_STAC
+	FRAME_BEGIN
+	ASM_USER_ACCESS_BEGIN
 	cmpl $8,%edx
 	jb 2f		/* less than 8 bytes, go to byte copy loop */
 	ALIGN_DESTINATION
@@ -193,12 +178,14 @@ ENTRY(copy_user_generic_string)
 3:	rep
 	movsb
 	xorl %eax,%eax
-	ASM_CLAC
-	ret
+	ASM_USER_ACCESS_END
+	FRAME_END
+	pax_ret copy_user_generic_string
 
 	.section .fixup,"ax"
 11:	leal (%rdx,%rcx,8),%ecx
 12:	movl %ecx,%edx		/* ecx is zerorest also */
+	FRAME_END
 	jmp copy_user_handle_tail
 	.previous
 
@@ -220,16 +207,19 @@ EXPORT_SYMBOL(copy_user_generic_string)
  * eax uncopied bytes or 0 if successful.
  */
 ENTRY(copy_user_enhanced_fast_string)
-	ASM_STAC
+	FRAME_BEGIN
+	ASM_USER_ACCESS_BEGIN
 	movl %edx,%ecx
 1:	rep
 	movsb
 	xorl %eax,%eax
-	ASM_CLAC
-	ret
+	ASM_USER_ACCESS_END
+	FRAME_END
+	pax_ret copy_user_enhanced_fast_string
 
 	.section .fixup,"ax"
 12:	movl %ecx,%edx		/* ecx is zerorest also */
+	FRAME_END
 	jmp copy_user_handle_tail
 	.previous
 
@@ -247,7 +237,17 @@ EXPORT_SYMBOL(copy_user_enhanced_fast_string)
  *  - Require 4-byte alignment when size is 4 bytes.
  */
 ENTRY(__copy_user_nocache)
-	ASM_STAC
+	FRAME_BEGIN
+
+#ifdef CONFIG_PAX_MEMORY_UDEREF
+	mov pax_user_shadow_base,%rcx
+	cmp %rcx,%rsi
+	jae 1f
+	add %rcx,%rsi
+1:
+#endif
+
+	ASM_USER_ACCESS_BEGIN
 
 	/* If size is less than 8 bytes, go to 4-byte copy */
 	cmpl $8,%edx
@@ -341,9 +341,10 @@ ENTRY(__copy_user_nocache)
 	/* Finished copying; fence the prior stores */
 .L_finish_copy:
 	xorl %eax,%eax
-	ASM_CLAC
+	ASM_USER_ACCESS_END
 	sfence
-	ret
+	FRAME_END
+	pax_ret __copy_user_nocache
 
 	.section .fixup,"ax"
 .L_fixup_4x8b_copy:
@@ -360,6 +361,7 @@ ENTRY(__copy_user_nocache)
 	movl %ecx,%edx
 .L_fixup_handle_tail:
 	sfence
+	FRAME_END
 	jmp copy_user_handle_tail
 	.previous
 

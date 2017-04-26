@@ -567,7 +567,7 @@ enum vmbus_connect_state {
 struct vmbus_connection {
 	enum vmbus_connect_state conn_state;
 
-	atomic_t next_gpadl_handle;
+	atomic_unchecked_t next_gpadl_handle;
 
 	struct completion  unload_event;
 	/*

@@ -54,7 +54,7 @@ struct kernel_param_ops {
 	int (*get)(char *buffer, const struct kernel_param *kp);
 	/* Optional function to free kp->arg when module unloaded. */
 	void (*free)(void *arg);
-};
+} __do_const;
 
 /*
  * Flags available for kernel_param
@@ -226,15 +226,15 @@ struct kparam_array
 
 /* Obsolete - use module_param_cb() */
 #define module_param_call(name, set, get, arg, perm)			\
-	static const struct kernel_param_ops __param_ops_##name =		\
-		{ .flags = 0, (void *)set, (void *)get };		\
+	static const struct kernel_param_ops __param_ops_##name =	\
+		{ .flags = 0, set, get };				\
 	__module_param_call(MODULE_PARAM_PREFIX,			\
 			    name, &__param_ops_##name, arg,		\
 			    (perm) + sizeof(__check_old_set_param(set))*0, -1, 0)
 
 /* We don't get oldget: it's often a new-style param_get_uint, etc. */
 static inline int
-__check_old_set_param(int (*oldset)(const char *, struct kernel_param *))
+__check_old_set_param(int (*oldset)(const char *, const struct kernel_param *))
 {
 	return 0;
 }
@@ -289,7 +289,7 @@ static inline void kernel_param_unlock(struct module *mod)
  * @len is usually just sizeof(string).
  */
 #define module_param_string(name, string, len, perm)			\
-	static const struct kparam_string __param_string_##name		\
+	static const struct kparam_string __param_string_##name __used	\
 		= { len, string };					\
 	__module_param_call(MODULE_PARAM_PREFIX, name,			\
 			    &param_ops_string,				\
@@ -441,7 +441,7 @@ extern int param_set_bint(const char *val, const struct kernel_param *kp);
  */
 #define module_param_array_named(name, array, type, nump, perm)		\
 	param_check_##type(name, &(array)[0]);				\
-	static const struct kparam_array __param_arr_##name		\
+	static const struct kparam_array __param_arr_##name __used	\
 	= { .max = ARRAY_SIZE(array), .num = nump,                      \
 	    .ops = &param_ops_##type,					\
 	    .elemsize = sizeof(array[0]), .elem = array };		\

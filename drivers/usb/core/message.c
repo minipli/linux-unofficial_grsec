@@ -982,7 +982,7 @@ EXPORT_SYMBOL_GPL(usb_get_status);
  * Return: Zero on success, or else the status code returned by the
  * underlying usb_control_msg() call.
  */
-int usb_clear_halt(struct usb_device *dev, int pipe)
+int usb_clear_halt(struct usb_device *dev, unsigned int pipe)
 {
 	int result;
 	int endp = usb_pipeendpoint(pipe);

@@ -1039,7 +1039,7 @@ icn_writecmd(const u_char __user *ubuf, const u_char *kbuf, int len,
 		if (count > len)
 			count = len;
 		if (user) {
-			if (copy_from_user(msg, ubuf, count))
+			if (count > sizeof msg || copy_from_user(msg, ubuf, count))
 				return -EFAULT;
 		} else
 			memcpy(msg, kbuf, count);

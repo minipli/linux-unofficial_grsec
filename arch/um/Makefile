@@ -73,6 +73,8 @@ USER_CFLAGS = $(patsubst $(KERNEL_DEFINES),,$(patsubst -I%,,$(KBUILD_CFLAGS))) \
 		-D_FILE_OFFSET_BITS=64 -idirafter $(srctree)/include \
 		-idirafter $(obj)/include -D__KERNEL__ -D__UM_HOST__
 
+USER_CFLAGS	:= $(filter-out $(GCC_PLUGINS_CFLAGS),$(USER_CFLAGS))
+
 #This will adjust *FLAGS accordingly to the platform.
 include $(ARCH_DIR)/Makefile-os-$(OS)
 

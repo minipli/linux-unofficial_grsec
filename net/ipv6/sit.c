@@ -74,7 +74,7 @@ static void ipip6_tunnel_setup(struct net_device *dev);
 static void ipip6_dev_free(struct net_device *dev);
 static bool check_6rd(struct ip_tunnel *tunnel, const struct in6_addr *v6dst,
 		      __be32 *v4dst);
-static struct rtnl_link_ops sit_link_ops __read_mostly;
+static struct rtnl_link_ops sit_link_ops;
 
 static int sit_net_id __read_mostly;
 struct sit_net {
@@ -1736,7 +1736,7 @@ static void ipip6_dellink(struct net_device *dev, struct list_head *head)
 		unregister_netdevice_queue(dev, head);
 }
 
-static struct rtnl_link_ops sit_link_ops __read_mostly = {
+static struct rtnl_link_ops sit_link_ops = {
 	.kind		= "sit",
 	.maxtype	= IFLA_IPTUN_MAX,
 	.policy		= ipip6_policy,

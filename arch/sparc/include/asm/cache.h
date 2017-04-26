@@ -7,10 +7,12 @@
 #ifndef _SPARC_CACHE_H
 #define _SPARC_CACHE_H
 
+#include <linux/const.h>
+
 #define ARCH_SLAB_MINALIGN	__alignof__(unsigned long long)
 
 #define L1_CACHE_SHIFT 5
-#define L1_CACHE_BYTES 32
+#define L1_CACHE_BYTES (_AC(1,UL) << L1_CACHE_SHIFT)
 
 #ifdef CONFIG_SPARC32
 #define SMP_CACHE_BYTES_SHIFT 5

@@ -1076,7 +1076,7 @@ struct md_ops {
 	 * lprocfs_alloc_md_stats() in obdclass/lprocfs_status.c. Also, add a
 	 * wrapper function in include/linux/obd_class.h.
 	 */
-};
+} __no_const;
 
 struct lsm_operations {
 	void (*lsm_free)(struct lov_stripe_md *);

@@ -20,6 +20,7 @@
  *	arch/x86/boot/compressed/head_64.S: Boot cpu verification
  *	arch/x86/kernel/trampoline_64.S: secondary processor verification
  *	arch/x86/kernel/head_32.S: processor startup
+ *	arch/x86/kernel/acpi/realmode/wakeup.S: 32bit processor resume
  *
  *	verify_cpu, returns the status of longmode and SSE in register %eax.
  *		0: Success    1: Failure

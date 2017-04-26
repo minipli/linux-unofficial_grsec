@@ -8,6 +8,7 @@
 #include <linux/linkage.h>
 #include <asm/errno.h>
 #include <asm/asm.h>
+#include <asm/alternative-asm.h>
 
 /*
  * Checksum copy with exception handling.
@@ -52,7 +53,7 @@ ENTRY(csum_partial_copy_generic)
 .Lignore:
 	subq  $7*8, %rsp
 	movq  %rbx, 2*8(%rsp)
-	movq  %r12, 3*8(%rsp)
+	movq  %r15, 3*8(%rsp)
 	movq  %r14, 4*8(%rsp)
 	movq  %r13, 5*8(%rsp)
 	movq  %rbp, 6*8(%rsp)
@@ -64,16 +65,16 @@ ENTRY(csum_partial_copy_generic)
 	movl  %edx, %ecx
 
 	xorl  %r9d, %r9d
-	movq  %rcx, %r12
+	movq  %rcx, %r15
 
-	shrq  $6, %r12
+	shrq  $6, %r15
 	jz	.Lhandle_tail       /* < 64 */
 
 	clc
 
 	/* main loop. clear in 64 byte blocks */
 	/* r9: zero, r8: temp2, rbx: temp1, rax: sum, rcx: saved length */
-	/* r11:	temp3, rdx: temp4, r12 loopcnt */
+	/* r11:	temp3, rdx: temp4, r15 loopcnt */
 	/* r10:	temp5, rbp: temp6, r14 temp7, r13 temp8 */
 	.p2align 4
 .Lloop:
@@ -107,7 +108,7 @@ ENTRY(csum_partial_copy_generic)
 	adcq  %r14, %rax
 	adcq  %r13, %rax
 
-	decl %r12d
+	decl %r15d
 
 	dest
 	movq %rbx, (%rsi)
@@ -200,12 +201,12 @@ ENTRY(csum_partial_copy_generic)
 
 .Lende:
 	movq 2*8(%rsp), %rbx
-	movq 3*8(%rsp), %r12
+	movq 3*8(%rsp), %r15
 	movq 4*8(%rsp), %r14
 	movq 5*8(%rsp), %r13
 	movq 6*8(%rsp), %rbp
 	addq $7*8, %rsp
-	ret
+	pax_ret csum_partial_copy_generic
 
 	/* Exception handlers. Very simple, zeroing is done in the wrappers */
 .Lbad_source:

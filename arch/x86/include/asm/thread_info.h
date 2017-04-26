@@ -39,7 +39,7 @@
 #  define TOP_OF_KERNEL_STACK_PADDING 8
 # endif
 #else
-# define TOP_OF_KERNEL_STACK_PADDING 0
+# define TOP_OF_KERNEL_STACK_PADDING 16
 #endif
 
 /*
@@ -99,6 +99,7 @@ struct thread_info {
 #define TIF_SYSCALL_TRACEPOINT	28	/* syscall tracepoint instrumentation */
 #define TIF_ADDR32		29	/* 32-bit address space on 64 bits */
 #define TIF_X32			30	/* 32-bit native x86-64 binary */
+#define TIF_GRSEC_SETXID	31	/* update credentials on syscall entry/exit */
 
 #define _TIF_SYSCALL_TRACE	(1 << TIF_SYSCALL_TRACE)
 #define _TIF_NOTIFY_RESUME	(1 << TIF_NOTIFY_RESUME)
@@ -121,6 +122,7 @@ struct thread_info {
 #define _TIF_SYSCALL_TRACEPOINT	(1 << TIF_SYSCALL_TRACEPOINT)
 #define _TIF_ADDR32		(1 << TIF_ADDR32)
 #define _TIF_X32		(1 << TIF_X32)
+#define _TIF_GRSEC_SETXID	(1 << TIF_GRSEC_SETXID)
 
 /*
  * work to do in syscall_trace_enter().  Also includes TIF_NOHZ for
@@ -129,12 +131,12 @@ struct thread_info {
 #define _TIF_WORK_SYSCALL_ENTRY	\
 	(_TIF_SYSCALL_TRACE | _TIF_SYSCALL_EMU | _TIF_SYSCALL_AUDIT |	\
 	 _TIF_SECCOMP | _TIF_SYSCALL_TRACEPOINT |	\
-	 _TIF_NOHZ)
+	 _TIF_NOHZ | _TIF_GRSEC_SETXID)
 
 /* work to do on any return to user space */
 #define _TIF_ALLWORK_MASK						\
 	((0x0000FFFF & ~_TIF_SECCOMP) | _TIF_SYSCALL_TRACEPOINT |	\
-	_TIF_NOHZ)
+	_TIF_NOHZ | _TIF_GRSEC_SETXID)
 
 /* flags to check in __switch_to() */
 #define _TIF_WORK_CTXSW							\
@@ -168,21 +170,21 @@ static inline unsigned long current_stack_pointer(void)
  * entirely contained by a single stack frame.
  *
  * Returns:
- *		 1 if within a frame
- *		-1 if placed across a frame boundary (or outside stack)
- *		 0 unable to determine (no frame pointers, etc)
+ *		 GOOD_FRAME if within a frame
+ *		 BAD_STACK if placed across a frame boundary (or outside stack)
+ *		 GOOD_STACK unable to determine (no frame pointers, etc)
  */
-static inline int arch_within_stack_frames(const void * const stack,
-					   const void * const stackend,
-					   const void *obj, unsigned long len)
+static __always_inline int arch_within_stack_frames(unsigned long stack,
+					   unsigned long stackend,
+					   unsigned long obj, unsigned long len)
 {
 #if defined(CONFIG_FRAME_POINTER)
-	const void *frame = NULL;
-	const void *oldframe;
+	unsigned long frame = 0;
+	unsigned long oldframe;
 
-	oldframe = __builtin_frame_address(1);
+	oldframe = (unsigned long)__builtin_frame_address(1);
 	if (oldframe)
-		frame = __builtin_frame_address(2);
+		frame = (unsigned long)__builtin_frame_address(2);
 	/*
 	 * low ----------------------------------------------> high
 	 * [saved bp][saved ip][args][local vars][saved bp][saved ip]
@@ -197,21 +199,15 @@ static inline int arch_within_stack_frames(const void * const stack,
 		 * the copy as invalid.
 		 */
 		if (obj + len <= frame)
-			return obj >= oldframe + 2 * sizeof(void *) ? 1 : -1;
+			return obj >= oldframe + 2 * sizeof(unsigned long) ? GOOD_FRAME : BAD_STACK;
 		oldframe = frame;
-		frame = *(const void * const *)frame;
+		frame = *(unsigned long *)frame;
 	}
-	return -1;
+	return BAD_STACK;
 #else
-	return 0;
+	return GOOD_STACK;
 #endif
 }
-
-#else /* !__ASSEMBLY__ */
-
-#ifdef CONFIG_X86_64
-# define cpu_current_top_of_stack (cpu_tss + TSS_sp0)
-#endif
 
 #endif
 

@@ -71,9 +71,9 @@ struct aesni_xts_ctx {
 
 asmlinkage int aesni_set_key(struct crypto_aes_ctx *ctx, const u8 *in_key,
 			     unsigned int key_len);
-asmlinkage void aesni_enc(struct crypto_aes_ctx *ctx, u8 *out,
+asmlinkage void aesni_enc(void *ctx, u8 *out,
 			  const u8 *in);
-asmlinkage void aesni_dec(struct crypto_aes_ctx *ctx, u8 *out,
+asmlinkage void aesni_dec(void *ctx, u8 *out,
 			  const u8 *in);
 asmlinkage void aesni_ecb_enc(struct crypto_aes_ctx *ctx, u8 *out,
 			      const u8 *in, unsigned int len);
@@ -83,6 +83,15 @@ asmlinkage void aesni_cbc_enc(struct crypto_aes_ctx *ctx, u8 *out,
 			      const u8 *in, unsigned int len, u8 *iv);
 asmlinkage void aesni_cbc_dec(struct crypto_aes_ctx *ctx, u8 *out,
 			      const u8 *in, unsigned int len, u8 *iv);
+int _key_expansion_128(struct crypto_aes_ctx *ctx, const u8 *in_key, unsigned int key_len) __rap_hash;
+int _key_expansion_192a(struct crypto_aes_ctx *ctx, const u8 *in_key, unsigned int key_len) __rap_hash;
+int _key_expansion_192b(struct crypto_aes_ctx *ctx, const u8 *in_key, unsigned int key_len) __rap_hash;
+int _key_expansion_256a(struct crypto_aes_ctx *ctx, const u8 *in_key, unsigned int key_len) __rap_hash;
+int _key_expansion_256b(struct crypto_aes_ctx *ctx, const u8 *in_key, unsigned int key_len) __rap_hash;
+void _aesni_enc1(void *ctx, u8 *out, const u8 *in) __rap_hash;
+void _aesni_enc4(void *ctx, u8 *out, const u8 *in) __rap_hash;
+void _aesni_dec1(void *ctx, u8 *out, const u8 *in) __rap_hash;
+void _aesni_dec4(void *ctx, u8 *out, const u8 *in) __rap_hash;
 
 int crypto_fpu_init(void);
 void crypto_fpu_exit(void);
@@ -96,6 +105,8 @@ static void (*aesni_ctr_enc_tfm)(struct crypto_aes_ctx *ctx, u8 *out,
 			      const u8 *in, unsigned int len, u8 *iv);
 asmlinkage void aesni_ctr_enc(struct crypto_aes_ctx *ctx, u8 *out,
 			      const u8 *in, unsigned int len, u8 *iv);
+void _aesni_inc(struct crypto_aes_ctx *ctx, u8 *out, const u8 *in, unsigned int len, u8 *iv) __rap_hash;
+void _aesni_inc_init(struct crypto_aes_ctx *ctx, u8 *out, const u8 *in, unsigned int len, u8 *iv) __rap_hash;
 
 asmlinkage void aesni_xts_crypt8(struct crypto_aes_ctx *ctx, u8 *out,
 				 const u8 *in, bool enc, u8 *iv);

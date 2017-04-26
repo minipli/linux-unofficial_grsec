@@ -94,7 +94,9 @@ static struct pci_driver r128_pci_driver = {
 
 static int __init r128_init(void)
 {
-	driver.num_ioctls = r128_max_ioctl;
+	pax_open_kernel();
+	const_cast(driver.num_ioctls) = r128_max_ioctl;
+	pax_close_kernel();
 
 	return drm_pci_init(&driver, &r128_pci_driver);
 }

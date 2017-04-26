@@ -53,7 +53,7 @@ static const struct file_operations tracefs_file_operations = {
 static struct tracefs_dir_ops {
 	int (*mkdir)(const char *name);
 	int (*rmdir)(const char *name);
-} tracefs_ops;
+} __no_const tracefs_ops __read_only;
 
 static char *get_dname(struct dentry *dentry)
 {
@@ -494,8 +494,10 @@ struct dentry *tracefs_create_instance_dir(const char *name, struct dentry *pare
 	if (!dentry)
 		return NULL;
 
-	tracefs_ops.mkdir = mkdir;
-	tracefs_ops.rmdir = rmdir;
+	pax_open_kernel();
+	const_cast(tracefs_ops.mkdir) = mkdir;
+	const_cast(tracefs_ops.rmdir) = rmdir;
+	pax_close_kernel();
 
 	return dentry;
 }

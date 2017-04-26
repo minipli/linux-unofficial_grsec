@@ -203,7 +203,7 @@ pud_t * __meminit vmemmap_pud_populate(pgd_t *pgd, unsigned long addr, int node)
 		void *p = vmemmap_alloc_block(PAGE_SIZE, node);
 		if (!p)
 			return NULL;
-		pud_populate(&init_mm, pud, p);
+		pud_populate_kernel(&init_mm, pud, p);
 	}
 	return pud;
 }
@@ -215,7 +215,7 @@ pgd_t * __meminit vmemmap_pgd_populate(unsigned long addr, int node)
 		void *p = vmemmap_alloc_block(PAGE_SIZE, node);
 		if (!p)
 			return NULL;
-		pgd_populate(&init_mm, pgd, p);
+		pgd_populate_kernel(&init_mm, pgd, p);
 	}
 	return pgd;
 }

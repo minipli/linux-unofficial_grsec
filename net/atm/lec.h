@@ -48,7 +48,7 @@ struct lane2_ops {
 			      const u8 *tlvs, u32 sizeoftlvs);
 	void (*associate_indicator) (struct net_device *dev, const u8 *mac_addr,
 				     const u8 *tlvs, u32 sizeoftlvs);
-};
+} __no_const;
 
 /*
  * ATM LAN Emulation supports both LLC & Dix Ethernet EtherType

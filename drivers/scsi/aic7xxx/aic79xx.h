@@ -1046,7 +1046,7 @@ typedef enum {
 
 typedef uint8_t ahd_mode_state;
 
-typedef void ahd_callback_t (void *);
+typedef void ahd_linux_callback_t (u_long);
 
 struct ahd_completion
 {

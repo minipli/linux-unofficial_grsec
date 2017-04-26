@@ -50,7 +50,7 @@ int edac_mc_get_poll_msec(void)
 	return edac_mc_poll_msec;
 }
 
-static int edac_set_poll_msec(const char *val, struct kernel_param *kp)
+static int edac_set_poll_msec(const char *val, const struct kernel_param *kp)
 {
 	unsigned long l;
 	int ret;
@@ -154,7 +154,7 @@ static const char * const edac_caps[] = {
 struct dev_ch_attribute {
 	struct device_attribute attr;
 	int channel;
-};
+} __do_const;
 
 #define DEVICE_CHANNEL(_name, _mode, _show, _store, _var) \
 	static struct dev_ch_attribute dev_attr_legacy_##_name = \

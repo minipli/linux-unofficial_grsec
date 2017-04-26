@@ -64,6 +64,7 @@
 
 #include <linux/linkage.h>
 #include <asm/inst.h>
+#include <asm/alternative-asm.h>
 
 #define CONCAT(a,b)	a##b
 #define VMOVDQ		vmovdqu
@@ -436,7 +437,7 @@ ddq_add_8:
 
 /* main body of aes ctr load */
 
-.macro do_aes_ctrmain key_len
+.macro do_aes_ctrmain func key_len
 	cmp	$16, num_bytes
 	jb	.Ldo_return2\key_len
 
@@ -537,7 +538,7 @@ ddq_add_8:
 	/* return updated IV */
 	vpshufb	xbyteswap, xcounter, xcounter
 	vmovdqu	xcounter, (p_iv)
-	ret
+	pax_ret \func
 .endm
 
 /*
@@ -549,7 +550,7 @@ ddq_add_8:
  */
 ENTRY(aes_ctr_enc_128_avx_by8)
 	/* call the aes main loop */
-	do_aes_ctrmain KEY_128
+	do_aes_ctrmain aes_ctr_enc_128_avx_by8 KEY_128
 
 ENDPROC(aes_ctr_enc_128_avx_by8)
 
@@ -562,7 +563,7 @@ ENDPROC(aes_ctr_enc_128_avx_by8)
  */
 ENTRY(aes_ctr_enc_192_avx_by8)
 	/* call the aes main loop */
-	do_aes_ctrmain KEY_192
+	do_aes_ctrmain aes_ctr_enc_192_avx_by8 KEY_192
 
 ENDPROC(aes_ctr_enc_192_avx_by8)
 
@@ -575,6 +576,6 @@ ENDPROC(aes_ctr_enc_192_avx_by8)
  */
 ENTRY(aes_ctr_enc_256_avx_by8)
 	/* call the aes main loop */
-	do_aes_ctrmain KEY_256
+	do_aes_ctrmain aes_ctr_enc_256_avx_by8 KEY_256
 
 ENDPROC(aes_ctr_enc_256_avx_by8)

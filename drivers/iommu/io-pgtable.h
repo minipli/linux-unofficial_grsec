@@ -109,17 +109,18 @@ struct io_pgtable_cfg {
  * These functions map directly onto the iommu_ops member functions with
  * the same names.
  */
+struct io_pgtable;
 struct io_pgtable_ops {
-	int (*map)(struct io_pgtable_ops *ops, unsigned long iova,
+	int (*map)(struct io_pgtable *iop, unsigned long iova,
 		   phys_addr_t paddr, size_t size, int prot);
-	int (*unmap)(struct io_pgtable_ops *ops, unsigned long iova,
+	int (*unmap)(struct io_pgtable *iop, unsigned long iova,
 		     size_t size);
-	phys_addr_t (*iova_to_phys)(struct io_pgtable_ops *ops,
+	phys_addr_t (*iova_to_phys)(struct io_pgtable *iop,
 				    unsigned long iova);
 };
 
 /**
- * alloc_io_pgtable_ops() - Allocate a page table allocator for use by an IOMMU.
+ * alloc_io_pgtable() - Allocate a page table allocator for use by an IOMMU.
  *
  * @fmt:    The page table format.
  * @cfg:    The page table configuration. This will be modified to represent
@@ -128,9 +129,9 @@ struct io_pgtable_ops {
  * @cookie: An opaque token provided by the IOMMU driver and passed back to
  *          the callback routines in cfg->tlb.
  */
-struct io_pgtable_ops *alloc_io_pgtable_ops(enum io_pgtable_fmt fmt,
-					    struct io_pgtable_cfg *cfg,
-					    void *cookie);
+struct io_pgtable *alloc_io_pgtable(enum io_pgtable_fmt fmt,
+				    struct io_pgtable_cfg *cfg,
+				    void *cookie);
 
 /**
  * free_io_pgtable_ops() - Free an io_pgtable_ops structure. The caller
@@ -139,7 +140,7 @@ struct io_pgtable_ops *alloc_io_pgtable_ops(enum io_pgtable_fmt fmt,
  *
  * @ops: The ops returned from alloc_io_pgtable_ops.
  */
-void free_io_pgtable_ops(struct io_pgtable_ops *ops);
+void free_io_pgtable(struct io_pgtable *iop);
 
 
 /*
@@ -161,10 +162,8 @@ struct io_pgtable {
 	void			*cookie;
 	bool			tlb_sync_pending;
 	struct io_pgtable_cfg	cfg;
-	struct io_pgtable_ops	ops;
+	const struct io_pgtable_ops	*ops;
 };
-
-#define io_pgtable_ops_to_pgtable(x) container_of((x), struct io_pgtable, ops)
 
 static inline void io_pgtable_tlb_flush_all(struct io_pgtable *iop)
 {

@@ -424,6 +424,7 @@ static void __used kretprobe_trampoline_holder(void)
 			     "kretprobe_trampoline:\n" "nop\n");
 }
 
+#ifdef CONFIG_KRETPROBES
 void __kprobes arch_prepare_kretprobe(struct kretprobe_instance *ri,
 				      struct pt_regs *regs)
 {
@@ -433,6 +434,7 @@ void __kprobes arch_prepare_kretprobe(struct kretprobe_instance *ri,
 	/* Replace the return addr with trampoline addr */
 	regs->blink = (unsigned long)&kretprobe_trampoline;
 }
+#endif
 
 static int __kprobes trampoline_probe_handler(struct kprobe *p,
 					      struct pt_regs *regs)
@@ -509,6 +511,7 @@ int __init arch_init_kprobes(void)
 	return register_kprobe(&trampoline_p);
 }
 
+#ifdef CONFIG_KRETPROBES
 int __kprobes arch_trampoline_kprobe(struct kprobe *p)
 {
 	if (p->addr == (kprobe_opcode_t *) &kretprobe_trampoline)
@@ -516,6 +519,7 @@ int __kprobes arch_trampoline_kprobe(struct kprobe *p)
 
 	return 0;
 }
+#endif
 
 void trap_is_kprobe(unsigned long address, struct pt_regs *regs)
 {

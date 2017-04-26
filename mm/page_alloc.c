@@ -64,6 +64,7 @@
 #include <linux/page_owner.h>
 #include <linux/kthread.h>
 #include <linux/memcontrol.h>
+#include <linux/random.h>
 
 #include <asm/sections.h>
 #include <asm/tlbflush.h>
@@ -995,6 +996,10 @@ static __always_inline bool free_pages_prepare(struct page *page,
 {
 	int bad = 0;
 
+#ifdef CONFIG_PAX_MEMORY_SANITIZE
+	unsigned long index = 1UL << order;
+#endif
+
 	VM_BUG_ON_PAGE(PageTail(page), page);
 
 	trace_mm_page_free(page, order);
@@ -1041,6 +1046,12 @@ static __always_inline bool free_pages_prepare(struct page *page,
 		debug_check_no_obj_freed(page_address(page),
 					   PAGE_SIZE << order);
 	}
+
+#ifdef CONFIG_PAX_MEMORY_SANITIZE
+	for (; index; --index)
+		sanitize_highpage(page + index - 1);
+#endif
+
 	arch_free_page(page, order);
 	kernel_poison_pages(page, 1 << order, 0);
 	kernel_map_pages(page, 1 << order, 0);
@@ -1250,6 +1261,15 @@ static void __free_pages_ok(struct page *page, unsigned int order)
 	local_irq_restore(flags);
 }
 
+bool __meminitdata extra_latent_entropy;
+
+static int __init setup_pax_extra_latent_entropy(char *str)
+{
+	extra_latent_entropy = true;
+	return 0;
+}
+early_param("pax_extra_latent_entropy", setup_pax_extra_latent_entropy);
+
 static void __init __free_pages_boot_core(struct page *page, unsigned int order)
 {
 	unsigned int nr_pages = 1 << order;
@@ -1264,6 +1284,21 @@ static void __init __free_pages_boot_core(struct page *page, unsigned int order)
 	}
 	__ClearPageReserved(p);
 	set_page_count(p, 0);
+
+	if (extra_latent_entropy && !PageHighMem(page) && page_to_pfn(page) < 0x100000) {
+		unsigned long hash = 0;
+		size_t index, end = PAGE_SIZE * nr_pages / sizeof hash;
+		const unsigned long *data = lowmem_page_address(page);
+
+		for (index = 0; index < end; index++)
+			hash ^= hash + data[index];
+#ifdef LATENT_ENTROPY_PLUGIN
+		latent_entropy ^= hash;
+		add_device_randomness((const void *)&latent_entropy, sizeof(latent_entropy));
+#else
+		add_device_randomness((const void *)&hash, sizeof(hash));
+#endif
+	}
 
 	page_zone(page)->managed_pages += nr_pages;
 	set_page_refcounted(page);
@@ -1320,7 +1355,6 @@ static inline bool __meminit meminit_pfn_in_nid(unsigned long pfn, int node,
 	return true;
 }
 #endif
-
 
 void __init __free_pages_bootmem(struct page *page, unsigned long pfn,
 							unsigned int order)
@@ -1697,8 +1731,8 @@ static inline int check_new_page(struct page *page)
 
 static inline bool free_pages_prezeroed(bool poisoned)
 {
-	return IS_ENABLED(CONFIG_PAGE_POISONING_ZERO) &&
-		page_poisoning_enabled() && poisoned;
+	return IS_ENABLED(CONFIG_PAX_MEMORY_SANITIZE) ||
+		(IS_ENABLED(CONFIG_PAGE_POISONING_ZERO) && page_poisoning_enabled() && poisoned);
 }
 
 #ifdef CONFIG_DEBUG_VM
@@ -1754,11 +1788,13 @@ static void prep_new_page(struct page *page, unsigned int order, gfp_t gfp_flags
 	int i;
 	bool poisoned = true;
 
+#ifndef CONFIG_PAX_MEMORY_SANITIZE
 	for (i = 0; i < (1 << order); i++) {
 		struct page *p = page + i;
 		if (poisoned)
 			poisoned &= page_is_poisoned(p);
 	}
+#endif
 
 	post_alloc_hook(page, order, gfp_flags);
 
@@ -2305,8 +2341,9 @@ static void drain_pages(unsigned int cpu)
  * The CPU has to be pinned. When zone parameter is non-NULL, spill just
  * the single zone's pages.
  */
-void drain_local_pages(struct zone *zone)
+void drain_local_pages(void *_zone)
 {
+	struct zone *zone = _zone;
 	int cpu = smp_processor_id();
 
 	if (zone)
@@ -2366,8 +2403,7 @@ void drain_all_pages(struct zone *zone)
 		else
 			cpumask_clear_cpu(cpu, &cpus_with_pcps);
 	}
-	on_each_cpu_mask(&cpus_with_pcps, (smp_call_func_t) drain_local_pages,
-								zone, 1);
+	on_each_cpu_mask(&cpus_with_pcps, drain_local_pages, zone, 1);
 }
 
 #ifdef CONFIG_HIBERNATION

@@ -536,7 +536,7 @@ static void tune_pcie_caps(struct hfi1_devdata *dd)
  * PCI error infrastructure, registered via pci
  */
 static pci_ers_result_t
-pci_error_detected(struct pci_dev *pdev, pci_channel_state_t state)
+pci_error_detected(struct pci_dev *pdev, enum pci_channel_state state)
 {
 	struct hfi1_devdata *dd = pci_get_drvdata(pdev);
 	pci_ers_result_t ret = PCI_ERS_RESULT_RECOVERED;

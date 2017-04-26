@@ -1312,7 +1312,7 @@ static void remove_one(struct pci_dev *pdev)
 }
 
 static pci_ers_result_t mlx5_pci_err_detected(struct pci_dev *pdev,
-					      pci_channel_state_t state)
+					      enum pci_channel_state state)
 {
 	struct mlx5_core_dev *dev = pci_get_drvdata(pdev);
 	struct mlx5_priv *priv = &dev->priv;

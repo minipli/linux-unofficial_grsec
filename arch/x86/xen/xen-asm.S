@@ -15,6 +15,7 @@
 #include <asm/percpu.h>
 #include <asm/processor-flags.h>
 #include <asm/frame.h>
+#include <asm/alternative-asm.h>
 
 #include "xen-asm.h"
 
@@ -23,7 +24,7 @@
  * event status with one and operation.  If there are pending events,
  * then enter the hypervisor to get them handled.
  */
-ENTRY(xen_irq_enable_direct)
+RAP_ENTRY(xen_irq_enable_direct)
 	FRAME_BEGIN
 	/* Unmask events */
 	movb $0, PER_CPU_VAR(xen_vcpu_info) + XEN_vcpu_info_mask
@@ -42,7 +43,7 @@ ENTRY(xen_irq_enable_direct)
 1:
 ENDPATCH(xen_irq_enable_direct)
 	FRAME_END
-	ret
+	pax_ret xen_irq_enable_direct
 	ENDPROC(xen_irq_enable_direct)
 	RELOC(xen_irq_enable_direct, 2b+1)
 
@@ -51,10 +52,10 @@ ENDPATCH(xen_irq_enable_direct)
  * Disabling events is simply a matter of making the event mask
  * non-zero.
  */
-ENTRY(xen_irq_disable_direct)
+RAP_ENTRY(xen_irq_disable_direct)
 	movb $1, PER_CPU_VAR(xen_vcpu_info) + XEN_vcpu_info_mask
 ENDPATCH(xen_irq_disable_direct)
-	ret
+	pax_ret xen_irq_disable_direct
 	ENDPROC(xen_irq_disable_direct)
 	RELOC(xen_irq_disable_direct, 0)
 
@@ -67,12 +68,12 @@ ENDPATCH(xen_irq_disable_direct)
  * undefined.  We need to toggle the state of the bit, because Xen and
  * x86 use opposite senses (mask vs enable).
  */
-ENTRY(xen_save_fl_direct)
+RAP_ENTRY(xen_save_fl_direct)
 	testb $0xff, PER_CPU_VAR(xen_vcpu_info) + XEN_vcpu_info_mask
 	setz %ah
 	addb %ah, %ah
 ENDPATCH(xen_save_fl_direct)
-	ret
+	pax_ret xen_save_fl_direct
 	ENDPROC(xen_save_fl_direct)
 	RELOC(xen_save_fl_direct, 0)
 
@@ -84,7 +85,7 @@ ENDPATCH(xen_save_fl_direct)
  * interrupt mask state, it checks for unmasked pending events and
  * enters the hypervisor to get them delivered if so.
  */
-ENTRY(xen_restore_fl_direct)
+RAP_ENTRY(xen_restore_fl_direct)
 	FRAME_BEGIN
 #ifdef CONFIG_X86_64
 	testw $X86_EFLAGS_IF, %di
@@ -105,7 +106,7 @@ ENTRY(xen_restore_fl_direct)
 1:
 ENDPATCH(xen_restore_fl_direct)
 	FRAME_END
-	ret
+	pax_ret xen_restore_fl_direct
 	ENDPROC(xen_restore_fl_direct)
 	RELOC(xen_restore_fl_direct, 2b+1)
 
@@ -120,7 +121,7 @@ ENTRY(check_events)
 	push %eax
 	push %ecx
 	push %edx
-	call xen_force_evtchn_callback
+	pax_direct_call xen_force_evtchn_callback
 	pop %edx
 	pop %ecx
 	pop %eax
@@ -134,7 +135,7 @@ ENTRY(check_events)
 	push %r9
 	push %r10
 	push %r11
-	call xen_force_evtchn_callback
+	pax_direct_call xen_force_evtchn_callback
 	pop %r11
 	pop %r10
 	pop %r9
@@ -146,5 +147,5 @@ ENTRY(check_events)
 	pop %rax
 #endif
 	FRAME_END
-	ret
+	pax_ret check_events
 ENDPROC(check_events)

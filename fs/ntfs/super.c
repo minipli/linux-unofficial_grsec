@@ -688,7 +688,7 @@ static struct buffer_head *read_ntfs_boot_sector(struct super_block *sb,
 		if (!silent)
 			ntfs_error(sb, "Primary boot sector is invalid.");
 	} else if (!silent)
-		ntfs_error(sb, read_err_str, "primary");
+		ntfs_error(sb, read_err_str, "%s", "primary");
 	if (!(NTFS_SB(sb)->on_errors & ON_ERRORS_RECOVER)) {
 		if (bh_primary)
 			brelse(bh_primary);
@@ -704,7 +704,7 @@ static struct buffer_head *read_ntfs_boot_sector(struct super_block *sb,
 			goto hotfix_primary_boot_sector;
 		brelse(bh_backup);
 	} else if (!silent)
-		ntfs_error(sb, read_err_str, "backup");
+		ntfs_error(sb, read_err_str, "%s", "backup");
 	/* Try to read NT3.51- backup boot sector. */
 	if ((bh_backup = sb_bread(sb, nr_blocks >> 1))) {
 		if (is_boot_sector_ntfs(sb, (NTFS_BOOT_SECTOR*)
@@ -715,7 +715,7 @@ static struct buffer_head *read_ntfs_boot_sector(struct super_block *sb,
 					"sector.");
 		brelse(bh_backup);
 	} else if (!silent)
-		ntfs_error(sb, read_err_str, "backup");
+		ntfs_error(sb, read_err_str, "%s", "backup");
 	/* We failed. Cleanup and return. */
 	if (bh_primary)
 		brelse(bh_primary);
@@ -2711,7 +2711,7 @@ static const struct super_operations ntfs_sops = {
  *
  * NOTE: @sb->s_flags contains the mount options flags.
  */
-static int ntfs_fill_super(struct super_block *sb, void *opt, const int silent)
+static int ntfs_fill_super(struct super_block *sb, void *opt, int silent)
 {
 	ntfs_volume *vol;
 	struct buffer_head *bh;

@@ -30,7 +30,7 @@ do {								\
 								\
 	asm volatile(LOCK_PREFIX "   decl (%%eax)\n"		\
 		     "   jns 1f	\n"				\
-		     "   call " #fail_fn "\n"			\
+		     PAX_DIRECT_CALL(#fail_fn)"\n"		\
 		     "1:\n"					\
 		     : "=a" (dummy)				\
 		     : "a" (count)				\
@@ -76,7 +76,7 @@ do {								\
 								\
 	asm volatile(LOCK_PREFIX "   incl (%%eax)\n"		\
 		     "   jg	1f\n"				\
-		     "   call " #fail_fn "\n"			\
+		     PAX_DIRECT_CALL(#fail_fn)"\n"		\
 		     "1:\n"					\
 		     : "=a" (dummy)				\
 		     : "a" (count)				\

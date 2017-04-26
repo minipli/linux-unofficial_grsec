@@ -16,7 +16,7 @@
  *
  * it's best to have buff aligned on a 32-bit boundary
  */
-asmlinkage __wsum csum_partial(const void *buff, int len, __wsum sum);
+asmlinkage __wsum csum_partial(const void *buff, int len, __wsum sum) __rap_hash;
 
 /*
  * the same as csum_partial, but copies from src while it
@@ -29,6 +29,14 @@ asmlinkage __wsum csum_partial(const void *buff, int len, __wsum sum);
 asmlinkage __wsum csum_partial_copy_generic(const void *src, void *dst,
 					    int len, __wsum sum,
 					    int *src_err_ptr, int *dst_err_ptr);
+
+asmlinkage __wsum csum_partial_copy_generic_to_user(const void *src, void *dst,
+						  int len, __wsum sum,
+						  int *src_err_ptr, int *dst_err_ptr) __rap_hash;
+
+asmlinkage __wsum csum_partial_copy_generic_from_user(const void *src, void *dst,
+						  int len, __wsum sum,
+						  int *src_err_ptr, int *dst_err_ptr);
 
 /*
  *	Note: when you get a NULL pointer exception here this means someone
@@ -52,7 +60,7 @@ static inline __wsum csum_partial_copy_from_user(const void __user *src,
 
 	might_sleep();
 	stac();
-	ret = csum_partial_copy_generic((__force void *)src, dst,
+	ret = csum_partial_copy_generic_from_user((__force void *)src, dst,
 					len, sum, err_ptr, NULL);
 	clac();
 
@@ -183,7 +191,7 @@ static inline __wsum csum_and_copy_to_user(const void *src,
 	might_sleep();
 	if (access_ok(VERIFY_WRITE, dst, len)) {
 		stac();
-		ret = csum_partial_copy_generic(src, (__force void *)dst,
+		ret = csum_partial_copy_generic_to_user(src, (__force void *)dst,
 						len, sum, NULL, err_ptr);
 		clac();
 		return ret;

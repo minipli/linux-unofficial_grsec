@@ -83,14 +83,20 @@
  *  26 - ESPFIX small SS
  *  27 - per-cpu			[ offset to per-cpu data area ]
  *  28 - stack_canary-20		[ for stack protector ]		<=== cacheline #8
- *  29 - unused
- *  30 - unused
+ *  29 - PCI BIOS CS
+ *  30 - PCI BIOS DS
  *  31 - TSS for double fault handler
  */
+#define GDT_ENTRY_KERNEXEC_EFI_CS	(1)
+#define GDT_ENTRY_KERNEXEC_EFI_DS	(2)
+#define __KERNEXEC_EFI_CS	(GDT_ENTRY_KERNEXEC_EFI_CS*8)
+#define __KERNEXEC_EFI_DS	(GDT_ENTRY_KERNEXEC_EFI_DS*8)
+
 #define GDT_ENTRY_TLS_MIN		6
 #define GDT_ENTRY_TLS_MAX 		(GDT_ENTRY_TLS_MIN + GDT_ENTRY_TLS_ENTRIES - 1)
 
 #define GDT_ENTRY_KERNEL_CS		12
+#define GDT_ENTRY_KERNEXEC_KERNEL_CS	4
 #define GDT_ENTRY_KERNEL_DS		13
 #define GDT_ENTRY_DEFAULT_USER_CS	14
 #define GDT_ENTRY_DEFAULT_USER_DS	15
@@ -107,6 +113,12 @@
 #define GDT_ENTRY_PERCPU		27
 #define GDT_ENTRY_STACK_CANARY		28
 
+#define GDT_ENTRY_PCIBIOS_CS		29
+#define __PCIBIOS_DS (GDT_ENTRY_PCIBIOS_DS * 8)
+
+#define GDT_ENTRY_PCIBIOS_DS		30
+#define __PCIBIOS_CS (GDT_ENTRY_PCIBIOS_CS * 8)
+
 #define GDT_ENTRY_DOUBLEFAULT_TSS	31
 
 /*
@@ -119,6 +131,7 @@
  */
 
 #define __KERNEL_CS			(GDT_ENTRY_KERNEL_CS*8)
+#define __KERNEXEC_KERNEL_CS		(GDT_ENTRY_KERNEXEC_KERNEL_CS*8)
 #define __KERNEL_DS			(GDT_ENTRY_KERNEL_DS*8)
 #define __USER_DS			(GDT_ENTRY_DEFAULT_USER_DS*8 + 3)
 #define __USER_CS			(GDT_ENTRY_DEFAULT_USER_CS*8 + 3)
@@ -130,7 +143,7 @@
 #define PNP_CS16			(GDT_ENTRY_PNPBIOS_CS16*8)
 
 /* "Is this PNP code selector (PNP_CS32 or PNP_CS16)?" */
-#define SEGMENT_IS_PNP_CODE(x)		(((x) & 0xf4) == PNP_CS32)
+#define SEGMENT_IS_PNP_CODE(x)		(((x) & 0xFFFCU) == PNP_CS32 || ((x) & 0xFFFCU) == PNP_CS16)
 
 /* data segment for BIOS: */
 #define PNP_DS				(GDT_ENTRY_PNPBIOS_DS*8)
@@ -177,6 +190,8 @@
 #define GDT_ENTRY_DEFAULT_USER_DS	5
 #define GDT_ENTRY_DEFAULT_USER_CS	6
 
+#define GDT_ENTRY_KERNEXEC_KERNEL_CS	7
+
 /* Needs two entries */
 #define GDT_ENTRY_TSS			8
 /* Needs two entries */
@@ -188,10 +203,12 @@
 /* Abused to load per CPU data from limit */
 #define GDT_ENTRY_PER_CPU		15
 
+#define GDT_ENTRY_UDEREF_KERNEL_DS	16
+
 /*
  * Number of entries in the GDT table:
  */
-#define GDT_ENTRIES			16
+#define GDT_ENTRIES			17
 
 /*
  * Segment selector values corresponding to the above entries:
@@ -201,7 +218,9 @@
  */
 #define __KERNEL32_CS			(GDT_ENTRY_KERNEL32_CS*8)
 #define __KERNEL_CS			(GDT_ENTRY_KERNEL_CS*8)
+#define __KERNEXEC_KERNEL_CS		(GDT_ENTRY_KERNEXEC_KERNEL_CS*8)
 #define __KERNEL_DS			(GDT_ENTRY_KERNEL_DS*8)
+#define __UDEREF_KERNEL_DS		(GDT_ENTRY_UDEREF_KERNEL_DS*8)
 #define __USER32_CS			(GDT_ENTRY_DEFAULT_USER32_CS*8 + 3)
 #define __USER_DS			(GDT_ENTRY_DEFAULT_USER_DS*8 + 3)
 #define __USER32_DS			__USER_DS

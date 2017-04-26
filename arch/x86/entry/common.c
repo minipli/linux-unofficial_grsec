@@ -42,6 +42,21 @@ __visible inline void enter_from_user_mode(void)
 static inline void enter_from_user_mode(void) {}
 #endif
 
+void pax_enter_kernel(void) __rap_hash;
+void pax_enter_kernel_user(void) __rap_hash;
+void pax_exit_kernel(void) __rap_hash;
+void pax_exit_kernel_user(void) __rap_hash;
+
+void paranoid_entry(void) __rap_hash;
+void paranoid_entry_nmi(void) __rap_hash;
+void error_entry(void) __rap_hash;
+
+#ifdef CONFIG_PAX_MEMORY_STACKLEAK
+asmlinkage void pax_erase_kstack(void) __rap_hash;
+#else
+static void pax_erase_kstack(void) {}
+#endif
+
 static void do_audit_syscall_entry(struct pt_regs *regs, u32 arch)
 {
 #ifdef CONFIG_X86_64
@@ -55,6 +70,10 @@ static void do_audit_syscall_entry(struct pt_regs *regs, u32 arch)
 				    regs->cx, regs->dx, regs->si);
 	}
 }
+
+#ifdef CONFIG_GRKERNSEC_SETXID
+extern void gr_delayed_cred_worker(void);
+#endif
 
 /*
  * Returns the syscall nr to run (which should match regs->orig_ax) or -1
@@ -74,12 +93,19 @@ static long syscall_trace_enter(struct pt_regs *regs)
 
 	work = ACCESS_ONCE(ti->flags) & _TIF_WORK_SYSCALL_ENTRY;
 
+#ifdef CONFIG_GRKERNSEC_SETXID
+	if (unlikely(test_and_clear_thread_flag(TIF_GRSEC_SETXID)))
+		gr_delayed_cred_worker();
+#endif
+
 	if (unlikely(work & _TIF_SYSCALL_EMU))
 		emulated = true;
 
 	if ((emulated || (work & _TIF_SYSCALL_TRACE)) &&
-	    tracehook_report_syscall_entry(regs))
+	    tracehook_report_syscall_entry(regs)) {
+		pax_erase_kstack();
 		return -1L;
+	}
 
 	if (emulated)
 		return -1L;
@@ -113,9 +139,11 @@ static long syscall_trace_enter(struct pt_regs *regs)
 			sd.args[5] = regs->bp;
 		}
 
-		ret = __secure_computing(&sd);
-		if (ret == -1)
+		ret = secure_computing(&sd);
+		if (ret == -1) {
+			pax_erase_kstack();
 			return ret;
+		}
 	}
 #endif
 
@@ -124,6 +152,7 @@ static long syscall_trace_enter(struct pt_regs *regs)
 
 	do_audit_syscall_entry(regs, arch);
 
+	pax_erase_kstack();
 	return ret ?: regs->orig_ax;
 }
 
@@ -229,7 +258,7 @@ static void syscall_slow_exit_work(struct pt_regs *regs, u32 cached_flags)
 	step = unlikely(
 		(cached_flags & (_TIF_SINGLESTEP | _TIF_SYSCALL_EMU))
 		== _TIF_SINGLESTEP);
-	if (step || cached_flags & _TIF_SYSCALL_TRACE)
+	if (step || (cached_flags & _TIF_SYSCALL_TRACE))
 		tracehook_report_syscall_exit(regs, step);
 }
 
@@ -247,6 +276,11 @@ __visible inline void syscall_return_slowpath(struct pt_regs *regs)
 	if (IS_ENABLED(CONFIG_PROVE_LOCKING) &&
 	    WARN(irqs_disabled(), "syscall %ld left IRQs disabled", regs->orig_ax))
 		local_irq_enable();
+
+#ifdef CONFIG_GRKERNSEC_SETXID
+	if (unlikely(test_and_clear_thread_flag(TIF_GRSEC_SETXID)))
+		gr_delayed_cred_worker();
+#endif
 
 	/*
 	 * First do one-time work.  If these work items are enabled, we
@@ -346,6 +380,7 @@ __visible long do_fast_syscall_32(struct pt_regs *regs)
 
 	unsigned long landing_pad = (unsigned long)current->mm->context.vdso +
 		vdso_image_32.sym_int80_landing_pad;
+	u32 __user *saved_bp = (u32 __force_user *)(unsigned long)(u32)regs->sp;
 
 	/*
 	 * SYSENTER loses EIP, and even SYSCALL32 needs us to skip forward
@@ -365,11 +400,9 @@ __visible long do_fast_syscall_32(struct pt_regs *regs)
 		 * Micro-optimization: the pointer we're following is explicitly
 		 * 32 bits, so it can't be out of range.
 		 */
-		__get_user(*(u32 *)&regs->bp,
-			    (u32 __user __force *)(unsigned long)(u32)regs->sp)
+		__get_user_nocheck(*(u32 *)&regs->bp, saved_bp, sizeof(u32))
 #else
-		get_user(*(u32 *)&regs->bp,
-			 (u32 __user __force *)(unsigned long)(u32)regs->sp)
+		get_user(regs->bp, saved_bp)
 #endif
 		) {
 

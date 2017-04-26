@@ -1445,7 +1445,7 @@ static int si476x_radio_probe(struct platform_device *pdev)
 	struct si476x_radio *radio;
 	struct v4l2_ctrl *ctrl;
 
-	static atomic_t instance = ATOMIC_INIT(0);
+	static atomic_unchecked_t instance = ATOMIC_INIT(0);
 
 	radio = devm_kzalloc(&pdev->dev, sizeof(*radio), GFP_KERNEL);
 	if (!radio)

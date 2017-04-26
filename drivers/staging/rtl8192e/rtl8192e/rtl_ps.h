@@ -24,6 +24,7 @@
 #include <linux/types.h>
 
 struct net_device;
+struct work_struct;
 
 #define RT_CHECK_FOR_HANG_PERIOD 2
 
@@ -31,7 +32,7 @@ void rtl92e_hw_wakeup(struct net_device *dev);
 void rtl92e_enter_sleep(struct net_device *dev, u64 time);
 void rtl92e_rtllib_ips_leave_wq(struct net_device *dev);
 void rtl92e_rtllib_ips_leave(struct net_device *dev);
-void rtl92e_ips_leave_wq(void *data);
+void rtl92e_ips_leave_wq(struct work_struct *data);
 
 void rtl92e_ips_enter(struct net_device *dev);
 void rtl92e_ips_leave(struct net_device *dev);

@@ -163,7 +163,7 @@ static void vcan_setup(struct net_device *dev)
 	dev->destructor		= free_netdev;
 }
 
-static struct rtnl_link_ops vcan_link_ops __read_mostly = {
+static struct rtnl_link_ops vcan_link_ops = {
 	.kind	= "vcan",
 	.setup	= vcan_setup,
 };

@@ -108,9 +108,9 @@ do_func(Elf_Ehdr *ehdr, char const *const fname, table_sort_t custom_sort)
 	const char *secstrtab;
 	const char *strtab;
 	char *extab_image;
-	int extab_index = 0;
-	int i;
-	int idx;
+	unsigned int extab_index = 0;
+	unsigned int i;
+	unsigned int idx;
 	unsigned int num_sections;
 	unsigned int secindex_strings;
 

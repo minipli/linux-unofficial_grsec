@@ -26,8 +26,13 @@ extern void DIVA_DIDD_Read(void *, int);
 static dword notify_handle;
 static DESCRIPTOR DAdapter;
 static DESCRIPTOR MAdapter;
+
+static void didd_nothing(ENTITY IDI_CALL_ENTITY_T *e)
+{
+	diva_maint_prtComp((char *)e);
+}
 static DESCRIPTOR MaintDescriptor =
-{ IDI_DIMAINT, 0, 0, (IDI_CALL) diva_maint_prtComp };
+{ IDI_DIMAINT, 0, 0, didd_nothing };
 
 extern int diva_os_copy_to_user(void *os_handle, void __user *dst,
 				const void *src, int length);
@@ -44,7 +49,7 @@ static void no_printf(unsigned char *x, ...)
 /*
  *  DIDD callback function
  */
-static void *didd_callback(void *context, DESCRIPTOR *adapter,
+static void didd_callback(void *context, DESCRIPTOR *adapter,
 			   int removal)
 {
 	if (adapter->type == IDI_DADAPTER) {
@@ -56,7 +61,6 @@ static void *didd_callback(void *context, DESCRIPTOR *adapter,
 			dprintf = no_printf;
 		} else {
 			memcpy(&MAdapter, adapter, sizeof(MAdapter));
-			dprintf = (DIVA_DI_PRINTF) MAdapter.request;
 			DbgRegister("MAINT", DRIVERRELEASE_MNT, DBG_DEFAULT);
 		}
 	} else if ((adapter->type > 0) && (adapter->type < 16)) {
@@ -66,7 +70,6 @@ static void *didd_callback(void *context, DESCRIPTOR *adapter,
 			diva_mnt_add_xdi_adapter(adapter);
 		}
 	}
-	return (NULL);
 }
 
 /*
@@ -88,7 +91,7 @@ static int __init connect_didd(void)
 			req.didd_notify.e.Req = 0;
 			req.didd_notify.e.Rc =
 				IDI_SYNC_REQ_DIDD_REGISTER_ADAPTER_NOTIFY;
-			req.didd_notify.info.callback = (void *)didd_callback;
+			req.didd_notify.info.callback = didd_callback;
 			req.didd_notify.info.context = NULL;
 			DAdapter.request((ENTITY *)&req);
 			if (req.didd_notify.e.Rc != 0xff)

@@ -13,7 +13,7 @@ static inline void __chk_user_ptr(const volatile void *p, size_t size)
 ({								\
 	typeof(ptr) __pu_ptr = (ptr);				\
 	__chk_user_ptr(__pu_ptr, sizeof(*__pu_ptr));		\
-	ACCESS_ONCE(*(__pu_ptr)) = x;				\
+	ACCESS_ONCE_RW(*(__pu_ptr)) = x;			\
 	0;							\
 })
 

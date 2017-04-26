@@ -37,7 +37,19 @@ __wsum
 csum_partial_copy_nocheck(const void *src, void *dst, int len, __wsum sum);
 
 __wsum
-csum_partial_copy_from_user(const void __user *src, void *dst, int len, __wsum sum, int *err_ptr);
+__csum_partial_copy_from_user(const void __user *src, void *dst, int len, __wsum sum, int *err_ptr);
+
+static inline __wsum
+csum_partial_copy_from_user(const void __user *src, void *dst, int len, __wsum sum, int *err_ptr)
+{
+	__wsum ret;
+	pax_open_userland();
+	ret = __csum_partial_copy_from_user(src, dst, len, sum, err_ptr);
+	pax_close_userland();
+	return ret;
+}
+
+
 
 /*
  * 	Fold a partial checksum without adding pseudo headers

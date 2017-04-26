@@ -3975,7 +3975,7 @@ static void qlcnic_82xx_io_resume(struct pci_dev *pdev)
 }
 
 static pci_ers_result_t qlcnic_io_error_detected(struct pci_dev *pdev,
-						 pci_channel_state_t state)
+						 enum pci_channel_state state)
 {
 	struct qlcnic_adapter *adapter = pci_get_drvdata(pdev);
 	struct qlcnic_hardware_ops *hw_ops = adapter->ahw->hw_ops;

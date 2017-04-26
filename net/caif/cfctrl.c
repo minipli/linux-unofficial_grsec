@@ -10,6 +10,7 @@
 #include <linux/spinlock.h>
 #include <linux/slab.h>
 #include <linux/pkt_sched.h>
+#include <linux/sched.h>
 #include <net/caif/caif_layer.h>
 #include <net/caif/cfpkt.h>
 #include <net/caif/cfctrl.h>
@@ -43,8 +44,8 @@ struct cflayer *cfctrl_create(void)
 	memset(&dev_info, 0, sizeof(dev_info));
 	dev_info.id = 0xff;
 	cfsrvl_init(&this->serv, 0, &dev_info, false);
-	atomic_set(&this->req_seq_no, 1);
-	atomic_set(&this->rsp_seq_no, 1);
+	atomic_set_unchecked(&this->req_seq_no, 1);
+	atomic_set_unchecked(&this->rsp_seq_no, 1);
 	this->serv.layer.receive = cfctrl_recv;
 	sprintf(this->serv.layer.name, "ctrl");
 	this->serv.layer.ctrlcmd = cfctrl_ctrlcmd;
@@ -130,8 +131,8 @@ static void cfctrl_insert_req(struct cfctrl *ctrl,
 			      struct cfctrl_request_info *req)
 {
 	spin_lock_bh(&ctrl->info_list_lock);
-	atomic_inc(&ctrl->req_seq_no);
-	req->sequence_no = atomic_read(&ctrl->req_seq_no);
+	atomic_inc_unchecked(&ctrl->req_seq_no);
+	req->sequence_no = atomic_read_unchecked(&ctrl->req_seq_no);
 	list_add_tail(&req->list, &ctrl->list);
 	spin_unlock_bh(&ctrl->info_list_lock);
 }
@@ -149,7 +150,7 @@ static struct cfctrl_request_info *cfctrl_remove_req(struct cfctrl *ctrl,
 			if (p != first)
 				pr_warn("Requests are not received in order\n");
 
-			atomic_set(&ctrl->rsp_seq_no,
+			atomic_set_unchecked(&ctrl->rsp_seq_no,
 					 p->sequence_no);
 			list_del(&p->list);
 			goto out;

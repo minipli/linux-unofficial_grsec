@@ -117,6 +117,10 @@ static inline unsigned long __xchg(unsigned long x, volatile void *ptr, int size
 	(__typeof__(*(ptr)))__xchg((unsigned long)(x), (ptr),		\
 				   sizeof(*(ptr)));			\
 })
+#define xchg_unchecked_relaxed(ptr, x) ({				\
+	(__typeof__(*(ptr)))__xchg((unsigned long)(x), (ptr),		\
+				   sizeof(*(ptr)));			\
+})
 
 #include <asm-generic/cmpxchg-local.h>
 
@@ -128,6 +132,7 @@ static inline unsigned long __xchg(unsigned long x, volatile void *ptr, int size
 #endif
 
 #define xchg xchg_relaxed
+#define xchg_unchecked xchg_unchecked_relaxed
 
 /*
  * cmpxchg_local and cmpxchg64_local are atomic wrt current CPU. Always make

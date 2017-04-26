@@ -39,14 +39,14 @@
 
 static void pic_irq_request(struct kvm *kvm, int level);
 
+static void pic_lock(struct kvm_pic *s) __acquires(&s->lock);
 static void pic_lock(struct kvm_pic *s)
-	__acquires(&s->lock)
 {
 	spin_lock(&s->lock);
 }
 
+static void pic_unlock(struct kvm_pic *s) __releases(&s->lock);
 static void pic_unlock(struct kvm_pic *s)
-	__releases(&s->lock)
 {
 	bool wakeup = s->wakeup_needed;
 	struct kvm_vcpu *vcpu, *found = NULL;
@@ -72,6 +72,7 @@ static void pic_unlock(struct kvm_pic *s)
 	}
 }
 
+static void pic_clear_isr(struct kvm_kpic_state *s, int irq) __must_hold(s->pics_state);
 static void pic_clear_isr(struct kvm_kpic_state *s, int irq)
 {
 	s->isr &= ~(1 << irq);
@@ -219,6 +220,7 @@ void kvm_pic_clear_all(struct kvm_pic *s, int irq_source_id)
 /*
  * acknowledge interrupt 'irq'
  */
+static inline void pic_intack(struct kvm_kpic_state *s, int irq) __must_hold(s);
 static inline void pic_intack(struct kvm_kpic_state *s, int irq)
 {
 	s->isr |= 1 << irq;
@@ -273,6 +275,7 @@ int kvm_pic_read_irq(struct kvm *kvm)
 	return intno;
 }
 
+void kvm_pic_reset(struct kvm_kpic_state *s) __must_hold(s);
 void kvm_pic_reset(struct kvm_kpic_state *s)
 {
 	int irq, i;
@@ -307,6 +310,7 @@ void kvm_pic_reset(struct kvm_kpic_state *s)
 			pic_clear_isr(s, irq);
 }
 
+static void pic_ioport_write(void *opaque, u32 addr, u32 val) __must_hold(opaque);
 static void pic_ioport_write(void *opaque, u32 addr, u32 val)
 {
 	struct kvm_kpic_state *s = opaque;
@@ -400,6 +404,7 @@ static void pic_ioport_write(void *opaque, u32 addr, u32 val)
 		}
 }
 
+static u32 pic_poll_read(struct kvm_kpic_state *s, u32 addr1) __must_hold(s);
 static u32 pic_poll_read(struct kvm_kpic_state *s, u32 addr1)
 {
 	int ret;
@@ -422,6 +427,7 @@ static u32 pic_poll_read(struct kvm_kpic_state *s, u32 addr1)
 	return ret;
 }
 
+static u32 pic_ioport_read(void *opaque, u32 addr1) __must_hold(opaque);
 static u32 pic_ioport_read(void *opaque, u32 addr1)
 {
 	struct kvm_kpic_state *s = opaque;

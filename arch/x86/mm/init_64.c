@@ -65,7 +65,7 @@
  * around without checking the pgd every time.
  */
 
-pteval_t __supported_pte_mask __read_mostly = ~0;
+pteval_t __supported_pte_mask __read_only = ~_PAGE_NX;
 EXPORT_SYMBOL_GPL(__supported_pte_mask);
 
 int force_personality32;
@@ -98,7 +98,12 @@ void sync_global_pgds(unsigned long start, unsigned long end, int removed)
 
 	for (address = start; address <= end; address += PGDIR_SIZE) {
 		const pgd_t *pgd_ref = pgd_offset_k(address);
+
+#ifdef CONFIG_PAX_PER_CPU_PGD
+		unsigned long cpu;
+#else
 		struct page *page;
+#endif
 
 		/*
 		 * When it is called after memory hot remove, pgd_none()
@@ -109,14 +114,10 @@ void sync_global_pgds(unsigned long start, unsigned long end, int removed)
 			continue;
 
 		spin_lock(&pgd_lock);
-		list_for_each_entry(page, &pgd_list, lru) {
-			pgd_t *pgd;
-			spinlock_t *pgt_lock;
 
-			pgd = (pgd_t *)page_address(page) + pgd_index(address);
-			/* the pgt_lock only for Xen */
-			pgt_lock = &pgd_page_get_mm(page)->page_table_lock;
-			spin_lock(pgt_lock);
+#ifdef CONFIG_PAX_PER_CPU_PGD
+		for (cpu = 0; cpu < nr_cpu_ids; ++cpu) {
+			pgd_t *pgd = pgd_offset_cpu(cpu, user, address);
 
 			if (!pgd_none(*pgd_ref) && !pgd_none(*pgd))
 				BUG_ON(pgd_page_vaddr(*pgd)
@@ -130,7 +131,34 @@ void sync_global_pgds(unsigned long start, unsigned long end, int removed)
 					set_pgd(pgd, *pgd_ref);
 			}
 
+			pgd = pgd_offset_cpu(cpu, kernel, address);
+#else
+		list_for_each_entry(page, &pgd_list, lru) {
+			pgd_t *pgd;
+			spinlock_t *pgt_lock;
+
+			pgd = (pgd_t *)page_address(page) + pgd_index(address);
+			/* the pgt_lock only for Xen */
+			pgt_lock = &pgd_page_get_mm(page)->page_table_lock;
+			spin_lock(pgt_lock);
+#endif
+
+			if (!pgd_none(*pgd_ref) && !pgd_none(*pgd))
+				BUG_ON(pgd_page_vaddr(*pgd)
+				       != pgd_page_vaddr(*pgd_ref));
+
+			if (removed) {
+				if (pgd_none(*pgd_ref) && !pgd_none(*pgd))
+					pgd_clear(pgd);
+			} else {
+				if (pgd_none(*pgd))
+					set_pgd(pgd, *pgd_ref);
+			}
+
+#ifndef CONFIG_PAX_PER_CPU_PGD
 			spin_unlock(pgt_lock);
+#endif
+
 		}
 		spin_unlock(&pgd_lock);
 	}
@@ -163,7 +191,7 @@ static pud_t *fill_pud(pgd_t *pgd, unsigned long vaddr)
 {
 	if (pgd_none(*pgd)) {
 		pud_t *pud = (pud_t *)spp_getpage();
-		pgd_populate(&init_mm, pgd, pud);
+		pgd_populate_kernel(&init_mm, pgd, pud);
 		if (pud != pud_offset(pgd, 0))
 			printk(KERN_ERR "PAGETABLE BUG #00! %p <-> %p\n",
 			       pud, pud_offset(pgd, 0));
@@ -175,7 +203,7 @@ static pmd_t *fill_pmd(pud_t *pud, unsigned long vaddr)
 {
 	if (pud_none(*pud)) {
 		pmd_t *pmd = (pmd_t *) spp_getpage();
-		pud_populate(&init_mm, pud, pmd);
+		pud_populate_kernel(&init_mm, pud, pmd);
 		if (pmd != pmd_offset(pud, 0))
 			printk(KERN_ERR "PAGETABLE BUG #01! %p <-> %p\n",
 			       pmd, pmd_offset(pud, 0));
@@ -204,7 +232,9 @@ void set_pte_vaddr_pud(pud_t *pud_page, unsigned long vaddr, pte_t new_pte)
 	pmd = fill_pmd(pud, vaddr);
 	pte = fill_pte(pmd, vaddr);
 
+	pax_open_kernel();
 	set_pte(pte, new_pte);
+	pax_close_kernel();
 
 	/*
 	 * It's enough to flush this one mapping.
@@ -266,14 +296,12 @@ static void __init __init_extra_mapping(unsigned long phys, unsigned long size,
 		pgd = pgd_offset_k((unsigned long)__va(phys));
 		if (pgd_none(*pgd)) {
 			pud = (pud_t *) spp_getpage();
-			set_pgd(pgd, __pgd(__pa(pud) | _KERNPG_TABLE |
-						_PAGE_USER));
+			set_pgd(pgd, __pgd(__pa(pud) | _PAGE_TABLE));
 		}
 		pud = pud_offset(pgd, (unsigned long)__va(phys));
 		if (pud_none(*pud)) {
 			pmd = (pmd_t *) spp_getpage();
-			set_pud(pud, __pud(__pa(pmd) | _KERNPG_TABLE |
-						_PAGE_USER));
+			set_pud(pud, __pud(__pa(pmd) | _PAGE_TABLE));
 		}
 		pmd = pmd_offset(pud, phys);
 		BUG_ON(!pmd_none(*pmd));
@@ -543,7 +571,7 @@ phys_pud_init(pud_t *pud_page, unsigned long paddr, unsigned long paddr_end,
 					   page_size_mask, prot);
 
 		spin_lock(&init_mm.page_table_lock);
-		pud_populate(&init_mm, pud, pmd);
+		pud_populate_kernel(&init_mm, pud, pmd);
 		spin_unlock(&init_mm.page_table_lock);
 	}
 	__flush_tlb_all();
@@ -590,7 +618,7 @@ kernel_physical_mapping_init(unsigned long paddr_start,
 					   page_size_mask);
 
 		spin_lock(&init_mm.page_table_lock);
-		pgd_populate(&init_mm, pgd, pud);
+		pgd_populate_kernel(&init_mm, pgd, pud);
 		spin_unlock(&init_mm.page_table_lock);
 		pgd_changed = true;
 	}
@@ -1013,7 +1041,7 @@ void __init mem_init(void)
 const int rodata_test_data = 0xC3;
 EXPORT_SYMBOL_GPL(rodata_test_data);
 
-int kernel_set_to_readonly;
+int kernel_set_to_readonly __read_only;
 
 void set_kernel_text_rw(void)
 {
@@ -1042,8 +1070,7 @@ void set_kernel_text_ro(void)
 	if (!kernel_set_to_readonly)
 		return;
 
-	pr_debug("Set kernel text: %lx - %lx for read only\n",
-		 start, end);
+	pr_debug("Set kernel text: %lx - %lx for read only\n", start, end);
 
 	/*
 	 * Set the kernel identity mapping for text RO.
@@ -1054,17 +1081,22 @@ void set_kernel_text_ro(void)
 void mark_rodata_ro(void)
 {
 	unsigned long start = PFN_ALIGN(_text);
+#ifdef CONFIG_PAX_KERNEXEC
+	unsigned long addr;
+	unsigned long end = PFN_ALIGN(_sdata);
+	unsigned long text_end = end;
+#else
 	unsigned long rodata_start = PFN_ALIGN(__start_rodata);
 	unsigned long end = (unsigned long) &__end_rodata_hpage_align;
 	unsigned long text_end = PFN_ALIGN(&__stop___ex_table);
 	unsigned long rodata_end = PFN_ALIGN(&__end_rodata);
+#endif
 	unsigned long all_end;
 
-	printk(KERN_INFO "Write protecting the kernel read-only data: %luk\n",
-	       (end - start) >> 10);
-	set_memory_ro(start, (end - start) >> PAGE_SHIFT);
-
 	kernel_set_to_readonly = 1;
+
+	printk(KERN_INFO "Write protecting the kernel read-only data: %luk\n", (end - start) >> 10);
+	set_memory_ro(start, (end - start) >> PAGE_SHIFT);
 
 	/*
 	 * The rodata/data/bss/brk section (but not the kernel text!)
@@ -1091,12 +1123,54 @@ void mark_rodata_ro(void)
 	set_memory_ro(start, (end-start) >> PAGE_SHIFT);
 #endif
 
+#ifdef CONFIG_PAX_KERNEXEC
+	/* PaX: ensure that kernel code/rodata is read-only, the rest is non-executable */
+	for (addr = __START_KERNEL_map; addr < __START_KERNEL_map + KERNEL_IMAGE_SIZE; addr += PMD_SIZE) {
+		pgd_t *pgd;
+		pud_t *pud;
+		pmd_t *pmd;
+
+		pgd = pgd_offset_k(addr);
+		pud = pud_offset(pgd, addr);
+		pmd = pmd_offset(pud, addr);
+		if (!pmd_present(*pmd))
+			continue;
+		if (addr >= (unsigned long)_text)
+			BUG_ON(!pmd_large(*pmd));
+		if ((unsigned long)_text <= addr && addr < (unsigned long)_sdata)
+			BUG_ON(pmd_write(*pmd));
+//			set_pmd(pmd, __pmd(pmd_val(*pmd) & ~_PAGE_RW));
+		else
+			BUG_ON(!(pmd_flags(*pmd) & _PAGE_NX));
+//			set_pmd(pmd, __pmd(pmd_val(*pmd) | (_PAGE_NX & __supported_pte_mask)));
+	}
+
+	addr = (unsigned long)__va(__pa(__START_KERNEL_map));
+	end = addr + KERNEL_IMAGE_SIZE;
+	for (; addr < end; addr += PMD_SIZE) {
+		pgd_t *pgd;
+		pud_t *pud;
+		pmd_t *pmd;
+
+		pgd = pgd_offset_k(addr);
+		pud = pud_offset(pgd, addr);
+		pmd = pmd_offset(pud, addr);
+		if (!pmd_present(*pmd))
+			continue;
+		if (addr >= (unsigned long)_text)
+			BUG_ON(!pmd_large(*pmd));
+		if ((unsigned long)__va(__pa(_text)) <= addr && addr < (unsigned long)__va(__pa(_sdata)))
+			BUG_ON(pmd_write(*pmd));
+//			set_pmd(pmd, __pmd(pmd_val(*pmd) & ~_PAGE_RW));
+	}
+#else
 	free_init_pages("unused kernel",
 			(unsigned long) __va(__pa_symbol(text_end)),
 			(unsigned long) __va(__pa_symbol(rodata_start)));
 	free_init_pages("unused kernel",
 			(unsigned long) __va(__pa_symbol(rodata_end)),
 			(unsigned long) __va(__pa_symbol(_sdata)));
+#endif
 
 	debug_checkwx();
 }

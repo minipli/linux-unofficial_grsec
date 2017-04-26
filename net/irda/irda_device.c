@@ -52,12 +52,12 @@
 #include <net/irda/timer.h>
 #include <net/irda/wrapper.h>
 
-static void __irda_task_delete(struct irda_task *task);
+static void __irda_task_delete(void *_task);
 
 static hashbin_t *dongles = NULL;
 static hashbin_t *tasks = NULL;
 
-static void irda_task_timer_expired(void *data);
+static void irda_task_timer_expired(unsigned long data);
 
 int __init irda_device_init( void)
 {
@@ -90,7 +90,7 @@ static void leftover_dongle(void *arg)
 
 void irda_device_cleanup(void)
 {
-	hashbin_delete(tasks, (FREE_FUNC) __irda_task_delete);
+	hashbin_delete(tasks, __irda_task_delete);
 
 	hashbin_delete(dongles, leftover_dongle);
 }
@@ -159,8 +159,10 @@ int irda_device_is_receiving(struct net_device *dev)
 	return req.ifr_receiving;
 }
 
-static void __irda_task_delete(struct irda_task *task)
+static void __irda_task_delete(void *_task)
 {
+	struct irda_task *task = _task;
+
 	del_timer(&task->timer);
 
 	kfree(task);
@@ -249,11 +251,11 @@ static int irda_task_kick(struct irda_task *task)
  *    Task time has expired. We now try to execute task (again), and restart
  *    the timer if the task has not finished yet
  */
-static void irda_task_timer_expired(void *data)
+static void irda_task_timer_expired(unsigned long data)
 {
 	struct irda_task *task;
 
-	task = data;
+	task = (struct irda_task *)data;
 
 	irda_task_kick(task);
 }

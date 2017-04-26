@@ -76,7 +76,7 @@ struct kqid {			/* Type in which we store the quota identifier */
 
 extern bool qid_eq(struct kqid left, struct kqid right);
 extern bool qid_lt(struct kqid left, struct kqid right);
-extern qid_t from_kqid(struct user_namespace *to, struct kqid qid);
+extern qid_t from_kqid(struct user_namespace *to, struct kqid qid) __intentional_overflow(-1);
 extern qid_t from_kqid_munged(struct user_namespace *to, struct kqid qid);
 extern bool qid_valid(struct kqid qid);
 

@@ -61,7 +61,7 @@ EXPORT_SYMBOL(__div64_32);
 #endif
 
 #ifndef div_s64_rem
-s64 div_s64_rem(s64 dividend, s32 divisor, s32 *remainder)
+s64 __intentional_overflow(-1) div_s64_rem(s64 dividend, s32 divisor, s32 *remainder)
 {
 	u64 quotient;
 
@@ -132,7 +132,7 @@ EXPORT_SYMBOL(div64_u64_rem);
  * 'http://www.hackersdelight.org/hdcodetxt/divDouble.c.txt'
  */
 #ifndef div64_u64
-u64 div64_u64(u64 dividend, u64 divisor)
+u64 __intentional_overflow(-1) div64_u64(u64 dividend, u64 divisor)
 {
 	u32 high = divisor >> 32;
 	u64 quot;

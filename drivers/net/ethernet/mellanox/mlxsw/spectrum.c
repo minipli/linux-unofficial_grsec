@@ -4640,16 +4640,16 @@ static int mlxsw_sp_netdevice_event(struct notifier_block *unused,
 	return notifier_from_errno(err);
 }
 
-static struct notifier_block mlxsw_sp_netdevice_nb __read_mostly = {
+static struct notifier_block mlxsw_sp_netdevice_nb = {
 	.notifier_call = mlxsw_sp_netdevice_event,
 };
 
-static struct notifier_block mlxsw_sp_inetaddr_nb __read_mostly = {
+static struct notifier_block mlxsw_sp_inetaddr_nb = {
 	.notifier_call = mlxsw_sp_inetaddr_event,
 	.priority = 10,	/* Must be called before FIB notifier block */
 };
 
-static struct notifier_block mlxsw_sp_router_netevent_nb __read_mostly = {
+static struct notifier_block mlxsw_sp_router_netevent_nb = {
 	.notifier_call = mlxsw_sp_router_netevent_event,
 };
 

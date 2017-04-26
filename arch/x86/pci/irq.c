@@ -51,7 +51,7 @@ struct irq_router {
 struct irq_router_handler {
 	u16 vendor;
 	int (*probe)(struct irq_router *r, struct pci_dev *router, u16 device);
-};
+} __do_const;
 
 int (*pcibios_enable_irq)(struct pci_dev *dev) = pirq_enable_irq;
 void (*pcibios_disable_irq)(struct pci_dev *dev) = pirq_disable_irq;
@@ -792,7 +792,7 @@ static __init int pico_router_probe(struct irq_router *r, struct pci_dev *router
 	return 0;
 }
 
-static __initdata struct irq_router_handler pirq_routers[] = {
+static __initconst const struct irq_router_handler pirq_routers[] = {
 	{ PCI_VENDOR_ID_INTEL, intel_router_probe },
 	{ PCI_VENDOR_ID_AL, ali_router_probe },
 	{ PCI_VENDOR_ID_ITE, ite_router_probe },
@@ -819,7 +819,7 @@ static struct pci_dev *pirq_router_dev;
 static void __init pirq_find_router(struct irq_router *r)
 {
 	struct irq_routing_table *rt = pirq_table;
-	struct irq_router_handler *h;
+	const struct irq_router_handler *h;
 
 #ifdef CONFIG_PCI_BIOS
 	if (!rt->signature) {
@@ -1092,7 +1092,7 @@ static int __init fix_acer_tm360_irqrouting(const struct dmi_system_id *d)
 	return 0;
 }
 
-static struct dmi_system_id __initdata pciirq_dmi_table[] = {
+static const struct dmi_system_id __initconst pciirq_dmi_table[] = {
 	{
 		.callback = fix_broken_hp_bios_irq9,
 		.ident = "HP Pavilion N5400 Series Laptop",

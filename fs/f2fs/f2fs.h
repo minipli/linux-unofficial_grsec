@@ -52,7 +52,7 @@ enum {
 };
 
 struct f2fs_fault_info {
-	atomic_t inject_ops;
+	atomic_unchecked_t inject_ops;
 	unsigned int inject_rate;
 	unsigned int inject_type;
 };
@@ -895,9 +895,9 @@ static inline bool time_to_inject(struct f2fs_sb_info *sbi, int type)
 	if (!IS_FAULT_SET(ffi, type))
 		return false;
 
-	atomic_inc(&ffi->inject_ops);
-	if (atomic_read(&ffi->inject_ops) >= ffi->inject_rate) {
-		atomic_set(&ffi->inject_ops, 0);
+	atomic_inc_unchecked(&ffi->inject_ops);
+	if (atomic_read_unchecked(&ffi->inject_ops) >= ffi->inject_rate) {
+		atomic_set_unchecked(&ffi->inject_ops, 0);
 		printk("%sF2FS-fs : inject %s in %pF\n",
 				KERN_INFO,
 				fault_name[type],

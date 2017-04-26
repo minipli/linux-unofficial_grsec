@@ -230,7 +230,7 @@ static void __init ms_hyperv_init_platform(void)
 		x86_platform.get_nmi_reason = hv_get_nmi_reason;
 }
 
-const __refconst struct hypervisor_x86 x86_hyper_ms_hyperv = {
+const struct hypervisor_x86 x86_hyper_ms_hyperv = {
 	.name			= "Microsoft HyperV",
 	.detect			= ms_hyperv_platform,
 	.init_platform		= ms_hyperv_init_platform,

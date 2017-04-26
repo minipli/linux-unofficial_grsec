@@ -373,8 +373,11 @@ static int dt_cpufreq_probe(struct platform_device *pdev)
 	if (ret)
 		return ret;
 
-	if (data && data->have_governor_per_policy)
-		dt_cpufreq_driver.flags |= CPUFREQ_HAVE_GOVERNOR_PER_POLICY;
+	if (data && data->have_governor_per_policy) {
+		pax_open_kernel();
+		const_cast(dt_cpufreq_driver.flags) |= CPUFREQ_HAVE_GOVERNOR_PER_POLICY;
+		pax_close_kernel();
+	}
 
 	ret = cpufreq_register_driver(&dt_cpufreq_driver);
 	if (ret)

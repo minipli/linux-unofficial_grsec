@@ -437,7 +437,16 @@ static const struct file_operations proc_bus_pci_dev_operations = {
 static int __init pci_proc_init(void)
 {
 	struct pci_dev *dev = NULL;
+
+#ifdef CONFIG_GRKERNSEC_PROC_ADD
+#ifdef CONFIG_GRKERNSEC_PROC_USER
+	proc_bus_pci_dir = proc_mkdir_mode("bus/pci", S_IRUSR | S_IXUSR, NULL);
+#elif defined(CONFIG_GRKERNSEC_PROC_USERGROUP)
+	proc_bus_pci_dir = proc_mkdir_mode("bus/pci", S_IRUSR | S_IXUSR | S_IRGRP | S_IXGRP, NULL);
+#endif
+#else
 	proc_bus_pci_dir = proc_mkdir("bus/pci", NULL);
+#endif
 	proc_create("devices", 0, proc_bus_pci_dir,
 		    &proc_bus_pci_dev_operations);
 	proc_initialized = 1;

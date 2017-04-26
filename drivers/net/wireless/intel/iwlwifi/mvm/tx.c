@@ -385,7 +385,7 @@ static inline void iwl_mvm_set_tx_cmd_pn(struct ieee80211_tx_info *info,
 	struct ieee80211_key_conf *keyconf = info->control.hw_key;
 	u64 pn;
 
-	pn = atomic64_inc_return(&keyconf->tx_pn);
+	pn = atomic64_inc_return_unchecked(&keyconf->tx_pn);
 	crypto_hdr[0] = pn;
 	crypto_hdr[2] = 0;
 	crypto_hdr[3] = 0x20 | (keyconf->keyidx << 6);
@@ -418,7 +418,7 @@ static void iwl_mvm_set_tx_cmd_crypto(struct iwl_mvm *mvm,
 
 	case WLAN_CIPHER_SUITE_TKIP:
 		tx_cmd->sec_ctl = TX_CMD_SEC_TKIP;
-		pn = atomic64_inc_return(&keyconf->tx_pn);
+		pn = atomic64_inc_return_unchecked(&keyconf->tx_pn);
 		ieee80211_tkip_add_iv(crypto_hdr, keyconf, pn);
 		ieee80211_get_tkip_p2k(keyconf, skb_frag, tx_cmd->key);
 		break;

@@ -37,7 +37,7 @@ struct asymmetric_key_subtype {
 	/* Verify the signature on a key of this subtype (optional) */
 	int (*verify_signature)(const struct key *key,
 				const struct public_key_signature *sig);
-};
+} __do_const;
 
 /**
  * asymmetric_key_subtype - Get the subtype from an asymmetric key

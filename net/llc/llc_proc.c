@@ -247,7 +247,7 @@ int __init llc_proc_init(void)
 	int rc = -ENOMEM;
 	struct proc_dir_entry *p;
 
-	llc_proc_dir = proc_mkdir("llc", init_net.proc_net);
+	llc_proc_dir = proc_mkdir_restrict("llc", init_net.proc_net);
 	if (!llc_proc_dir)
 		goto out;
 

@@ -154,7 +154,7 @@ static int nlmon_validate(struct nlattr *tb[], struct nlattr *data[])
 	return 0;
 }
 
-static struct rtnl_link_ops nlmon_link_ops __read_mostly = {
+static struct rtnl_link_ops nlmon_link_ops = {
 	.kind			= "nlmon",
 	.priv_size		= sizeof(struct nlmon),
 	.setup			= nlmon_setup,

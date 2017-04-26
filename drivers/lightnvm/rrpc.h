@@ -104,7 +104,7 @@ struct rrpc {
 	/* Write strategy variables. Move these into each for structure for each
 	 * strategy
 	 */
-	atomic_t next_lun; /* Whenever a page is written, this is updated
+	atomic_unchecked_t next_lun; /* Whenever a page is written, this is updated
 			    * to point to the next write lun
 			    */
 

@@ -27,9 +27,9 @@
 #define MODULE_PARAM_PREFIX "pcie_aspm."
 
 /* Note: those are not register definitions */
-#define ASPM_STATE_L0S_UP	(1)	/* Upstream direction L0s state */
-#define ASPM_STATE_L0S_DW	(2)	/* Downstream direction L0s state */
-#define ASPM_STATE_L1		(4)	/* L1 state */
+#define ASPM_STATE_L0S_UP	(1U)	/* Upstream direction L0s state */
+#define ASPM_STATE_L0S_DW	(2U)	/* Downstream direction L0s state */
+#define ASPM_STATE_L1		(4U)	/* L1 state */
 #define ASPM_STATE_L0S		(ASPM_STATE_L0S_UP | ASPM_STATE_L0S_DW)
 #define ASPM_STATE_ALL		(ASPM_STATE_L0S | ASPM_STATE_L1)
 
@@ -782,7 +782,7 @@ void pci_disable_link_state(struct pci_dev *pdev, int state)
 }
 EXPORT_SYMBOL(pci_disable_link_state);
 
-static int pcie_aspm_set_policy(const char *val, struct kernel_param *kp)
+static int pcie_aspm_set_policy(const char *val, const struct kernel_param *kp)
 {
 	int i;
 	struct pcie_link_state *link;
@@ -809,7 +809,7 @@ static int pcie_aspm_set_policy(const char *val, struct kernel_param *kp)
 	return 0;
 }
 
-static int pcie_aspm_get_policy(char *buffer, struct kernel_param *kp)
+static int pcie_aspm_get_policy(char *buffer, const struct kernel_param *kp)
 {
 	int i, cnt = 0;
 	for (i = 0; i < ARRAY_SIZE(policy_str); i++)

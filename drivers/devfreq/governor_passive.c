@@ -156,7 +156,7 @@ static int devfreq_passive_event_handler(struct devfreq *devfreq,
 	struct devfreq_passive_data *p_data
 			= (struct devfreq_passive_data *)devfreq->data;
 	struct devfreq *parent = (struct devfreq *)p_data->parent;
-	struct notifier_block *nb = &p_data->nb;
+	notifier_block_no_const *nb = &p_data->nb;
 	int ret = 0;
 
 	if (!parent)

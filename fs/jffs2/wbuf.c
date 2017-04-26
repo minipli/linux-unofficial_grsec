@@ -1023,7 +1023,8 @@ static const struct jffs2_unknown_node oob_cleanmarker =
 {
 	.magic = constant_cpu_to_je16(JFFS2_MAGIC_BITMASK),
 	.nodetype = constant_cpu_to_je16(JFFS2_NODETYPE_CLEANMARKER),
-	.totlen = constant_cpu_to_je32(8)
+	.totlen = constant_cpu_to_je32(8),
+	.hdr_crc = constant_cpu_to_je32(0)
 };
 
 /*

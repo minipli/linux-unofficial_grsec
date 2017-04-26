@@ -46,7 +46,7 @@
 #include <net/irda/ircomm_param.h>
 #include <net/irda/ircomm_core.h>
 
-static int __ircomm_close(struct ircomm_cb *self);
+static void __ircomm_close(void *_self);
 static void ircomm_control_indication(struct ircomm_cb *self,
 				      struct sk_buff *skb, int clen);
 
@@ -91,7 +91,7 @@ static int __init ircomm_init(void)
 
 static void __exit ircomm_cleanup(void)
 {
-	hashbin_delete(ircomm, (FREE_FUNC) __ircomm_close);
+	hashbin_delete(ircomm, __ircomm_close);
 
 #ifdef CONFIG_PROC_FS
 	remove_proc_entry("ircomm", proc_irda);
@@ -151,8 +151,10 @@ EXPORT_SYMBOL(ircomm_open);
  *    Remove IrCOMM instance
  *
  */
-static int __ircomm_close(struct ircomm_cb *self)
+static void __ircomm_close(void *_self)
 {
+	struct ircomm_cb *self = _self;
+
 	/* Disconnect link if any */
 	ircomm_do_event(self, IRCOMM_DISCONNECT_REQUEST, NULL, NULL);
 
@@ -170,8 +172,6 @@ static int __ircomm_close(struct ircomm_cb *self)
 	self->magic = 0;
 
 	kfree(self);
-
-	return 0;
 }
 
 /*
@@ -191,7 +191,8 @@ int ircomm_close(struct ircomm_cb *self)
 
 	IRDA_ASSERT(entry == self, return -1;);
 
-	return __ircomm_close(self);
+	__ircomm_close(self);
+	return 0;
 }
 
 EXPORT_SYMBOL(ircomm_close);

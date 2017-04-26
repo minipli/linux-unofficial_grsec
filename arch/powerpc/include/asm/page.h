@@ -230,8 +230,9 @@ extern long long virt_phys_offset;
  * and needs to be executable.  This means the whole heap ends
  * up being executable.
  */
-#define VM_DATA_DEFAULT_FLAGS32	(VM_READ | VM_WRITE | VM_EXEC | \
-				 VM_MAYREAD | VM_MAYWRITE | VM_MAYEXEC)
+#define VM_DATA_DEFAULT_FLAGS32 \
+	(((current->personality & READ_IMPLIES_EXEC) ? VM_EXEC : 0) | \
+	 VM_READ | VM_WRITE | VM_MAYREAD | VM_MAYWRITE | VM_MAYEXEC)
 
 #define VM_DATA_DEFAULT_FLAGS64	(VM_READ | VM_WRITE | \
 				 VM_MAYREAD | VM_MAYWRITE | VM_MAYEXEC)
@@ -258,6 +259,9 @@ extern long long virt_phys_offset;
 #else
 #define is_kernel_addr(x)	((x) >= PAGE_OFFSET)
 #endif
+
+#define ktla_ktva(addr)		(addr)
+#define ktva_ktla(addr)		(addr)
 
 #ifndef CONFIG_PPC_BOOK3S_64
 /*

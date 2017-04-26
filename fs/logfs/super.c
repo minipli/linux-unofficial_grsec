@@ -18,39 +18,6 @@
 #include <linux/statfs.h>
 #include <linux/buffer_head.h>
 
-static DEFINE_MUTEX(emergency_mutex);
-static struct page *emergency_page;
-
-struct page *emergency_read_begin(struct address_space *mapping, pgoff_t index)
-{
-	filler_t *filler = (filler_t *)mapping->a_ops->readpage;
-	struct page *page;
-	int err;
-
-	page = read_cache_page(mapping, index, filler, NULL);
-	if (page)
-		return page;
-
-	/* No more pages available, switch to emergency page */
-	printk(KERN_INFO"Logfs: Using emergency page\n");
-	mutex_lock(&emergency_mutex);
-	err = filler(NULL, emergency_page);
-	if (err) {
-		mutex_unlock(&emergency_mutex);
-		printk(KERN_EMERG"Logfs: Error reading emergency page\n");
-		return ERR_PTR(err);
-	}
-	return emergency_page;
-}
-
-void emergency_read_end(struct page *page)
-{
-	if (page == emergency_page)
-		mutex_unlock(&emergency_mutex);
-	else
-		put_page(page);
-}
-
 static void dump_segfile(struct super_block *sb)
 {
 	struct logfs_super *super = logfs_super(sb);
@@ -614,10 +581,6 @@ static int __init logfs_init(void)
 {
 	int ret;
 
-	emergency_page = alloc_pages(GFP_KERNEL, 0);
-	if (!emergency_page)
-		return -ENOMEM;
-
 	ret = logfs_compr_init();
 	if (ret)
 		goto out1;
@@ -633,7 +596,6 @@ static int __init logfs_init(void)
 out2:
 	logfs_compr_exit();
 out1:
-	__free_pages(emergency_page, 0);
 	return ret;
 }
 
@@ -642,7 +604,6 @@ static void __exit logfs_exit(void)
 	unregister_filesystem(&logfs_fs_type);
 	logfs_destroy_inode_cache();
 	logfs_compr_exit();
-	__free_pages(emergency_page, 0);
 }
 
 module_init(logfs_init);

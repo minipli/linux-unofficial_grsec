@@ -30,7 +30,7 @@ config PROC_FS
 
 config PROC_KCORE
 	bool "/proc/kcore support" if !ARM
-	depends on PROC_FS && MMU
+	depends on PROC_FS && MMU && !GRKERNSEC_PROC_ADD
 	help
 	  Provides a virtual ELF core file of the live kernel.  This can
 	  be read with gdb and other ELF tools.  No modifications can be
@@ -38,8 +38,8 @@ config PROC_KCORE
 
 config PROC_VMCORE
 	bool "/proc/vmcore support"
-	depends on PROC_FS && CRASH_DUMP
-	default y
+	depends on PROC_FS && CRASH_DUMP && !GRKERNSEC
+	default n
         help
         Exports the dump image of crashed kernel in ELF format.
 
@@ -63,8 +63,8 @@ config PROC_SYSCTL
 	  limited in memory.
 
 config PROC_PAGE_MONITOR
- 	default y
-	depends on PROC_FS && MMU
+ 	default n
+	depends on PROC_FS && MMU && !GRKERNSEC
 	bool "Enable /proc page monitoring" if EXPERT
  	help
 	  Various /proc files exist to monitor process memory utilization:

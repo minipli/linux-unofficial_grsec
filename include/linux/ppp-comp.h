@@ -84,7 +84,7 @@ struct compressor {
 	struct module *owner;
 	/* Extra skb space needed by the compressor algorithm */
 	unsigned int comp_extra;
-};
+} __do_const;
 
 /*
  * The return value from decompress routine is the length of the

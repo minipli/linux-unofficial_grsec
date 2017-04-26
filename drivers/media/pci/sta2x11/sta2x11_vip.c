@@ -775,8 +775,9 @@ static struct video_device video_dev_template = {
  *
  * IRQ_HANDLED, interrupt done.
  */
-static irqreturn_t vip_irq(int irq, struct sta2x11_vip *vip)
+static irqreturn_t vip_irq(int irq, void *_vip)
 {
+	struct sta2x11_vip *vip = _vip;
 	unsigned int status;
 
 	status = reg_read(vip, DVP_ITS);
@@ -1058,7 +1059,7 @@ static int sta2x11_vip_init_one(struct pci_dev *pdev,
 	spin_lock_init(&vip->slock);
 
 	ret = request_irq(pdev->irq,
-			  (irq_handler_t) vip_irq,
+			  vip_irq,
 			  IRQF_SHARED, KBUILD_MODNAME, vip);
 	if (ret) {
 		dev_err(&pdev->dev, "request_irq failed\n");

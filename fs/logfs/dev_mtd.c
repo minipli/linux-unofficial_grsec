@@ -122,9 +122,8 @@ static void logfs_mtd_sync(struct super_block *sb)
 	mtd_sync(mtd);
 }
 
-static int logfs_mtd_readpage(void *_sb, struct page *page)
+static int logfs_mtd_readpage(struct super_block *sb, struct page *page)
 {
-	struct super_block *sb = _sb;
 	int err;
 
 	err = logfs_mtd_read(sb, page->index << PAGE_SHIFT, PAGE_SIZE,
@@ -145,11 +144,16 @@ static int logfs_mtd_readpage(void *_sb, struct page *page)
 	return err;
 }
 
+static int logfs_mtd_filler(struct file *file, struct page *page)
+{
+	return logfs_mtd_readpage((struct super_block *)file, page);
+}
+
 static struct page *logfs_mtd_find_first_sb(struct super_block *sb, u64 *ofs)
 {
 	struct logfs_super *super = logfs_super(sb);
 	struct address_space *mapping = super->s_mapping_inode->i_mapping;
-	filler_t *filler = logfs_mtd_readpage;
+	filler_t *filler = logfs_mtd_filler;
 	struct mtd_info *mtd = super->s_mtd;
 
 	*ofs = 0;
@@ -166,7 +170,7 @@ static struct page *logfs_mtd_find_last_sb(struct super_block *sb, u64 *ofs)
 {
 	struct logfs_super *super = logfs_super(sb);
 	struct address_space *mapping = super->s_mapping_inode->i_mapping;
-	filler_t *filler = logfs_mtd_readpage;
+	filler_t *filler = logfs_mtd_filler;
 	struct mtd_info *mtd = super->s_mtd;
 
 	*ofs = mtd->size - mtd->erasesize;
@@ -254,6 +258,7 @@ static const struct logfs_device_ops mtd_devops = {
 	.find_first_sb	= logfs_mtd_find_first_sb,
 	.find_last_sb	= logfs_mtd_find_last_sb,
 	.readpage	= logfs_mtd_readpage,
+	.filler		= logfs_mtd_filler,
 	.writeseg	= logfs_mtd_writeseg,
 	.erase		= logfs_mtd_erase,
 	.can_write_buf	= logfs_mtd_can_write_buf,

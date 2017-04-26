@@ -57,7 +57,7 @@ struct dw_scl_sda_cfg {
 };
 
 struct dw_pci_controller {
-	u32 bus_num;
+	int bus_num;
 	u32 bus_cfg;
 	u32 tx_fifo_depth;
 	u32 rx_fifo_depth;

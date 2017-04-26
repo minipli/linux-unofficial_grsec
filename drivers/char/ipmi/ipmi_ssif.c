@@ -284,17 +284,17 @@ struct ssif_info {
 	unsigned int  multi_len;
 	unsigned int  multi_pos;
 
-	atomic_t stats[SSIF_NUM_STATS];
+	atomic_unchecked_t stats[SSIF_NUM_STATS];
 };
 
 #define ssif_inc_stat(ssif, stat) \
-	atomic_inc(&(ssif)->stats[SSIF_STAT_ ## stat])
+	atomic_inc_unchecked(&(ssif)->stats[SSIF_STAT_ ## stat])
 #define ssif_get_stat(ssif, stat) \
-	((unsigned int) atomic_read(&(ssif)->stats[SSIF_STAT_ ## stat]))
+	((unsigned int) atomic_read_unchecked(&(ssif)->stats[SSIF_STAT_ ## stat]))
 
 static bool initialized;
 
-static atomic_t next_intf = ATOMIC_INIT(0);
+static atomic_unchecked_t next_intf = ATOMIC_INIT(0);
 
 static void return_hosed_msg(struct ssif_info *ssif_info,
 			     struct ipmi_smi_msg *msg);
@@ -1608,7 +1608,7 @@ static int ssif_probe(struct i2c_client *client, const struct i2c_device_id *id)
 	}
 
  found:
-	ssif_info->intf_num = atomic_inc_return(&next_intf);
+	ssif_info->intf_num = atomic_inc_return_unchecked(&next_intf);
 
 	if (ssif_dbg_probe) {
 		pr_info("ssif_probe: i2c_probe found device at i2c address %x\n",
@@ -1622,7 +1622,7 @@ static int ssif_probe(struct i2c_client *client, const struct i2c_device_id *id)
 	ssif_info->retry_timer.function = retry_timeout;
 
 	for (i = 0; i < SSIF_NUM_STATS; i++)
-		atomic_set(&ssif_info->stats[i], 0);
+		atomic_set_unchecked(&ssif_info->stats[i], 0);
 
 	if (ssif_info->supports_pec)
 		ssif_info->client->flags |= I2C_CLIENT_PEC;

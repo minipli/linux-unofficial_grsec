@@ -1090,7 +1090,7 @@ EXPORT_SYMBOL(unregister_sysrq_key);
 static ssize_t write_sysrq_trigger(struct file *file, const char __user *buf,
 				   size_t count, loff_t *ppos)
 {
-	if (count) {
+	if (count && capable(CAP_SYS_ADMIN)) {
 		char c;
 
 		if (get_user(c, buf))

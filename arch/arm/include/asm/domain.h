@@ -42,7 +42,6 @@
 #define DOMAIN_USER	1
 #define DOMAIN_IO	0
 #endif
-#define DOMAIN_VECTORS	3
 
 /*
  * Domain types
@@ -51,9 +50,28 @@
 #define DOMAIN_CLIENT	1
 #ifdef CONFIG_CPU_USE_DOMAINS
 #define DOMAIN_MANAGER	3
+#define DOMAIN_VECTORS	3
+#define DOMAIN_USERCLIENT	DOMAIN_CLIENT
+#else
+
+#ifdef CONFIG_PAX_KERNEXEC
+#define DOMAIN_MANAGER	1
+#define DOMAIN_KERNEXEC	3
 #else
 #define DOMAIN_MANAGER	1
 #endif
+
+#ifdef CONFIG_PAX_MEMORY_UDEREF
+#define DOMAIN_USERCLIENT	0
+#define DOMAIN_UDEREF		1
+#define DOMAIN_VECTORS		DOMAIN_KERNEL
+#else
+#define DOMAIN_USERCLIENT	1
+#define DOMAIN_VECTORS		DOMAIN_USER
+#endif
+
+#endif
+#define DOMAIN_KERNELCLIENT	1
 
 #define domain_mask(dom)	((3) << (2 * (dom)))
 #define domain_val(dom,type)	((type) << (2 * (dom)))
@@ -62,13 +80,19 @@
 #define DACR_INIT \
 	(domain_val(DOMAIN_USER, DOMAIN_NOACCESS) | \
 	 domain_val(DOMAIN_KERNEL, DOMAIN_MANAGER) | \
-	 domain_val(DOMAIN_IO, DOMAIN_CLIENT) | \
+	 domain_val(DOMAIN_IO, DOMAIN_KERNELCLIENT) | \
 	 domain_val(DOMAIN_VECTORS, DOMAIN_CLIENT))
+#elif defined(CONFIG_PAX_MEMORY_UDEREF)
+	/* DOMAIN_VECTORS is defined to DOMAIN_KERNEL */
+#define DACR_INIT \
+	(domain_val(DOMAIN_USER, DOMAIN_USERCLIENT) | \
+	 domain_val(DOMAIN_KERNEL, DOMAIN_MANAGER) | \
+	 domain_val(DOMAIN_IO, DOMAIN_KERNELCLIENT))
 #else
 #define DACR_INIT \
-	(domain_val(DOMAIN_USER, DOMAIN_CLIENT) | \
+	(domain_val(DOMAIN_USER, DOMAIN_USERCLIENT) | \
 	 domain_val(DOMAIN_KERNEL, DOMAIN_MANAGER) | \
-	 domain_val(DOMAIN_IO, DOMAIN_CLIENT) | \
+	 domain_val(DOMAIN_IO, DOMAIN_KERNELCLIENT) | \
 	 domain_val(DOMAIN_VECTORS, DOMAIN_CLIENT))
 #endif
 
@@ -121,6 +145,17 @@ static inline void set_domain(unsigned val)
 		unsigned int domain = get_domain();		\
 		domain &= ~domain_mask(dom);			\
 		domain = domain | domain_val(dom, type);	\
+		set_domain(domain);				\
+	} while (0)
+
+#elif defined(CONFIG_PAX_KERNEXEC) || defined(CONFIG_PAX_MEMORY_UDEREF)
+#define modify_domain(dom,type)					\
+	do {							\
+		struct thread_info *thread = current_thread_info(); \
+		unsigned int domain = get_domain();		\
+		domain &= ~domain_mask(dom);			\
+		domain = domain | domain_val(dom, type);	\
+		thread->cpu_domain = domain;			\
 		set_domain(domain);				\
 	} while (0)
 

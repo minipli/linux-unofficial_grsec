@@ -2593,8 +2593,6 @@ zoran_poll (struct file *file,
 static void
 zoran_vm_open (struct vm_area_struct *vma)
 {
-	struct zoran_mapping *map = vma->vm_private_data;
-	atomic_inc(&map->count);
 }
 
 static void
@@ -2722,7 +2720,6 @@ zoran_mmap (struct file           *file,
 		return res;
 	}
 	map->fh = fh;
-	atomic_set(&map->count, 1);
 
 	vma->vm_ops = &zoran_vm_ops;
 	vma->vm_flags |= VM_DONTEXPAND;

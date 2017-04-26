@@ -7,6 +7,7 @@
 #include <linux/pci_regs.h>
 #include <linux/pci_ids.h>
 #include <linux/errno.h>
+#include <linux/sched.h>
 #include <asm/io.h>
 #include <asm/processor.h>
 #include <asm/fcntl.h>

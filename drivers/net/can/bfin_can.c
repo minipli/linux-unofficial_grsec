@@ -338,7 +338,7 @@ static int bfin_can_get_berr_counter(const struct net_device *dev,
 	return 0;
 }
 
-static int bfin_can_start_xmit(struct sk_buff *skb, struct net_device *dev)
+static netdev_tx_t bfin_can_start_xmit(struct sk_buff *skb, struct net_device *dev)
 {
 	struct bfin_can_priv *priv = netdev_priv(dev);
 	struct bfin_can_regs __iomem *reg = priv->membase;

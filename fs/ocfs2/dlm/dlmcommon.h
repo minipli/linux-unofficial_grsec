@@ -151,9 +151,9 @@ struct dlm_ctxt
 	struct list_head mle_hb_events;
 
 	/* these give a really vague idea of the system load */
-	atomic_t mle_tot_count[DLM_MLE_NUM_TYPES];
+	atomic_unchecked_t mle_tot_count[DLM_MLE_NUM_TYPES];
 	atomic_t mle_cur_count[DLM_MLE_NUM_TYPES];
-	atomic_t res_tot_count;
+	atomic_unchecked_t res_tot_count;
 	atomic_t res_cur_count;
 
 	struct dlm_debug_ctxt *dlm_debug_ctxt;

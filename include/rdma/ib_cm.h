@@ -486,8 +486,8 @@ int ib_cm_notify(struct ib_cm_id *cm_id, enum ib_event_type event);
  * @private_data_len: Size of the private data buffer, in bytes.
  */
 int ib_send_cm_rej(struct ib_cm_id *cm_id,
-		   enum ib_cm_rej_reason reason,
-		   void *ari,
+		   int reason,
+		   const void *ari,
 		   u8 ari_length,
 		   const void *private_data,
 		   u8 private_data_len);
@@ -558,8 +558,8 @@ int ib_cm_init_qp_attr(struct ib_cm_id *cm_id,
  * @private_data_len: Size of the private data buffer, in bytes.
  */
 int ib_send_cm_apr(struct ib_cm_id *cm_id,
-		   enum ib_cm_apr_status status,
-		   void *info,
+		   int status,
+		   const void *info,
 		   u8 info_length,
 		   const void *private_data,
 		   u8 private_data_len);

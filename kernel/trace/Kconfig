@@ -102,6 +102,7 @@ config TRACING
 config GENERIC_TRACER
 	bool
 	select TRACING
+	depends on !GRKERNSEC_KMEM
 
 #
 # Minimum requirements an architecture has to meet for us to
@@ -115,6 +116,7 @@ config TRACING_SUPPORT
 	# irqflags tracing for your architecture.
 	depends on TRACE_IRQFLAGS_SUPPORT || PPC32
 	depends on STACKTRACE_SUPPORT
+	depends on !GRKERNSEC_KMEM
 	default y
 
 if TRACING_SUPPORT
@@ -147,6 +149,7 @@ config FUNCTION_GRAPH_TRACER
 	depends on HAVE_FUNCTION_GRAPH_TRACER
 	depends on FUNCTION_TRACER
 	depends on !X86_32 || !CC_OPTIMIZE_FOR_SIZE
+	depends on !PAX_RAP
 	default y
 	help
 	  Enable the kernel to trace a function at both its return
@@ -255,6 +258,7 @@ config ENABLE_DEFAULT_TRACERS
 	bool "Trace process context switches and events"
 	depends on !GENERIC_TRACER
 	select TRACING
+	depends on !GRKERNSEC_KMEM
 	help
 	  This tracer hooks to various trace points in the kernel,
 	  allowing the user to pick and choose which trace point they
@@ -408,6 +412,7 @@ config BLK_DEV_IO_TRACE
 	depends on BLOCK
 	select RELAY
 	select DEBUG_FS
+	depends on !GRKERNSEC_KMEM
 	select TRACEPOINTS
 	select GENERIC_TRACER
 	select STACKTRACE
@@ -432,6 +437,7 @@ config KPROBE_EVENT
 	depends on HAVE_REGS_AND_STACK_ACCESS_API
 	bool "Enable kprobes-based dynamic events"
 	select TRACING
+	depends on !GRKERNSEC_KMEM
 	select PROBE_EVENTS
 	default y
 	help
@@ -453,6 +459,7 @@ config UPROBE_EVENT
 	select UPROBES
 	select PROBE_EVENTS
 	select TRACING
+	depends on !GRKERNSEC_KMEM
 	default n
 	help
 	  This allows the user to add tracing events on top of userspace

@@ -167,18 +167,18 @@ static int mixer_dbg_show(struct seq_file *s, void *arg)
 	return 0;
 }
 
-static struct drm_info_list mixer0_debugfs_files[] = {
+static drm_info_list_no_const mixer0_debugfs_files[] __read_only = {
 	{ "mixer_main", mixer_dbg_show, 0, NULL },
 };
 
-static struct drm_info_list mixer1_debugfs_files[] = {
+static drm_info_list_no_const mixer1_debugfs_files[] __read_only = {
 	{ "mixer_aux", mixer_dbg_show, 0, NULL },
 };
 
 int sti_mixer_debugfs_init(struct sti_mixer *mixer, struct drm_minor *minor)
 {
 	unsigned int i;
-	struct drm_info_list *mixer_debugfs_files;
+	drm_info_list_no_const *mixer_debugfs_files;
 	int nb_files;
 
 	switch (mixer->id) {
@@ -194,8 +194,10 @@ int sti_mixer_debugfs_init(struct sti_mixer *mixer, struct drm_minor *minor)
 		return -EINVAL;
 	}
 
+	pax_open_kernel();
 	for (i = 0; i < nb_files; i++)
 		mixer_debugfs_files[i].data = mixer;
+	pax_close_kernel();
 
 	return drm_debugfs_create_files(mixer_debugfs_files,
 					nb_files,

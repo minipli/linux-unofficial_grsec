@@ -1151,7 +1151,7 @@ struct bio *bio_copy_user_iov(struct request_queue *q,
 		/*
 		 * Overflow, abort
 		 */
-		if (end < start)
+		if (end < start || end - start > INT_MAX - nr_pages)
 			return ERR_PTR(-EINVAL);
 
 		nr_pages += end - start;
@@ -1276,7 +1276,7 @@ struct bio *bio_map_user_iov(struct request_queue *q,
 		/*
 		 * Overflow, abort
 		 */
-		if (end < start)
+		if (end < start || end - start > INT_MAX - nr_pages)
 			return ERR_PTR(-EINVAL);
 
 		nr_pages += end - start;
@@ -1784,7 +1784,7 @@ EXPORT_SYMBOL(bio_endio);
  * to @bio's bi_io_vec; it is the caller's responsibility to ensure that
  * @bio is not freed before the split.
  */
-struct bio *bio_split(struct bio *bio, int sectors,
+struct bio *bio_split(struct bio *bio, unsigned int sectors,
 		      gfp_t gfp, struct bio_set *bs)
 {
 	struct bio *split = NULL;

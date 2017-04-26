@@ -59,6 +59,7 @@
 #
 
 #include <linux/linkage.h>
+#include <asm/alternative-asm.h>
 
 .text
 
@@ -367,7 +368,7 @@ _cleanup:
 	# scale the result back to 16 bits
 	shr	$16, %eax
 	mov     %rcx, %rsp
-	ret
+	pax_ret crc_t10dif_pcl
 
 ########################################################################
 

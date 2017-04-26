@@ -1177,8 +1177,8 @@ static int alloc_dma_desc_resources(struct stmmac_priv *priv)
 	if (!priv->rx_skbuff)
 		goto err_rx_skbuff;
 
-	priv->tx_skbuff_dma = kmalloc_array(DMA_TX_SIZE,
-					    sizeof(*priv->tx_skbuff_dma),
+	priv->tx_skbuff_dma = kmalloc_array(sizeof(*priv->tx_skbuff_dma),
+					    DMA_TX_SIZE,
 					    GFP_KERNEL);
 	if (!priv->tx_skbuff_dma)
 		goto err_tx_skbuff_dma;

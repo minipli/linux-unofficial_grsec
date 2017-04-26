@@ -52,7 +52,7 @@ struct inet_peer {
 	 */
 	union {
 		struct {
-			atomic_t			rid;		/* Frag reception counter */
+			atomic_unchecked_t		rid;		/* Frag reception counter */
 		};
 		struct rcu_head         rcu;
 		struct inet_peer	*gc_next;

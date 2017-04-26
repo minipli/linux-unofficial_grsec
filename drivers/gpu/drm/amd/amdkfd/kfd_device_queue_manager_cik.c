@@ -37,12 +37,16 @@ static int initialize_cpsch_cik(struct device_queue_manager *dqm);
 static void init_sdma_vm(struct device_queue_manager *dqm, struct queue *q,
 				struct qcm_process_device *qpd);
 
-void device_queue_manager_init_cik(struct device_queue_manager_asic_ops *ops)
+static const struct device_queue_manager_asic_ops cik_dqm_asic_ops = {
+	.set_cache_memory_policy = set_cache_memory_policy_cik,
+	.register_process = register_process_cik,
+	.initialize = initialize_cpsch_cik,
+	.init_sdma_vm = init_sdma_vm,
+};
+
+void device_queue_manager_init_cik(struct device_queue_manager *dqm)
 {
-	ops->set_cache_memory_policy = set_cache_memory_policy_cik;
-	ops->register_process = register_process_cik;
-	ops->initialize = initialize_cpsch_cik;
-	ops->init_sdma_vm = init_sdma_vm;
+	dqm->ops_asic_specific = &cik_dqm_asic_ops;
 }
 
 static uint32_t compute_sh_mem_bases_64bit(unsigned int top_address_nybble)

@@ -297,7 +297,7 @@ struct ar9170 {
 	unsigned long max_queue_stop_timeout[__AR9170_NUM_TXQ];
 	bool needs_full_reset;
 	bool force_usb_reset;
-	atomic_t pending_restarts;
+	atomic_unchecked_t pending_restarts;
 
 	/* interface mode settings */
 	struct list_head vif_list;
@@ -400,7 +400,7 @@ struct ar9170 {
 	struct carl9170_sta_tid __rcu *tx_ampdu_iter;
 	struct list_head tx_ampdu_list;
 	atomic_t tx_ampdu_upload;
-	atomic_t tx_ampdu_scheduler;
+	atomic_unchecked_t tx_ampdu_scheduler;
 	atomic_t tx_total_pending;
 	atomic_t tx_total_queued;
 	unsigned int tx_ampdu_list_len;
@@ -412,7 +412,7 @@ struct ar9170 {
 	spinlock_t mem_lock;
 	unsigned long *mem_bitmap;
 	atomic_t mem_free_blocks;
-	atomic_t mem_allocs;
+	atomic_unchecked_t mem_allocs;
 
 	/* rxstream mpdu merge */
 	struct ar9170_rx_head rx_plcp;

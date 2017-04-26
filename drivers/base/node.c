@@ -638,7 +638,7 @@ static ssize_t print_nodes_state(enum node_states state, char *buf)
 struct node_attr {
 	struct device_attribute attr;
 	enum node_states state;
-};
+} __do_const;
 
 static ssize_t show_node_state(struct device *dev,
 			       struct device_attribute *attr, char *buf)

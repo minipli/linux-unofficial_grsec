@@ -206,7 +206,8 @@
 
 #define X86_FEATURE_VMMCALL     ( 8*32+15) /* Prefer vmmcall to vmcall */
 #define X86_FEATURE_XENPV       ( 8*32+16) /* "" Xen paravirtual guest */
-
+#define X86_FEATURE_PCIDUDEREF	( 8*32+30) /* PaX PCID based UDEREF */
+#define X86_FEATURE_STRONGUDEREF (8*32+31) /* PaX PCID based strong UDEREF */
 
 /* Intel-defined CPU features, CPUID level 0x00000007:0 (ebx), word 9 */
 #define X86_FEATURE_FSGSBASE	( 9*32+ 0) /* {RD/WR}{FS/GS}BASE instructions*/
@@ -214,7 +215,7 @@
 #define X86_FEATURE_BMI1	( 9*32+ 3) /* 1st group bit manipulation extensions */
 #define X86_FEATURE_HLE		( 9*32+ 4) /* Hardware Lock Elision */
 #define X86_FEATURE_AVX2	( 9*32+ 5) /* AVX2 instructions */
-#define X86_FEATURE_SMEP	( 9*32+ 7) /* Supervisor Mode Execution Protection */
+#define X86_FEATURE_SMEP	( 9*32+ 7) /* Supervisor Mode Execution Prevention */
 #define X86_FEATURE_BMI2	( 9*32+ 8) /* 2nd group bit manipulation extensions */
 #define X86_FEATURE_ERMS	( 9*32+ 9) /* Enhanced REP MOVSB/STOSB */
 #define X86_FEATURE_INVPCID	( 9*32+10) /* Invalidate Processor Context ID */

@@ -449,7 +449,7 @@ static int get_v4l2_buffer32(struct v4l2_buffer *kp, struct v4l2_buffer32 __user
 		 * by passing a very big num_planes value */
 		uplane = compat_alloc_user_space(num_planes *
 						sizeof(struct v4l2_plane));
-		kp->m.planes = (__force struct v4l2_plane *)uplane;
+		kp->m.planes = (__force_kernel struct v4l2_plane *)uplane;
 
 		while (--num_planes >= 0) {
 			ret = get_v4l2_plane32(uplane, uplane32, kp->memory);
@@ -519,7 +519,7 @@ static int put_v4l2_buffer32(struct v4l2_buffer *kp, struct v4l2_buffer32 __user
 		if (num_planes == 0)
 			return 0;
 
-		uplane = (__force struct v4l2_plane __user *)kp->m.planes;
+		uplane = (struct v4l2_plane __force_user *)kp->m.planes;
 		if (get_user(p, &up->m.planes))
 			return -EFAULT;
 		uplane32 = compat_ptr(p);
@@ -581,7 +581,7 @@ static int get_v4l2_framebuffer32(struct v4l2_framebuffer *kp, struct v4l2_frame
 		get_user(kp->flags, &up->flags) ||
 		copy_from_user(&kp->fmt, &up->fmt, sizeof(up->fmt)))
 			return -EFAULT;
-	kp->base = (__force void *)compat_ptr(tmp);
+	kp->base = (__force_kernel void *)compat_ptr(tmp);
 	return 0;
 }
 
@@ -687,7 +687,7 @@ static int get_v4l2_ext_controls32(struct v4l2_ext_controls *kp, struct v4l2_ext
 			n * sizeof(struct v4l2_ext_control32)))
 		return -EFAULT;
 	kcontrols = compat_alloc_user_space(n * sizeof(struct v4l2_ext_control));
-	kp->controls = (__force struct v4l2_ext_control *)kcontrols;
+	kp->controls = (__force_kernel struct v4l2_ext_control *)kcontrols;
 	while (--n >= 0) {
 		u32 id;
 
@@ -714,7 +714,7 @@ static int put_v4l2_ext_controls32(struct v4l2_ext_controls *kp, struct v4l2_ext
 {
 	struct v4l2_ext_control32 __user *ucontrols;
 	struct v4l2_ext_control __user *kcontrols =
-		(__force struct v4l2_ext_control __user *)kp->controls;
+		(struct v4l2_ext_control __force_user *)kp->controls;
 	int n = kp->count;
 	compat_caddr_t p;
 
@@ -799,7 +799,7 @@ static int get_v4l2_edid32(struct v4l2_edid *kp, struct v4l2_edid32 __user *up)
 		get_user(tmp, &up->edid) ||
 		copy_from_user(kp->reserved, up->reserved, sizeof(kp->reserved)))
 			return -EFAULT;
-	kp->edid = (__force u8 *)compat_ptr(tmp);
+	kp->edid = (__force_kernel u8 *)compat_ptr(tmp);
 	return 0;
 }
 

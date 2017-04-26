@@ -24,7 +24,7 @@ static struct map_desc iop3xx_std_desc[] __initdata = {
 		.virtual	= IOP3XX_PERIPHERAL_VIRT_BASE,
 		.pfn		= __phys_to_pfn(IOP3XX_PERIPHERAL_PHYS_BASE),
 		.length		= IOP3XX_PERIPHERAL_SIZE,
-		.type		= MT_UNCACHED,
+		.type		= MT_UNCACHED_RW,
 	},
 };
 

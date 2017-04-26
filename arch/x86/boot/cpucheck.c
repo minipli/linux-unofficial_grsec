@@ -126,9 +126,9 @@ int check_cpu(int *cpu_level_ptr, int *req_level_ptr, u32 **err_flags_ptr)
 		u32 ecx = MSR_K7_HWCR;
 		u32 eax, edx;
 
-		asm("rdmsr" : "=a" (eax), "=d" (edx) : "c" (ecx));
+		asm volatile("rdmsr" : "=a" (eax), "=d" (edx) : "c" (ecx));
 		eax &= ~(1 << 15);
-		asm("wrmsr" : : "a" (eax), "d" (edx), "c" (ecx));
+		asm volatile("wrmsr" : : "a" (eax), "d" (edx), "c" (ecx));
 
 		get_cpuflags();	/* Make sure it really did something */
 		err = check_cpuflags();
@@ -141,9 +141,9 @@ int check_cpu(int *cpu_level_ptr, int *req_level_ptr, u32 **err_flags_ptr)
 		u32 ecx = MSR_VIA_FCR;
 		u32 eax, edx;
 
-		asm("rdmsr" : "=a" (eax), "=d" (edx) : "c" (ecx));
+		asm volatile("rdmsr" : "=a" (eax), "=d" (edx) : "c" (ecx));
 		eax |= (1<<1)|(1<<7);
-		asm("wrmsr" : : "a" (eax), "d" (edx), "c" (ecx));
+		asm volatile("wrmsr" : : "a" (eax), "d" (edx), "c" (ecx));
 
 		set_bit(X86_FEATURE_CX8, cpu.flags);
 		err = check_cpuflags();
@@ -154,12 +154,12 @@ int check_cpu(int *cpu_level_ptr, int *req_level_ptr, u32 **err_flags_ptr)
 		u32 eax, edx;
 		u32 level = 1;
 
-		asm("rdmsr" : "=a" (eax), "=d" (edx) : "c" (ecx));
-		asm("wrmsr" : : "a" (~0), "d" (edx), "c" (ecx));
-		asm("cpuid"
+		asm volatile("rdmsr" : "=a" (eax), "=d" (edx) : "c" (ecx));
+		asm volatile("wrmsr" : : "a" (~0), "d" (edx), "c" (ecx));
+		asm volatile("cpuid"
 		    : "+a" (level), "=d" (cpu.flags[0])
 		    : : "ecx", "ebx");
-		asm("wrmsr" : : "a" (eax), "d" (edx), "c" (ecx));
+		asm volatile("wrmsr" : : "a" (eax), "d" (edx), "c" (ecx));
 
 		err = check_cpuflags();
 	} else if (err == 0x01 &&

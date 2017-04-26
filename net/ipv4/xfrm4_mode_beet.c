@@ -36,7 +36,7 @@ static void xfrm4_beet_make_header(struct sk_buff *skb)
  *
  * The top IP header will be constructed per draft-nikander-esp-beet-mode-06.txt.
  */
-static int xfrm4_beet_output(struct xfrm_state *x, struct sk_buff *skb)
+static int __intentional_overflow(0) xfrm4_beet_output(struct xfrm_state *x, struct sk_buff *skb)
 {
 	struct ip_beet_phdr *ph;
 	struct iphdr *top_iph;

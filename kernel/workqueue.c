@@ -1922,9 +1922,8 @@ static void pool_mayday_timeout(unsigned long __pool)
  * multiple times.  Does GFP_KERNEL allocations.  Called only from
  * manager.
  */
+static void maybe_create_worker(struct worker_pool *pool) __must_hold(&pool->lock);
 static void maybe_create_worker(struct worker_pool *pool)
-__releases(&pool->lock)
-__acquires(&pool->lock)
 {
 restart:
 	spin_unlock_irq(&pool->lock);
@@ -2014,9 +2013,8 @@ static bool manage_workers(struct worker *worker)
  * CONTEXT:
  * spin_lock_irq(pool->lock) which is released and regrabbed.
  */
+static void process_one_work(struct worker *worker, struct work_struct *work) __must_hold(&pool->lock);
 static void process_one_work(struct worker *worker, struct work_struct *work)
-__releases(&pool->lock)
-__acquires(&pool->lock)
 {
 	struct pool_workqueue *pwq = get_work_pwq(work);
 	struct worker_pool *pool = worker->pool;
@@ -4585,7 +4583,7 @@ static void rebind_workers(struct worker_pool *pool)
 		WARN_ON_ONCE(!(worker_flags & WORKER_UNBOUND));
 		worker_flags |= WORKER_REBOUND;
 		worker_flags &= ~WORKER_UNBOUND;
-		ACCESS_ONCE(worker->flags) = worker_flags;
+		ACCESS_ONCE_RW(worker->flags) = worker_flags;
 	}
 
 	spin_unlock_irq(&pool->lock);

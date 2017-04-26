@@ -160,8 +160,9 @@ newl3state(struct l3_process *pc, int state)
 }
 
 static void
-L3ExpireTimer(struct L3Timer *t)
+L3ExpireTimer(unsigned long _t)
 {
+	struct L3Timer *t = (struct L3Timer *)_t;
 	t->pc->st->lli.l4l3(t->pc->st, t->event, t->pc);
 }
 
@@ -169,7 +170,7 @@ void
 L3InitTimer(struct l3_process *pc, struct L3Timer *t)
 {
 	t->pc = pc;
-	t->tl.function = (void *) L3ExpireTimer;
+	t->tl.function = L3ExpireTimer;
 	t->tl.data = (long) t;
 	init_timer(&t->tl);
 }

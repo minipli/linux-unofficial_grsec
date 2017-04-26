@@ -386,7 +386,7 @@ static int ieee802154_header_create(struct sk_buff *skb,
 	hdr.fc.type = cb->type;
 	hdr.fc.security_enabled = cb->secen;
 	hdr.fc.ack_request = cb->ackreq;
-	hdr.seq = atomic_inc_return(&dev->ieee802154_ptr->dsn) & 0xFF;
+	hdr.seq = atomic_inc_return_unchecked(&dev->ieee802154_ptr->dsn) & 0xFF;
 
 	if (mac802154_set_header_security(sdata, &hdr, cb) < 0)
 		return -EINVAL;
@@ -451,7 +451,7 @@ static int mac802154_header_create(struct sk_buff *skb,
 	memset(&hdr.fc, 0, sizeof(hdr.fc));
 	hdr.fc.type = IEEE802154_FC_TYPE_DATA;
 	hdr.fc.ack_request = wpan_dev->ackreq;
-	hdr.seq = atomic_inc_return(&dev->ieee802154_ptr->dsn) & 0xFF;
+	hdr.seq = atomic_inc_return_unchecked(&dev->ieee802154_ptr->dsn) & 0xFF;
 
 	/* TODO currently a workaround to give zero cb block to set
 	 * security parameters defaults according MIB.
@@ -576,7 +576,7 @@ ieee802154_setup_sdata(struct ieee802154_sub_if_data *sdata,
 	get_random_bytes(&tmp, sizeof(tmp));
 	atomic_set(&wpan_dev->bsn, tmp);
 	get_random_bytes(&tmp, sizeof(tmp));
-	atomic_set(&wpan_dev->dsn, tmp);
+	atomic_set_unchecked(&wpan_dev->dsn, tmp);
 
 	/* defaults per 802.15.4-2011 */
 	wpan_dev->min_be = 3;

@@ -347,7 +347,7 @@ struct dsaf_device {
 	struct ppe_common_cb *ppe_common[DSAF_COMM_DEV_NUM];
 	struct rcb_common_cb *rcb_common[DSAF_COMM_DEV_NUM];
 	struct hns_mac_cb *mac_cb[DSAF_MAX_PORT_NUM];
-	struct dsaf_misc_op *misc_op;
+	const struct dsaf_misc_op *misc_op;
 
 	struct dsaf_hw_stats hw_stats[DSAF_NODE_NUM];
 	struct dsaf_int_stat int_stat;

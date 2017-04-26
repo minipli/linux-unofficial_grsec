@@ -118,15 +118,16 @@ static inline int v8086_mode(struct pt_regs *regs)
 #ifdef CONFIG_X86_64
 static inline bool user_64bit_mode(struct pt_regs *regs)
 {
+	unsigned long cs = regs->cs & 0xffff;
 #ifndef CONFIG_PARAVIRT
 	/*
 	 * On non-paravirt systems, this is the only long mode CPL 3
 	 * selector.  We do not allow long mode selectors in the LDT.
 	 */
-	return regs->cs == __USER_CS;
+	return cs == __USER_CS;
 #else
 	/* Headers are too twisted for this to go in paravirt.h. */
-	return regs->cs == __USER_CS || regs->cs == pv_info.extra_user_64bit_cs;
+	return cs == __USER_CS || cs == pv_info.extra_user_64bit_cs;
 #endif
 }
 
@@ -173,9 +174,11 @@ static inline unsigned long regs_get_register(struct pt_regs *regs,
 	 * Traps from the kernel do not save sp and ss.
 	 * Use the helper function to retrieve sp.
 	 */
-	if (offset == offsetof(struct pt_regs, sp) &&
-	    regs->cs == __KERNEL_CS)
-		return kernel_stack_pointer(regs);
+	if (offset == offsetof(struct pt_regs, sp)) {
+		unsigned long cs = regs->cs & 0xffff;
+		if (cs == __KERNEL_CS || cs == __KERNEXEC_KERNEL_CS)
+			return kernel_stack_pointer(regs);
+	}
 #endif
 	return *(unsigned long *)((unsigned long)regs + offset);
 }

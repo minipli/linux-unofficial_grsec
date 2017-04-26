@@ -597,7 +597,7 @@ static void accumulate_16bit_val(u32 *acc, u16 val)
 
 	if (wrapped)
 		newacc += 65536;
-	ACCESS_ONCE(*acc) = newacc;
+	ACCESS_ONCE_RW(*acc) = newacc;
 }
 
 static void populate_erx_stats(struct be_adapter *adapter,
@@ -6017,7 +6017,7 @@ static void be_shutdown(struct pci_dev *pdev)
 }
 
 static pci_ers_result_t be_eeh_err_detected(struct pci_dev *pdev,
-					    pci_channel_state_t state)
+					    enum pci_channel_state state)
 {
 	struct be_adapter *adapter = pci_get_drvdata(pdev);
 

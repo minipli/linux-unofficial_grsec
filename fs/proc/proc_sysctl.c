@@ -11,13 +11,21 @@
 #include <linux/namei.h>
 #include <linux/mm.h>
 #include <linux/module.h>
+#include <linux/nsproxy.h>
+#ifdef CONFIG_GRKERNSEC
+#include <net/net_namespace.h>
+#endif
 #include "internal.h"
+
+extern int gr_handle_chroot_sysctl(const int op);
+extern int gr_handle_sysctl_mod(const char *dirname, const char *name,
+				const int op);
 
 static const struct dentry_operations proc_sys_dentry_operations;
 static const struct file_operations proc_sys_file_operations;
-static const struct inode_operations proc_sys_inode_operations;
+const struct inode_operations proc_sys_inode_operations;
 static const struct file_operations proc_sys_dir_file_operations;
-static const struct inode_operations proc_sys_dir_operations;
+const struct inode_operations proc_sys_dir_operations;
 
 /* Support for permanently empty directories */
 
@@ -32,13 +40,17 @@ static bool is_empty_dir(struct ctl_table_header *head)
 
 static void set_empty_dir(struct ctl_dir *dir)
 {
-	dir->header.ctl_table[0].child = sysctl_mount_point;
+	pax_open_kernel();
+	const_cast(dir->header.ctl_table[0].child) = sysctl_mount_point;
+	pax_close_kernel();
 }
 
 static void clear_empty_dir(struct ctl_dir *dir)
 
 {
-	dir->header.ctl_table[0].child = NULL;
+	pax_open_kernel();
+	const_cast(dir->header.ctl_table[0].child) = NULL;
+	pax_close_kernel();
 }
 
 void proc_sys_poll_notify(struct ctl_table_poll *poll)
@@ -59,8 +71,8 @@ static struct ctl_table root_table[] = {
 };
 static struct ctl_table_root sysctl_table_root = {
 	.default_set.dir.header = {
-		{{.count = 1,
-		  .nreg = 1,
+		{{.count = ATOMIC_INIT(1),
+		  .nreg = ATOMIC_INIT(1),
 		  .ctl_table = root_table }},
 		.ctl_table_arg = root_table,
 		.root = &sysctl_table_root,
@@ -182,9 +194,9 @@ static void init_header(struct ctl_table_header *head,
 {
 	head->ctl_table = table;
 	head->ctl_table_arg = table;
-	head->used = 0;
-	head->count = 1;
-	head->nreg = 1;
+	atomic_set(&head->used, 0);
+	atomic_set(&head->count, 1);
+	atomic_set(&head->nreg, 1);
 	head->unregistering = NULL;
 	head->root = root;
 	head->set = set;
@@ -220,7 +232,7 @@ static int insert_header(struct ctl_dir *dir, struct ctl_table_header *header)
 		set_empty_dir(dir);
 	}
 
-	dir->header.nreg++;
+	atomic_inc(&dir->header.nreg);
 	header->parent = dir;
 	err = insert_links(header);
 	if (err)
@@ -247,14 +259,14 @@ static int use_table(struct ctl_table_header *p)
 {
 	if (unlikely(p->unregistering))
 		return 0;
-	p->used++;
+	atomic_inc(&p->used);
 	return 1;
 }
 
 /* called under sysctl_lock */
 static void unuse_table(struct ctl_table_header *p)
 {
-	if (!--p->used)
+	if (atomic_dec_and_test(&p->used))
 		if (unlikely(p->unregistering))
 			complete(p->unregistering);
 }
@@ -266,7 +278,7 @@ static void start_unregistering(struct ctl_table_header *p)
 	 * if p->used is 0, nobody will ever touch that entry again;
 	 * we'll eliminate all paths to it before dropping sysctl_lock
 	 */
-	if (unlikely(p->used)) {
+	if (unlikely(atomic_read(&p->used))) {
 		struct completion wait;
 		init_completion(&wait);
 		p->unregistering = &wait;
@@ -287,14 +299,14 @@ static void start_unregistering(struct ctl_table_header *p)
 static void sysctl_head_get(struct ctl_table_header *head)
 {
 	spin_lock(&sysctl_lock);
-	head->count++;
+	atomic_inc(&head->count);
 	spin_unlock(&sysctl_lock);
 }
 
 void sysctl_head_put(struct ctl_table_header *head)
 {
 	spin_lock(&sysctl_lock);
-	if (!--head->count)
+	if (atomic_dec_and_test(&head->count))
 		kfree_rcu(head, rcu);
 	spin_unlock(&sysctl_lock);
 }
@@ -509,6 +521,9 @@ static struct dentry *proc_sys_lookup(struct inode *dir, struct dentry *dentry,
 
 	err = NULL;
 	d_set_d_op(dentry, &proc_sys_dentry_operations);
+
+	gr_handle_proc_create(dentry, inode);
+
 	d_add(dentry, inode);
 
 out:
@@ -524,6 +539,7 @@ static ssize_t proc_sys_call_handler(struct file *filp, void __user *buf,
 	struct inode *inode = file_inode(filp);
 	struct ctl_table_header *head = grab_header(inode);
 	struct ctl_table *table = PROC_I(inode)->sysctl_entry;
+	int op = write ? MAY_WRITE : MAY_READ;
 	ssize_t error;
 	size_t res;
 
@@ -535,13 +551,34 @@ static ssize_t proc_sys_call_handler(struct file *filp, void __user *buf,
 	 * and won't be until we finish.
 	 */
 	error = -EPERM;
-	if (sysctl_perm(head, table, write ? MAY_WRITE : MAY_READ))
+	if (sysctl_perm(head, table, op))
 		goto out;
 
 	/* if that can happen at all, it should be -EINVAL, not -EISDIR */
 	error = -EINVAL;
 	if (!table->proc_handler)
 		goto out;
+
+#ifdef CONFIG_GRKERNSEC
+	error = -EPERM;
+	if (gr_handle_chroot_sysctl(op))
+		goto out;
+	dget(filp->f_path.dentry);
+	if (gr_handle_sysctl_mod((const char *)filp->f_path.dentry->d_parent->d_name.name, table->procname, op)) {
+		dput(filp->f_path.dentry);
+		goto out;
+	}
+	dput(filp->f_path.dentry);
+	if (!gr_acl_handle_open(filp->f_path.dentry, filp->f_path.mnt, op))
+		goto out;
+	if (write) {
+		if (current->nsproxy->net_ns != table->extra2) {
+			if (!capable(CAP_SYS_ADMIN))
+				goto out;
+		} else if (!ns_capable(current->nsproxy->net_ns->user_ns, CAP_NET_ADMIN))
+			goto out;
+	}
+#endif
 
 	/* careful: calling conventions are nasty here */
 	res = count;
@@ -644,6 +681,7 @@ static bool proc_sys_fill_cache(struct file *file,
 				return false;
 			}
 			d_set_d_op(child, &proc_sys_dentry_operations);
+			gr_handle_proc_create(child, inode);
 			d_add(child, inode);
 		}
 	}
@@ -683,6 +721,9 @@ static int scan(struct ctl_table_header *head, struct ctl_table *table,
 
 	if ((*pos)++ < ctx->pos)
 		return true;
+
+	if (!gr_acl_handle_hidden_file(file->f_path.dentry, file->f_path.mnt))
+		return 0;
 
 	if (unlikely(S_ISLNK(table->mode)))
 		res = proc_sys_link_fill_cache(file, ctx, head, table);
@@ -778,6 +819,9 @@ static int proc_sys_getattr(struct vfsmount *mnt, struct dentry *dentry, struct 
 	if (IS_ERR(head))
 		return PTR_ERR(head);
 
+	if (table && !gr_acl_handle_hidden_file(dentry, mnt))
+		return -ENOENT;
+
 	generic_fillattr(inode, stat);
 	if (table)
 		stat->mode = (stat->mode & S_IFMT) | table->mode;
@@ -800,13 +844,13 @@ static const struct file_operations proc_sys_dir_file_operations = {
 	.llseek		= generic_file_llseek,
 };
 
-static const struct inode_operations proc_sys_inode_operations = {
+const struct inode_operations proc_sys_inode_operations = {
 	.permission	= proc_sys_permission,
 	.setattr	= proc_sys_setattr,
 	.getattr	= proc_sys_getattr,
 };
 
-static const struct inode_operations proc_sys_dir_operations = {
+const struct inode_operations proc_sys_dir_operations = {
 	.lookup		= proc_sys_lookup,
 	.permission	= proc_sys_permission,
 	.setattr	= proc_sys_setattr,
@@ -883,7 +927,7 @@ static struct ctl_dir *find_subdir(struct ctl_dir *dir,
 static struct ctl_dir *new_dir(struct ctl_table_set *set,
 			       const char *name, int namelen)
 {
-	struct ctl_table *table;
+	ctl_table_no_const *table;
 	struct ctl_dir *new;
 	struct ctl_node *node;
 	char *new_name;
@@ -895,7 +939,7 @@ static struct ctl_dir *new_dir(struct ctl_table_set *set,
 		return NULL;
 
 	node = (struct ctl_node *)(new + 1);
-	table = (struct ctl_table *)(node + 1);
+	table = (ctl_table_no_const *)(node + 1);
 	new_name = (char *)(table + 2);
 	memcpy(new_name, name, namelen);
 	new_name[namelen] = '\0';
@@ -953,7 +997,7 @@ static struct ctl_dir *get_subdir(struct ctl_dir *dir,
 		goto failed;
 	subdir = new;
 found:
-	subdir->header.nreg++;
+	atomic_inc(&subdir->header.nreg);
 failed:
 	if (IS_ERR(subdir)) {
 		pr_err("sysctl could not get directory: ");
@@ -1064,7 +1108,8 @@ static int sysctl_check_table(const char *path, struct ctl_table *table)
 static struct ctl_table_header *new_links(struct ctl_dir *dir, struct ctl_table *table,
 	struct ctl_table_root *link_root)
 {
-	struct ctl_table *link_table, *entry, *link;
+	ctl_table_no_const *link_table, *link;
+	struct ctl_table *entry;
 	struct ctl_table_header *links;
 	struct ctl_node *node;
 	char *link_name;
@@ -1087,7 +1132,7 @@ static struct ctl_table_header *new_links(struct ctl_dir *dir, struct ctl_table 
 		return NULL;
 
 	node = (struct ctl_node *)(links + 1);
-	link_table = (struct ctl_table *)(node + nr_entries);
+	link_table = (ctl_table_no_const *)(node + nr_entries);
 	link_name = (char *)&link_table[nr_entries + 1];
 
 	for (link = link_table, entry = table; entry->procname; link++, entry++) {
@@ -1099,7 +1144,7 @@ static struct ctl_table_header *new_links(struct ctl_dir *dir, struct ctl_table 
 		link_name += len;
 	}
 	init_header(links, dir->header.root, dir->header.set, node, link_table);
-	links->nreg = nr_entries;
+	atomic_set(&links->nreg, nr_entries);
 
 	return links;
 }
@@ -1127,7 +1172,7 @@ static bool get_links(struct ctl_dir *dir,
 	for (entry = table; entry->procname; entry++) {
 		const char *procname = entry->procname;
 		link = find_entry(&head, dir, procname, strlen(procname));
-		head->nreg++;
+		atomic_inc(&head->nreg);
 	}
 	return true;
 }
@@ -1149,7 +1194,7 @@ static int insert_links(struct ctl_table_header *head)
 	if (get_links(core_parent, head->ctl_table, head->root))
 		return 0;
 
-	core_parent->header.nreg++;
+	atomic_inc(&core_parent->header.nreg);
 	spin_unlock(&sysctl_lock);
 
 	links = new_links(core_parent, head->ctl_table, head->root);
@@ -1243,7 +1288,7 @@ struct ctl_table_header *__register_sysctl_table(
 	spin_lock(&sysctl_lock);
 	dir = &set->dir;
 	/* Reference moved down the diretory tree get_subdir */
-	dir->header.nreg++;
+	atomic_inc(&dir->header.nreg);
 	spin_unlock(&sysctl_lock);
 
 	/* Find the directory for the ctl_table */
@@ -1335,8 +1380,8 @@ static int register_leaf_sysctl_tables(const char *path, char *pos,
 	struct ctl_table_header ***subheader, struct ctl_table_set *set,
 	struct ctl_table *table)
 {
-	struct ctl_table *ctl_table_arg = NULL;
-	struct ctl_table *entry, *files;
+	ctl_table_no_const *ctl_table_arg = NULL, *files = NULL;
+	struct ctl_table *entry;
 	int nr_files = 0;
 	int nr_dirs = 0;
 	int err = -ENOMEM;
@@ -1348,10 +1393,9 @@ static int register_leaf_sysctl_tables(const char *path, char *pos,
 			nr_files++;
 	}
 
-	files = table;
 	/* If there are mixed files and directories we need a new table */
 	if (nr_dirs && nr_files) {
-		struct ctl_table *new;
+		ctl_table_no_const *new;
 		files = kzalloc(sizeof(struct ctl_table) * (nr_files + 1),
 				GFP_KERNEL);
 		if (!files)
@@ -1369,7 +1413,7 @@ static int register_leaf_sysctl_tables(const char *path, char *pos,
 	/* Register everything except a directory full of subdirectories */
 	if (nr_files || !nr_dirs) {
 		struct ctl_table_header *header;
-		header = __register_sysctl_table(set, path, files);
+		header = __register_sysctl_table(set, path, files ? files : table);
 		if (!header) {
 			kfree(ctl_table_arg);
 			goto out;
@@ -1550,12 +1594,12 @@ static void drop_sysctl_table(struct ctl_table_header *header)
 {
 	struct ctl_dir *parent = header->parent;
 
-	if (--header->nreg)
+	if (atomic_dec_return(&header->nreg))
 		return;
 
 	put_links(header);
 	start_unregistering(header);
-	if (!--header->count)
+	if (atomic_dec_and_test(&header->count))
 		kfree_rcu(header, rcu);
 
 	if (parent)

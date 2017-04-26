@@ -22,6 +22,9 @@ bool current_is_single_threaded(void)
 	struct task_struct *p, *t;
 	bool ret;
 
+	if (!mm)
+		return true;
+
 	if (atomic_read(&task->signal->live) != 1)
 		return false;
 

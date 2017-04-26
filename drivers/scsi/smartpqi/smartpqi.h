@@ -956,7 +956,7 @@ struct pqi_ctrl_info {
 	struct pqi_event pending_events[PQI_NUM_SUPPORTED_EVENTS];
 	struct work_struct event_work;
 
-	atomic_t	num_interrupts;
+	atomic_unchecked_t num_interrupts;
 	int		previous_num_interrupts;
 	unsigned int	num_heartbeats_requested;
 	struct timer_list heartbeat_timer;

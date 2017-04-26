@@ -33,8 +33,12 @@ struct fib_rule {
 	struct rcu_head		rcu;
 };
 
+typedef struct rt6_info *(*pol_lookup_t)(struct net *,
+					 struct fib6_table *,
+					 struct flowi6 *, int);
+
 struct fib_lookup_arg {
-	void			*lookup_ptr;
+	pol_lookup_t		lookup_ptr;
 	void			*result;
 	struct fib_rule		*rule;
 	u32			table;

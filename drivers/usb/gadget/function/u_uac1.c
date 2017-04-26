@@ -17,6 +17,7 @@
 #include <linux/ctype.h>
 #include <linux/random.h>
 #include <linux/syscalls.h>
+#include <linux/module.h>
 
 #include "u_uac1.h"
 

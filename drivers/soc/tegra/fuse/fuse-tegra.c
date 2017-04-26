@@ -72,7 +72,7 @@ static ssize_t fuse_read(struct file *fd, struct kobject *kobj,
 	return i;
 }
 
-static struct bin_attribute fuse_bin_attr = {
+static bin_attribute_no_const fuse_bin_attr = {
 	.attr = { .name = "fuse", .mode = S_IRUGO, },
 	.read = fuse_read,
 };

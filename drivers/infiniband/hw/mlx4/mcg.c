@@ -1043,7 +1043,7 @@ int mlx4_ib_mcg_port_init(struct mlx4_ib_demux_ctx *ctx)
 {
 	char name[20];
 
-	atomic_set(&ctx->tid, 0);
+	atomic_set_unchecked(&ctx->tid, 0);
 	sprintf(name, "mlx4_ib_mcg%d", ctx->port);
 	ctx->mcg_wq = alloc_ordered_workqueue(name, WQ_MEM_RECLAIM);
 	if (!ctx->mcg_wq)

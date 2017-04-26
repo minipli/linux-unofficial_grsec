@@ -102,9 +102,11 @@ extern void fpstate_sanitize_xstate(struct fpu *fpu);
 #define user_insn(insn, output, input...)				\
 ({									\
 	int err;							\
-	asm volatile(ASM_STAC "\n"					\
-		     "1:" #insn "\n\t"					\
-		     "2: " ASM_CLAC "\n"				\
+	user_access_begin();						\
+	asm volatile("1:"						\
+		     __copyuser_seg					\
+		     #insn "\n\t"					\
+		     "2:\n"						\
 		     ".section .fixup,\"ax\"\n"				\
 		     "3:  movl $-1,%[err]\n"				\
 		     "    jmp  2b\n"					\
@@ -112,6 +114,7 @@ extern void fpstate_sanitize_xstate(struct fpu *fpu);
 		     _ASM_EXTABLE(1b, 3b)				\
 		     : [err] "=r" (err), output				\
 		     : "0"(0), input);					\
+	user_access_end();						\
 	err;								\
 })
 
@@ -191,9 +194,9 @@ static inline int copy_user_to_fregs(struct fregs_state __user *fx)
 static inline void copy_fxregs_to_kernel(struct fpu *fpu)
 {
 	if (IS_ENABLED(CONFIG_X86_32))
-		asm volatile( "fxsave %[fx]" : [fx] "=m" (fpu->state.fxsave));
+		asm volatile( "fxsave %[fx]" : [fx] "=m" (fpu->state->fxsave));
 	else if (IS_ENABLED(CONFIG_AS_FXSAVEQ))
-		asm volatile("fxsaveq %[fx]" : [fx] "=m" (fpu->state.fxsave));
+		asm volatile("fxsaveq %[fx]" : [fx] "=m" (fpu->state->fxsave));
 	else {
 		/* Using "rex64; fxsave %0" is broken because, if the memory
 		 * operand uses any extended registers for addressing, a second
@@ -210,15 +213,15 @@ static inline void copy_fxregs_to_kernel(struct fpu *fpu)
 		 * an extended register is needed for addressing (fix submitted
 		 * to mainline 2005-11-21).
 		 *
-		 *  asm volatile("rex64/fxsave %0" : "=m" (fpu->state.fxsave));
+		 *  asm volatile("rex64/fxsave %0" : "=m" (fpu->state->fxsave));
 		 *
 		 * This, however, we can work around by forcing the compiler to
 		 * select an addressing mode that doesn't require extended
 		 * registers.
 		 */
 		asm volatile( "rex64/fxsave (%[fx])"
-			     : "=m" (fpu->state.fxsave)
-			     : [fx] "R" (&fpu->state.fxsave));
+			     : "=m" (fpu->state->fxsave)
+			     : [fx] "R" (&fpu->state->fxsave));
 	}
 }
 
@@ -390,9 +393,9 @@ static inline int copy_xregs_to_user(struct xregs_state __user *buf)
 	if (unlikely(err))
 		return -EFAULT;
 
-	stac();
-	XSTATE_OP(XSAVE, buf, -1, -1, err);
-	clac();
+	user_access_begin();
+	XSTATE_OP(__copyuser_seg XSAVE, buf, -1, -1, err);
+	user_access_end();
 
 	return err;
 }
@@ -402,14 +405,14 @@ static inline int copy_xregs_to_user(struct xregs_state __user *buf)
  */
 static inline int copy_user_to_xregs(struct xregs_state __user *buf, u64 mask)
 {
-	struct xregs_state *xstate = ((__force struct xregs_state *)buf);
+	struct xregs_state *xstate = ((__force_kernel struct xregs_state *)buf);
 	u32 lmask = mask;
 	u32 hmask = mask >> 32;
 	int err;
 
-	stac();
-	XSTATE_OP(XRSTOR, xstate, lmask, hmask, err);
-	clac();
+	user_access_begin();
+	XSTATE_OP(__copyuser_seg XRSTOR, xstate, lmask, hmask, err);
+	user_access_end();
 
 	return err;
 }
@@ -427,7 +430,7 @@ static inline int copy_user_to_xregs(struct xregs_state __user *buf, u64 mask)
 static inline int copy_fpregs_to_fpstate(struct fpu *fpu)
 {
 	if (likely(use_xsave())) {
-		copy_xregs_to_kernel(&fpu->state.xsave);
+		copy_xregs_to_kernel(&fpu->state->xsave);
 		return 1;
 	}
 
@@ -440,7 +443,7 @@ static inline int copy_fpregs_to_fpstate(struct fpu *fpu)
 	 * Legacy FPU register saving, FNSAVE always clears FPU registers,
 	 * so we have to mark them inactive:
 	 */
-	asm volatile("fnsave %[fp]; fwait" : [fp] "=m" (fpu->state.fsave));
+	asm volatile("fnsave %[fp]; fwait" : [fp] "=m" (fpu->state->fsave));
 
 	return 0;
 }
@@ -469,7 +472,7 @@ static inline void copy_kernel_to_fpregs(union fpregs_state *fpstate)
 			"fnclex\n\t"
 			"emms\n\t"
 			"fildl %P[addr]"	/* set F?P to defined value */
-			: : [addr] "m" (fpstate));
+			: : [addr] "m" (cpu_tss[raw_smp_processor_id()].x86_tss.sp0));
 	}
 
 	__copy_kernel_to_fpregs(fpstate);
@@ -614,7 +617,7 @@ switch_fpu_prepare(struct fpu *old_fpu, struct fpu *new_fpu, int cpu)
 			new_fpu->counter++;
 			__fpregs_activate(new_fpu);
 			trace_x86_fpu_regs_activated(new_fpu);
-			prefetch(&new_fpu->state);
+			prefetch(new_fpu->state);
 		} else {
 			__fpregs_deactivate_hw();
 		}
@@ -626,7 +629,7 @@ switch_fpu_prepare(struct fpu *old_fpu, struct fpu *new_fpu, int cpu)
 			if (fpu_want_lazy_restore(new_fpu, cpu))
 				fpu.preload = 0;
 			else
-				prefetch(&new_fpu->state);
+				prefetch(new_fpu->state);
 			fpregs_activate(new_fpu);
 		}
 	}
@@ -646,7 +649,7 @@ switch_fpu_prepare(struct fpu *old_fpu, struct fpu *new_fpu, int cpu)
 static inline void switch_fpu_finish(struct fpu *new_fpu, fpu_switch_t fpu_switch)
 {
 	if (fpu_switch.preload)
-		copy_kernel_to_fpregs(&new_fpu->state);
+		copy_kernel_to_fpregs(new_fpu->state);
 }
 
 /*

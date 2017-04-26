@@ -34,10 +34,19 @@ struct bfa_sm_table {
 	int		state;	/*!< state machine encoding	*/
 	char		*name;	/*!< state name for display	*/
 };
-#define BFA_SM(_sm)		((bfa_sm_t)(_sm))
+#define BFA_SM(_sm)		(_sm)
+
+#define bfa_sm_set_state(_sm, _state)	((_sm)->sm = (_state))
+#define bfa_sm_cmp_state(_sm, _state)	((_sm)->sm == (_state))
 
 /* State machine with entry actions. */
-typedef void (*bfa_fsm_t)(void *fsm, int event);
+struct bfa_ioc;
+enum ioc_event;
+struct bfa_iocpf;
+enum iocpf_event;
+
+typedef void (*bfa_fsm_ioc_t)(struct bfa_ioc *fsm, enum ioc_event event);
+typedef void (*bfa_fsm_iocpf_t)(struct bfa_iocpf *fsm, enum iocpf_event event);
 
 /* oc - object class eg. bfa_ioc
  * st - state, eg. reset
@@ -49,16 +58,37 @@ typedef void (*bfa_fsm_t)(void *fsm, int event);
 	static void oc ## _sm_ ## st ## _entry(otype * fsm)
 
 #define bfa_fsm_set_state(_fsm, _state) do {				\
-	(_fsm)->fsm = (bfa_fsm_t)(_state);				\
+	(_fsm)->fsm = (_state);						\
 	_state ## _entry(_fsm);						\
 } while (0)
 
 #define bfa_fsm_send_event(_fsm, _event)	((_fsm)->fsm((_fsm), (_event)))
-#define bfa_fsm_cmp_state(_fsm, _state)					\
-	((_fsm)->fsm == (bfa_fsm_t)(_state))
+#define bfa_fsm_cmp_state(_fsm, _state)		((_fsm)->fsm == (_state))
+
+/* For converting from state machine function to state encoding. */
+struct iocpf_sm_table {
+	bfa_fsm_iocpf_t	sm;	/*!< state machine function	*/
+	int		state;	/*!< state machine encoding	*/
+	char		*name;	/*!< state name for display	*/
+};
+struct ioc_sm_table {
+	bfa_fsm_ioc_t	sm;	/*!< state machine function	*/
+	int		state;	/*!< state machine encoding	*/
+	char		*name;	/*!< state name for display	*/
+};
 
 static inline int
-bfa_sm_to_state(const struct bfa_sm_table *smt, bfa_sm_t sm)
+iocpf_sm_to_state(const struct iocpf_sm_table *smt, bfa_fsm_iocpf_t sm)
+{
+	int	i = 0;
+
+	while (smt[i].sm && smt[i].sm != sm)
+		i++;
+	return smt[i].state;
+}
+
+static inline int
+ioc_sm_to_state(const struct ioc_sm_table *smt, bfa_fsm_ioc_t sm)
 {
 	int	i = 0;
 

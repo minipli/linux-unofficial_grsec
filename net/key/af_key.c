@@ -3050,10 +3050,10 @@ static int pfkey_send_policy_notify(struct xfrm_policy *xp, int dir, const struc
 static u32 get_acqseq(void)
 {
 	u32 res;
-	static atomic_t acqseq;
+	static atomic_unchecked_t acqseq;
 
 	do {
-		res = atomic_inc_return(&acqseq);
+		res = atomic_inc_return_unchecked(&acqseq);
 	} while (!res);
 	return res;
 }

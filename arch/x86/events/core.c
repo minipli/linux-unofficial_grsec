@@ -1570,7 +1570,7 @@ static void __init pmu_check_apic(void)
 
 }
 
-static struct attribute_group x86_pmu_format_group = {
+static attribute_group_no_const x86_pmu_format_group = {
 	.name = "format",
 	.attrs = NULL,
 };
@@ -1701,7 +1701,7 @@ static struct attribute *events_attr[] = {
 	NULL,
 };
 
-static struct attribute_group x86_pmu_events_group = {
+static attribute_group_no_const x86_pmu_events_group = {
 	.name = "events",
 	.attrs = events_attr,
 };
@@ -2325,7 +2325,7 @@ static unsigned long get_segment_base(unsigned int segment)
 		if (idx > GDT_ENTRIES)
 			return 0;
 
-		desc = raw_cpu_ptr(gdt_page.gdt) + idx;
+		desc = get_cpu_gdt_table(smp_processor_id()) + idx;
 	}
 
 	return get_desc_base(desc);
@@ -2425,7 +2425,7 @@ perf_callchain_user(struct perf_callchain_entry_ctx *entry, struct pt_regs *regs
 			break;
 
 		perf_callchain_store(entry, frame.return_address);
-		fp = (void __user *)frame.next_frame;
+		fp = (void __force_user *)frame.next_frame;
 	}
 	pagefault_enable();
 }

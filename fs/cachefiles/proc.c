@@ -14,9 +14,9 @@
 #include <linux/seq_file.h>
 #include "internal.h"
 
-atomic_t cachefiles_lookup_histogram[HZ];
-atomic_t cachefiles_mkdir_histogram[HZ];
-atomic_t cachefiles_create_histogram[HZ];
+atomic_unchecked_t cachefiles_lookup_histogram[HZ];
+atomic_unchecked_t cachefiles_mkdir_histogram[HZ];
+atomic_unchecked_t cachefiles_create_histogram[HZ];
 
 /*
  * display the latency histogram
@@ -35,9 +35,9 @@ static int cachefiles_histogram_show(struct seq_file *m, void *v)
 		return 0;
 	default:
 		index = (unsigned long) v - 3;
-		x = atomic_read(&cachefiles_lookup_histogram[index]);
-		y = atomic_read(&cachefiles_mkdir_histogram[index]);
-		z = atomic_read(&cachefiles_create_histogram[index]);
+		x = atomic_read_unchecked(&cachefiles_lookup_histogram[index]);
+		y = atomic_read_unchecked(&cachefiles_mkdir_histogram[index]);
+		z = atomic_read_unchecked(&cachefiles_create_histogram[index]);
 		if (x == 0 && y == 0 && z == 0)
 			return 0;
 

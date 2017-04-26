@@ -80,7 +80,6 @@ MODULE_PARM_DESC(max_hops,
 		 "default: " __stringify(CGW_DEFAULT_HOPS) ")");
 
 static HLIST_HEAD(cgw_list);
-static struct notifier_block notifier;
 
 static struct kmem_cache *cgw_cache __read_mostly;
 
@@ -992,6 +991,10 @@ static int cgw_remove_job(struct sk_buff *skb, struct nlmsghdr *nlh)
 	return err;
 }
 
+static struct notifier_block notifier = {
+	.notifier_call = cgw_notifier
+};
+
 static __init int cgw_module_init(void)
 {
 	/* sanitize given module parameter */
@@ -1007,7 +1010,6 @@ static __init int cgw_module_init(void)
 		return -ENOMEM;
 
 	/* set notifier */
-	notifier.notifier_call = cgw_notifier;
 	register_netdevice_notifier(&notifier);
 
 	if (__rtnl_register(PF_CAN, RTM_GETROUTE, NULL, cgw_dump_jobs, NULL)) {

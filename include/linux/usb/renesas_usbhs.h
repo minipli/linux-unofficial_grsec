@@ -39,7 +39,7 @@ enum {
  */
 struct renesas_usbhs_driver_callback {
 	int (*notify_hotplug)(struct platform_device *pdev);
-};
+} __no_const;
 
 /*
  * callback functions for platform

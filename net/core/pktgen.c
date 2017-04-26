@@ -3867,7 +3867,7 @@ static int __net_init pg_net_init(struct net *net)
 	pn->net = net;
 	INIT_LIST_HEAD(&pn->pktgen_threads);
 	pn->pktgen_exiting = false;
-	pn->proc_dir = proc_mkdir(PG_PROC_DIR, pn->net->proc_net);
+	pn->proc_dir = proc_mkdir_restrict(PG_PROC_DIR, pn->net->proc_net);
 	if (!pn->proc_dir) {
 		pr_warn("cannot create /proc/net/%s\n", PG_PROC_DIR);
 		return -ENODEV;

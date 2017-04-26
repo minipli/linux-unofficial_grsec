@@ -154,8 +154,8 @@ struct device_queue_manager_asic_ops {
  */
 
 struct device_queue_manager {
-	struct device_queue_manager_ops ops;
-	struct device_queue_manager_asic_ops ops_asic_specific;
+	const struct device_queue_manager_ops *ops;
+	const struct device_queue_manager_asic_ops *ops_asic_specific;
 
 	struct mqd_manager	*mqds[KFD_MQD_TYPE_MAX];
 	struct packet_manager	packets;
@@ -178,8 +178,8 @@ struct device_queue_manager {
 	bool			active_runlist;
 };
 
-void device_queue_manager_init_cik(struct device_queue_manager_asic_ops *ops);
-void device_queue_manager_init_vi(struct device_queue_manager_asic_ops *ops);
+void device_queue_manager_init_cik(struct device_queue_manager *dqm);
+void device_queue_manager_init_vi(struct device_queue_manager *dqm);
 void program_sh_mem_settings(struct device_queue_manager *dqm,
 					struct qcm_process_device *qpd);
 int init_pipelines(struct device_queue_manager *dqm,

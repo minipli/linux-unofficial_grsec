@@ -87,7 +87,8 @@ void drbd_md_endio(struct bio *bio)
 /* reads on behalf of the partner,
  * "submitted" by the receiver
  */
-static void drbd_endio_read_sec_final(struct drbd_peer_request *peer_req) __releases(local)
+static void drbd_endio_read_sec_final(struct drbd_peer_request *peer_req) __releases(local);
+static void drbd_endio_read_sec_final(struct drbd_peer_request *peer_req)
 {
 	unsigned long flags = 0;
 	struct drbd_peer_device *peer_device = peer_req->peer_device;
@@ -108,7 +109,8 @@ static void drbd_endio_read_sec_final(struct drbd_peer_request *peer_req) __rele
 
 /* writes on behalf of the partner, or resync writes,
  * "submitted" by the receiver, final stage.  */
-void drbd_endio_write_sec_final(struct drbd_peer_request *peer_req) __releases(local)
+void drbd_endio_write_sec_final(struct drbd_peer_request *peer_req) __releases(local);
+void drbd_endio_write_sec_final(struct drbd_peer_request *peer_req)
 {
 	unsigned long flags = 0;
 	struct drbd_peer_device *peer_device = peer_req->peer_device;
@@ -408,7 +410,7 @@ static int read_for_csum(struct drbd_peer_device *peer_device, sector_t sector, 
 	list_add_tail(&peer_req->w.list, &device->read_ee);
 	spin_unlock_irq(&device->resource->req_lock);
 
-	atomic_add(size >> 9, &device->rs_sect_ev);
+	atomic_add_unchecked(size >> 9, &device->rs_sect_ev);
 	if (drbd_submit_peer_request(device, peer_req, REQ_OP_READ, 0,
 				     DRBD_FAULT_RS_RD) == 0)
 		return 0;
@@ -554,7 +556,7 @@ static int drbd_rs_number_requests(struct drbd_device *device)
 	unsigned int sect_in;  /* Number of sectors that came in since the last turn */
 	int number, mxb;
 
-	sect_in = atomic_xchg(&device->rs_sect_in, 0);
+	sect_in = atomic_xchg_unchecked(&device->rs_sect_in, 0);
 	device->rs_in_flight -= sect_in;
 
 	rcu_read_lock();
@@ -1662,8 +1664,8 @@ void drbd_rs_controller_reset(struct drbd_device *device)
 	struct gendisk *disk = device->ldev->backing_bdev->bd_contains->bd_disk;
 	struct fifo_buffer *plan;
 
-	atomic_set(&device->rs_sect_in, 0);
-	atomic_set(&device->rs_sect_ev, 0);
+	atomic_set_unchecked(&device->rs_sect_in, 0);
+	atomic_set_unchecked(&device->rs_sect_ev, 0);
 	device->rs_in_flight = 0;
 	device->rs_last_events =
 		(int)part_stat_read(&disk->part0, sectors[0]) +

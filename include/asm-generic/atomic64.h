@@ -16,6 +16,8 @@ typedef struct {
 	long long counter;
 } atomic64_t;
 
+typedef atomic64_t atomic64_unchecked_t;
+
 #define ATOMIC64_INIT(i)	{ (i) }
 
 extern long long atomic64_read(const atomic64_t *v);
@@ -61,5 +63,16 @@ extern int	 atomic64_add_unless(atomic64_t *v, long long a, long long u);
 #define atomic64_dec_return(v)		atomic64_sub_return(1LL, (v))
 #define atomic64_dec_and_test(v)	(atomic64_dec_return((v)) == 0)
 #define atomic64_inc_not_zero(v) 	atomic64_add_unless((v), 1LL, 0LL)
+
+#define atomic64_read_unchecked(v) atomic64_read(v)
+#define atomic64_set_unchecked(v, i) atomic64_set((v), (i))
+#define atomic64_add_unchecked(a, v) atomic64_add((a), (v))
+#define atomic64_add_return_unchecked(a, v) atomic64_add_return((a), (v))
+#define atomic64_sub_unchecked(a, v) atomic64_sub((a), (v))
+#define atomic64_inc_unchecked(v) atomic64_inc(v)
+#define atomic64_inc_return_unchecked(v) atomic64_inc_return(v)
+#define atomic64_dec_unchecked(v) atomic64_dec(v)
+#define atomic64_cmpxchg_unchecked(v, o, n) atomic64_cmpxchg((v), (o), (n))
+#define atomic64_xchg_unchecked(v, n) atomic64_xchg((v), (n))
 
 #endif  /*  _ASM_GENERIC_ATOMIC64_H  */

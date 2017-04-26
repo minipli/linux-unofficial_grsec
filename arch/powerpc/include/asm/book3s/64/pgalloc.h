@@ -91,6 +91,11 @@ static inline void pgd_populate(struct mm_struct *mm, pgd_t *pgd, pud_t *pud)
 	pgd_set(pgd, __pgtable_ptr_val(pud) | PGD_VAL_BITS);
 }
 
+static inline void pgd_populate_kernel(struct mm_struct *mm, pgd_t *pgd, pud_t *pud)
+{
+	pgd_populate(mm, pgd, pud);
+}
+
 static inline pud_t *pud_alloc_one(struct mm_struct *mm, unsigned long addr)
 {
 	return kmem_cache_alloc(PGT_CACHE(PUD_INDEX_SIZE), GFP_KERNEL);
@@ -104,6 +109,11 @@ static inline void pud_free(struct mm_struct *mm, pud_t *pud)
 static inline void pud_populate(struct mm_struct *mm, pud_t *pud, pmd_t *pmd)
 {
 	pud_set(pud, __pgtable_ptr_val(pmd) | PUD_VAL_BITS);
+}
+
+static inline void pud_populate_kernel(struct mm_struct *mm, pud_t *pud, pmd_t *pmd)
+{
+	pud_populate_kernel(mm, pud, pmd);
 }
 
 static inline void __pud_free_tlb(struct mmu_gather *tlb, pud_t *pud,

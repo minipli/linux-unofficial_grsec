@@ -41,8 +41,10 @@ hfcs_interrupt(int intno, void *dev_id)
 }
 
 static void
-hfcs_Timer(struct IsdnCardState *cs)
+hfcs_Timer(unsigned long _cs)
 {
+	struct IsdnCardState *cs = (struct IsdnCardState *)_cs;
+
 	cs->hw.hfcD.timer.expires = jiffies + 75;
 	/* WD RESET */
 /*	WriteReg(cs, HFCD_DATA, HFCD_CTMT, cs->hw.hfcD.ctmt | 0x80);
@@ -253,7 +255,7 @@ int setup_hfcs(struct IsdnCard *card)
 		outb(0x57, cs->hw.hfcD.addr | 1);
 	}
 	set_cs_func(cs);
-	cs->hw.hfcD.timer.function = (void *) hfcs_Timer;
+	cs->hw.hfcD.timer.function = hfcs_Timer;
 	cs->hw.hfcD.timer.data = (long) cs;
 	init_timer(&cs->hw.hfcD.timer);
 	cs->cardmsg = &hfcs_card_msg;

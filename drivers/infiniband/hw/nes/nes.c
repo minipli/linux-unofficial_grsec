@@ -97,7 +97,7 @@ MODULE_PARM_DESC(limit_maxrdreqsz, "Limit max read request size to 256 Bytes");
 LIST_HEAD(nes_adapter_list);
 static LIST_HEAD(nes_dev_list);
 
-atomic_t qps_destroyed;
+atomic_unchecked_t qps_destroyed;
 
 static unsigned int ee_flsh_adapter;
 static unsigned int sysfs_nonidx_addr;
@@ -268,7 +268,7 @@ static void nes_cqp_rem_ref_callback(struct nes_device *nesdev, struct nes_cqp_r
 	struct nes_qp *nesqp = cqp_request->cqp_callback_pointer;
 	struct nes_adapter *nesadapter = nesdev->nesadapter;
 
-	atomic_inc(&qps_destroyed);
+	atomic_inc_unchecked(&qps_destroyed);
 
 	/* Free the control structures */
 

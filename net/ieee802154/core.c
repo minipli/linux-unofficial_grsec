@@ -110,7 +110,7 @@ struct wpan_phy *wpan_phy_idx_to_wpan_phy(int wpan_phy_idx)
 struct wpan_phy *
 wpan_phy_new(const struct cfg802154_ops *ops, size_t priv_size)
 {
-	static atomic_t wpan_phy_counter = ATOMIC_INIT(0);
+	static atomic_unchecked_t wpan_phy_counter = ATOMIC_INIT(0);
 	struct cfg802154_registered_device *rdev;
 	size_t alloc_size;
 
@@ -121,11 +121,11 @@ wpan_phy_new(const struct cfg802154_ops *ops, size_t priv_size)
 
 	rdev->ops = ops;
 
-	rdev->wpan_phy_idx = atomic_inc_return(&wpan_phy_counter);
+	rdev->wpan_phy_idx = atomic_inc_return_unchecked(&wpan_phy_counter);
 
 	if (unlikely(rdev->wpan_phy_idx < 0)) {
 		/* ugh, wrapped! */
-		atomic_dec(&wpan_phy_counter);
+		atomic_dec_unchecked(&wpan_phy_counter);
 		kfree(rdev);
 		return NULL;
 	}

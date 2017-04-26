@@ -39,6 +39,14 @@ enum machine_type {
   M_MIPS2 = 152		/* MIPS R6000/R4000 binary */
 };
 
+/* Constants for the N_FLAGS field */
+#define F_PAX_PAGEEXEC	1	/* Paging based non-executable pages */
+#define F_PAX_EMUTRAMP	2	/* Emulate trampolines */
+#define F_PAX_MPROTECT	4	/* Restrict mprotect() */
+#define F_PAX_RANDMMAP	8	/* Randomize mmap() base */
+/*#define F_PAX_RANDEXEC	16*/	/* Randomize ET_EXEC base */
+#define F_PAX_SEGMEXEC	32	/* Segmentation based non-executable pages */
+
 #if !defined (N_MAGIC)
 #define N_MAGIC(exec) ((exec).a_info & 0xffff)
 #endif

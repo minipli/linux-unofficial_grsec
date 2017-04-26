@@ -168,6 +168,10 @@ static inline struct llist_node *llist_next(struct llist_node *node)
 extern bool llist_add_batch(struct llist_node *new_first,
 			    struct llist_node *new_last,
 			    struct llist_head *head);
+
+extern bool pax_llist_add_batch(struct llist_node *new_first,
+				struct llist_node *new_last,
+				struct llist_head *head);
 /**
  * llist_add - add a new entry
  * @new:	new entry to be added
@@ -178,6 +182,11 @@ extern bool llist_add_batch(struct llist_node *new_first,
 static inline bool llist_add(struct llist_node *new, struct llist_head *head)
 {
 	return llist_add_batch(new, new, head);
+}
+
+static inline bool pax_llist_add(struct llist_node *new, struct llist_head *head)
+{
+	return pax_llist_add_batch(new, new, head);
 }
 
 /**

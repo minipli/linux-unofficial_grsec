@@ -138,6 +138,7 @@ unsigned long hugetlb_get_unmapped_area(struct file *file, unsigned long addr, u
 		unsigned long pgoff, unsigned long flags)
 {
 	struct vm_unmapped_area_info info;
+	unsigned long offset = gr_rand_threadstack_offset(current->mm, file, flags);
 
 	if (len > RGN_MAP_LIMIT)
 		return -ENOMEM;
@@ -161,6 +162,7 @@ unsigned long hugetlb_get_unmapped_area(struct file *file, unsigned long addr, u
 	info.high_limit = HPAGE_REGION_BASE + RGN_MAP_LIMIT;
 	info.align_mask = PAGE_MASK & (HPAGE_SIZE - 1);
 	info.align_offset = 0;
+	info.threadstack_offset = offset;
 	return vm_unmapped_area(&info);
 }
 

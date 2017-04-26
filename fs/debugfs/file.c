@@ -209,7 +209,7 @@ static int full_proxy_release(struct inode *inode, struct file *filp)
 	return r;
 }
 
-static void __full_proxy_fops_init(struct file_operations *proxy_fops,
+static void __full_proxy_fops_init(file_operations_no_const *proxy_fops,
 				const struct file_operations *real_fops)
 {
 	proxy_fops->release = full_proxy_release;
@@ -229,7 +229,7 @@ static int full_proxy_open(struct inode *inode, struct file *filp)
 {
 	const struct dentry *dentry = F_DENTRY(filp);
 	const struct file_operations *real_fops = NULL;
-	struct file_operations *proxy_fops = NULL;
+	file_operations_no_const *proxy_fops = NULL;
 	int srcu_idx, r;
 
 	r = debugfs_use_file_start(dentry, &srcu_idx);
@@ -733,6 +733,43 @@ struct dentry *debugfs_create_atomic_t(const char *name, umode_t mode,
 					&fops_atomic_t_wo);
 }
 EXPORT_SYMBOL_GPL(debugfs_create_atomic_t);
+
+static int debugfs_atomic_unchecked_t_set(void *data, u64 val)
+{
+	atomic_set_unchecked((atomic_unchecked_t *)data, val);
+	return 0;
+}
+static int debugfs_atomic_unchecked_t_get(void *data, u64 *val)
+{
+	*val = atomic_read_unchecked((atomic_unchecked_t *)data);
+	return 0;
+}
+DEFINE_DEBUGFS_ATTRIBUTE(fops_atomic_unchecked_t, debugfs_atomic_unchecked_t_get,
+			debugfs_atomic_unchecked_t_set, "%lld\n");
+DEFINE_DEBUGFS_ATTRIBUTE(fops_atomic_unchecked_t_ro, debugfs_atomic_unchecked_t_get, NULL,
+			"%lld\n");
+DEFINE_DEBUGFS_ATTRIBUTE(fops_atomic_unchecked_t_wo, NULL, debugfs_atomic_unchecked_t_set,
+			"%lld\n");
+
+/**
+ * debugfs_create_atomic_unchecked_t - create a debugfs file that is used to read and
+ * write an atomic_unchecked_t value
+ * @name: a pointer to a string containing the name of the file to create.
+ * @mode: the permission that the file should have
+ * @parent: a pointer to the parent dentry for this file.  This should be a
+ *          directory dentry if set.  If this parameter is %NULL, then the
+ *          file will be created in the root of the debugfs filesystem.
+ * @value: a pointer to the variable that the file should read to and write
+ *         from.
+ */
+struct dentry *debugfs_create_atomic_unchecked_t(const char *name, umode_t mode,
+				 struct dentry *parent, atomic_unchecked_t *value)
+{
+	return debugfs_create_mode_unsafe(name, mode, parent, value,
+					&fops_atomic_unchecked_t, &fops_atomic_unchecked_t_ro,
+					&fops_atomic_unchecked_t_wo);
+}
+EXPORT_SYMBOL_GPL(debugfs_create_atomic_unchecked_t);
 
 ssize_t debugfs_read_file_bool(struct file *file, char __user *user_buf,
 			       size_t count, loff_t *ppos)

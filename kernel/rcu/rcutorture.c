@@ -132,12 +132,12 @@ static struct rcu_torture rcu_tortures[10 * RCU_TORTURE_PIPE_LEN];
 static DEFINE_SPINLOCK(rcu_torture_lock);
 static DEFINE_PER_CPU(long [RCU_TORTURE_PIPE_LEN + 1], rcu_torture_count);
 static DEFINE_PER_CPU(long [RCU_TORTURE_PIPE_LEN + 1], rcu_torture_batch);
-static atomic_t rcu_torture_wcount[RCU_TORTURE_PIPE_LEN + 1];
-static atomic_t n_rcu_torture_alloc;
-static atomic_t n_rcu_torture_alloc_fail;
-static atomic_t n_rcu_torture_free;
-static atomic_t n_rcu_torture_mberror;
-static atomic_t n_rcu_torture_error;
+static atomic_unchecked_t rcu_torture_wcount[RCU_TORTURE_PIPE_LEN + 1];
+static atomic_unchecked_t n_rcu_torture_alloc;
+static atomic_unchecked_t n_rcu_torture_alloc_fail;
+static atomic_unchecked_t n_rcu_torture_free;
+static atomic_unchecked_t n_rcu_torture_mberror;
+static atomic_unchecked_t n_rcu_torture_error;
 static long n_rcu_torture_barrier_error;
 static long n_rcu_torture_boost_ktrerror;
 static long n_rcu_torture_boost_rterror;
@@ -146,7 +146,7 @@ static long n_rcu_torture_boosts;
 static long n_rcu_torture_timers;
 static long n_barrier_attempts;
 static long n_barrier_successes;
-static atomic_long_t n_cbfloods;
+static atomic_long_unchecked_t n_cbfloods;
 static struct list_head rcu_torture_removed;
 
 static int rcu_torture_writer_state;
@@ -225,11 +225,11 @@ rcu_torture_alloc(void)
 
 	spin_lock_bh(&rcu_torture_lock);
 	if (list_empty(&rcu_torture_freelist)) {
-		atomic_inc(&n_rcu_torture_alloc_fail);
+		atomic_inc_unchecked(&n_rcu_torture_alloc_fail);
 		spin_unlock_bh(&rcu_torture_lock);
 		return NULL;
 	}
-	atomic_inc(&n_rcu_torture_alloc);
+	atomic_inc_unchecked(&n_rcu_torture_alloc);
 	p = rcu_torture_freelist.next;
 	list_del_init(p);
 	spin_unlock_bh(&rcu_torture_lock);
@@ -242,7 +242,7 @@ rcu_torture_alloc(void)
 static void
 rcu_torture_free(struct rcu_torture *p)
 {
-	atomic_inc(&n_rcu_torture_free);
+	atomic_inc_unchecked(&n_rcu_torture_free);
 	spin_lock_bh(&rcu_torture_lock);
 	list_add_tail(&p->rtort_free, &rcu_torture_freelist);
 	spin_unlock_bh(&rcu_torture_lock);
@@ -323,7 +323,7 @@ rcu_torture_pipe_update_one(struct rcu_torture *rp)
 	i = rp->rtort_pipe_count;
 	if (i > RCU_TORTURE_PIPE_LEN)
 		i = RCU_TORTURE_PIPE_LEN;
-	atomic_inc(&rcu_torture_wcount[i]);
+	atomic_inc_unchecked(&rcu_torture_wcount[i]);
 	if (++rp->rtort_pipe_count >= RCU_TORTURE_PIPE_LEN) {
 		rp->rtort_mbtest = 0;
 		return true;
@@ -853,7 +853,7 @@ rcu_torture_cbflood(void *arg)
 	VERBOSE_TOROUT_STRING("rcu_torture_cbflood task started");
 	do {
 		schedule_timeout_interruptible(cbflood_inter_holdoff);
-		atomic_long_inc(&n_cbfloods);
+		atomic_long_inc_unchecked(&n_cbfloods);
 		WARN_ON(signal_pending(current));
 		for (i = 0; i < cbflood_n_burst; i++) {
 			for (j = 0; j < cbflood_n_per_burst; j++) {
@@ -983,7 +983,7 @@ rcu_torture_writer(void *arg)
 			i = old_rp->rtort_pipe_count;
 			if (i > RCU_TORTURE_PIPE_LEN)
 				i = RCU_TORTURE_PIPE_LEN;
-			atomic_inc(&rcu_torture_wcount[i]);
+			atomic_inc_unchecked(&rcu_torture_wcount[i]);
 			old_rp->rtort_pipe_count++;
 			switch (synctype[torture_random(&rand) % nsynctypes]) {
 			case RTWS_DEF_FREE:
@@ -1111,7 +1111,7 @@ static void rcu_torture_timer(unsigned long unused)
 		return;
 	}
 	if (p->rtort_mbtest == 0)
-		atomic_inc(&n_rcu_torture_mberror);
+		atomic_inc_unchecked(&n_rcu_torture_mberror);
 	spin_lock(&rand_lock);
 	cur_ops->read_delay(&rand);
 	n_rcu_torture_timers++;
@@ -1187,7 +1187,7 @@ rcu_torture_reader(void *arg)
 			continue;
 		}
 		if (p->rtort_mbtest == 0)
-			atomic_inc(&n_rcu_torture_mberror);
+			atomic_inc_unchecked(&n_rcu_torture_mberror);
 		cur_ops->read_delay(&rand);
 		preempt_disable();
 		pipe_count = p->rtort_pipe_count;
@@ -1256,11 +1256,11 @@ rcu_torture_stats_print(void)
 		rcu_torture_current,
 		rcu_torture_current_version,
 		list_empty(&rcu_torture_freelist),
-		atomic_read(&n_rcu_torture_alloc),
-		atomic_read(&n_rcu_torture_alloc_fail),
-		atomic_read(&n_rcu_torture_free));
+		atomic_read_unchecked(&n_rcu_torture_alloc),
+		atomic_read_unchecked(&n_rcu_torture_alloc_fail),
+		atomic_read_unchecked(&n_rcu_torture_free));
 	pr_cont("rtmbe: %d rtbe: %ld rtbke: %ld rtbre: %ld ",
-		atomic_read(&n_rcu_torture_mberror),
+		atomic_read_unchecked(&n_rcu_torture_mberror),
 		n_rcu_torture_barrier_error,
 		n_rcu_torture_boost_ktrerror,
 		n_rcu_torture_boost_rterror);
@@ -1273,17 +1273,17 @@ rcu_torture_stats_print(void)
 		n_barrier_successes,
 		n_barrier_attempts,
 		n_rcu_torture_barrier_error);
-	pr_cont("cbflood: %ld\n", atomic_long_read(&n_cbfloods));
+	pr_cont("cbflood: %ld\n", atomic_long_read_unchecked(&n_cbfloods));
 
 	pr_alert("%s%s ", torture_type, TORTURE_FLAG);
-	if (atomic_read(&n_rcu_torture_mberror) != 0 ||
+	if (atomic_read_unchecked(&n_rcu_torture_mberror) != 0 ||
 	    n_rcu_torture_barrier_error != 0 ||
 	    n_rcu_torture_boost_ktrerror != 0 ||
 	    n_rcu_torture_boost_rterror != 0 ||
 	    n_rcu_torture_boost_failure != 0 ||
 	    i > 1) {
 		pr_cont("%s", "!!! ");
-		atomic_inc(&n_rcu_torture_error);
+		atomic_inc_unchecked(&n_rcu_torture_error);
 		WARN_ON_ONCE(1);
 	}
 	pr_cont("Reader Pipe: ");
@@ -1300,7 +1300,7 @@ rcu_torture_stats_print(void)
 	pr_alert("%s%s ", torture_type, TORTURE_FLAG);
 	pr_cont("Free-Block Circulation: ");
 	for (i = 0; i < RCU_TORTURE_PIPE_LEN + 1; i++) {
-		pr_cont(" %d", atomic_read(&rcu_torture_wcount[i]));
+		pr_cont(" %d", atomic_read_unchecked(&rcu_torture_wcount[i]));
 	}
 	pr_cont("\n");
 
@@ -1636,7 +1636,7 @@ rcu_torture_cleanup(void)
 
 	rcu_torture_stats_print();  /* -After- the stats thread is stopped! */
 
-	if (atomic_read(&n_rcu_torture_error) || n_rcu_torture_barrier_error)
+	if (atomic_read_unchecked(&n_rcu_torture_error) || n_rcu_torture_barrier_error)
 		rcu_torture_print_module_parms(cur_ops, "End of test: FAILURE");
 	else if (torture_onoff_failures())
 		rcu_torture_print_module_parms(cur_ops,
@@ -1761,18 +1761,18 @@ rcu_torture_init(void)
 
 	rcu_torture_current = NULL;
 	rcu_torture_current_version = 0;
-	atomic_set(&n_rcu_torture_alloc, 0);
-	atomic_set(&n_rcu_torture_alloc_fail, 0);
-	atomic_set(&n_rcu_torture_free, 0);
-	atomic_set(&n_rcu_torture_mberror, 0);
-	atomic_set(&n_rcu_torture_error, 0);
+	atomic_set_unchecked(&n_rcu_torture_alloc, 0);
+	atomic_set_unchecked(&n_rcu_torture_alloc_fail, 0);
+	atomic_set_unchecked(&n_rcu_torture_free, 0);
+	atomic_set_unchecked(&n_rcu_torture_mberror, 0);
+	atomic_set_unchecked(&n_rcu_torture_error, 0);
 	n_rcu_torture_barrier_error = 0;
 	n_rcu_torture_boost_ktrerror = 0;
 	n_rcu_torture_boost_rterror = 0;
 	n_rcu_torture_boost_failure = 0;
 	n_rcu_torture_boosts = 0;
 	for (i = 0; i < RCU_TORTURE_PIPE_LEN + 1; i++)
-		atomic_set(&rcu_torture_wcount[i], 0);
+		atomic_set_unchecked(&rcu_torture_wcount[i], 0);
 	for_each_possible_cpu(cpu) {
 		for (i = 0; i < RCU_TORTURE_PIPE_LEN + 1; i++) {
 			per_cpu(rcu_torture_count, cpu)[i] = 0;

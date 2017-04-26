@@ -40,7 +40,7 @@ if test "$(objtree)" != "$(srctree)"; then \
 fi ; \
 $(srctree)/scripts/setlocalversion --save-scmversion; \
 ln -sf $(srctree) $(2); \
-tar -cz $(RCS_TAR_IGNORE) -f $(2).tar.gz \
+tar --owner=root --group=root -cz $(RCS_TAR_IGNORE) -f $(2).tar.gz \
 	$(addprefix $(2)/,$(TAR_CONTENT) $(3)); \
 rm -f $(2) $(objtree)/.scmversion
 

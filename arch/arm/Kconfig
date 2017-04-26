@@ -1622,6 +1622,7 @@ config AEABI
 config OABI_COMPAT
 	bool "Allow old ABI binaries to run with this kernel (EXPERIMENTAL)"
 	depends on AEABI && !THUMB2_KERNEL
+	depends on !GRKERNSEC
 	help
 	  This option preserves the old syscall interface along with the
 	  new (ARM EABI) one. It also provides a compatibility layer to
@@ -1690,6 +1691,7 @@ config HIGHPTE
 config CPU_SW_DOMAIN_PAN
 	bool "Enable use of CPU domains to implement privileged no-access"
 	depends on MMU && !ARM_LPAE
+	depends on !PAX_KERNEXEC && !PAX_MEMORY_UDEREF
 	default y
 	help
 	  Increase kernel security by ensuring that normal kernel accesses
@@ -1766,7 +1768,7 @@ config ALIGNMENT_TRAP
 
 config UACCESS_WITH_MEMCPY
 	bool "Use kernel mem{cpy,set}() for {copy_to,clear}_user()"
-	depends on MMU
+	depends on MMU && !PAX_MEMORY_UDEREF
 	default y if CPU_FEROCEON
 	help
 	  Implement faster copy_to_user and clear_user methods for CPU
@@ -2021,6 +2023,7 @@ config KEXEC
 	depends on (!SMP || PM_SLEEP_SMP)
 	depends on !CPU_V7M
 	select KEXEC_CORE
+	depends on !GRKERNSEC_KMEM
 	help
 	  kexec is a system call that implements the ability to shutdown your
 	  current kernel, and to start another kernel.  It is like a reboot
@@ -2065,7 +2068,7 @@ config EFI_STUB
 
 config EFI
 	bool "UEFI runtime support"
-	depends on OF && !CPU_BIG_ENDIAN && MMU && AUTO_ZRELADDR && !XIP_KERNEL
+	depends on OF && !CPU_BIG_ENDIAN && MMU && AUTO_ZRELADDR && !XIP_KERNEL && !PAX_KERNEXEC
 	select UCS2_STRING
 	select EFI_PARAMS_FROM_FDT
 	select EFI_STUB

@@ -681,8 +681,9 @@ DC_Close_W6692(struct IsdnCardState *cs)
 }
 
 static void
-dbusy_timer_handler(struct IsdnCardState *cs)
+dbusy_timer_handler(unsigned long _cs)
 {
+	struct IsdnCardState *cs = (struct IsdnCardState *)_cs;
 	struct PStack *stptr;
 	int rbch, star;
 	u_long flags;
@@ -901,7 +902,7 @@ static void initW6692(struct IsdnCardState *cs, int part)
 	if (part & 1) {
 		cs->setstack_d = setstack_W6692;
 		cs->DC_Close = DC_Close_W6692;
-		cs->dbusytimer.function = (void *) dbusy_timer_handler;
+		cs->dbusytimer.function = dbusy_timer_handler;
 		cs->dbusytimer.data = (long) cs;
 		init_timer(&cs->dbusytimer);
 		resetW6692(cs);

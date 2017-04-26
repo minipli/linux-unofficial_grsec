@@ -2,13 +2,13 @@
 #define _BCACHE_STATS_H_
 
 struct cache_stat_collector {
-	atomic_t cache_hits;
-	atomic_t cache_misses;
-	atomic_t cache_bypass_hits;
-	atomic_t cache_bypass_misses;
-	atomic_t cache_readaheads;
-	atomic_t cache_miss_collisions;
-	atomic_t sectors_bypassed;
+	atomic_unchecked_t cache_hits;
+	atomic_unchecked_t cache_misses;
+	atomic_unchecked_t cache_bypass_hits;
+	atomic_unchecked_t cache_bypass_misses;
+	atomic_unchecked_t cache_readaheads;
+	atomic_unchecked_t cache_miss_collisions;
+	atomic_unchecked_t sectors_bypassed;
 };
 
 struct cache_stats {
@@ -28,7 +28,7 @@ struct cache_stats {
 struct cache_accounting {
 	struct closure		cl;
 	struct timer_list	timer;
-	atomic_t		closing;
+	atomic_unchecked_t	closing;
 
 	struct cache_stat_collector collector;
 

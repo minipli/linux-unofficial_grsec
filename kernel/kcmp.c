@@ -100,6 +100,10 @@ SYSCALL_DEFINE5(kcmp, pid_t, pid1, pid_t, pid2, int, type,
 	struct task_struct *task1, *task2;
 	int ret;
 
+#ifdef CONFIG_GRKERNSEC
+	return -ENOSYS;
+#endif
+
 	rcu_read_lock();
 
 	/*

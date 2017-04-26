@@ -187,4 +187,10 @@ static inline bool kgid_has_mapping(struct user_namespace *ns, kgid_t gid)
 
 #endif /* CONFIG_USER_NS */
 
+#define GR_GLOBAL_UID(x) from_kuid_munged(&init_user_ns, (x))
+#define GR_GLOBAL_GID(x) from_kgid_munged(&init_user_ns, (x))
+#define gr_is_global_root(x) uid_eq((x), GLOBAL_ROOT_UID)
+#define gr_is_global_nonroot(x) (!uid_eq((x), GLOBAL_ROOT_UID))
+#define gr_is_global_nonroot_gid(x) (!gid_eq((x), GLOBAL_ROOT_GID))
+
 #endif /* _LINUX_UIDGID_H */

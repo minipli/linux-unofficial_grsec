@@ -97,7 +97,8 @@ static inline u32 dbgp_len_update(u32 x, u32 len)
 
 #ifdef CONFIG_KGDB
 static struct kgdb_io kgdbdbgp_io_ops;
-#define dbgp_kgdb_mode (dbg_io_ops == &kgdbdbgp_io_ops)
+static struct kgdb_io kgdbdbgp_io_ops_console;
+#define dbgp_kgdb_mode (dbg_io_ops == &kgdbdbgp_io_ops || dbg_io_ops == &kgdbdbgp_io_ops_console)
 #else
 #define dbgp_kgdb_mode (0)
 #endif
@@ -1036,10 +1037,17 @@ static void kgdbdbgp_write_char(u8 chr)
 	early_dbgp_write(NULL, &chr, 1);
 }
 
-static struct kgdb_io kgdbdbgp_io_ops = {
+static struct kgdb_io kgdbdbgp_io_ops __read_only = {
 	.name = "kgdbdbgp",
 	.read_char = kgdbdbgp_read_char,
 	.write_char = kgdbdbgp_write_char,
+};
+
+static struct kgdb_io kgdbdbgp_io_ops_console __read_only = {
+	.name = "kgdbdbgp",
+	.read_char = kgdbdbgp_read_char,
+	.write_char = kgdbdbgp_write_char,
+	.is_console = 1
 };
 
 static int kgdbdbgp_wait_time;
@@ -1057,8 +1065,10 @@ static int __init kgdbdbgp_parse_config(char *str)
 		ptr++;
 		kgdbdbgp_wait_time = simple_strtoul(ptr, &ptr, 10);
 	}
-	kgdb_register_io_module(&kgdbdbgp_io_ops);
-	kgdbdbgp_io_ops.is_console = early_dbgp_console.index != -1;
+	if (early_dbgp_console.index != -1)
+		kgdb_register_io_module(&kgdbdbgp_io_ops_console);
+	else
+		kgdb_register_io_module(&kgdbdbgp_io_ops);
 
 	return 0;
 }

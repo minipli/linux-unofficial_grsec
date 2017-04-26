@@ -101,8 +101,9 @@ static int prism2_get_datarates(struct net_device *dev, u8 *rates)
 
 static int prism2_get_name(struct net_device *dev,
 			   struct iw_request_info *info,
-			   char *name, char *extra)
+			   union iwreq_data *wrqu, char *extra)
 {
+	char *name = wrqu->name;
 	u8 rates[10];
 	int len, i, over2 = 0;
 
@@ -123,8 +124,9 @@ static int prism2_get_name(struct net_device *dev,
 
 static int prism2_ioctl_siwencode(struct net_device *dev,
 				  struct iw_request_info *info,
-				  struct iw_point *erq, char *keybuf)
+				  union iwreq_data *wrqu, char *keybuf)
 {
+	struct iw_point *erq = &wrqu->encoding;
 	struct hostap_interface *iface;
 	local_info_t *local;
 	int i;
@@ -225,8 +227,9 @@ static int prism2_ioctl_siwencode(struct net_device *dev,
 
 static int prism2_ioctl_giwencode(struct net_device *dev,
 				  struct iw_request_info *info,
-				  struct iw_point *erq, char *key)
+				  union iwreq_data *wrqu, char *key)
 {
+	struct iw_point *erq = &wrqu->encoding;
 	struct hostap_interface *iface;
 	local_info_t *local;
 	int i, len;
@@ -331,8 +334,9 @@ static int hostap_set_rate(struct net_device *dev)
 
 static int prism2_ioctl_siwrate(struct net_device *dev,
 				struct iw_request_info *info,
-				struct iw_param *rrq, char *extra)
+				union iwreq_data *wrqu, char *extra)
 {
+	struct iw_param *rrq = &wrqu->bitrate;
 	struct hostap_interface *iface;
 	local_info_t *local;
 
@@ -391,8 +395,9 @@ static int prism2_ioctl_siwrate(struct net_device *dev,
 
 static int prism2_ioctl_giwrate(struct net_device *dev,
 				struct iw_request_info *info,
-				struct iw_param *rrq, char *extra)
+				union iwreq_data *wrqu, char *extra)
 {
+	struct iw_param *rrq = &wrqu->bitrate;
 	u16 val;
 	struct hostap_interface *iface;
 	local_info_t *local;
@@ -450,8 +455,9 @@ static int prism2_ioctl_giwrate(struct net_device *dev,
 
 static int prism2_ioctl_siwsens(struct net_device *dev,
 				struct iw_request_info *info,
-				struct iw_param *sens, char *extra)
+				union iwreq_data *wrqu, char *extra)
 {
+	struct iw_param *sens = &wrqu->sens;
 	struct hostap_interface *iface;
 	local_info_t *local;
 
@@ -471,8 +477,9 @@ static int prism2_ioctl_siwsens(struct net_device *dev,
 
 static int prism2_ioctl_giwsens(struct net_device *dev,
 				struct iw_request_info *info,
-				struct iw_param *sens, char *extra)
+				union iwreq_data *wrqu, char *extra)
 {
+	struct iw_param *sens = &wrqu->sens;
 	struct hostap_interface *iface;
 	local_info_t *local;
 	__le16 val;
@@ -495,8 +502,9 @@ static int prism2_ioctl_giwsens(struct net_device *dev,
 /* Deprecated in new wireless extension API */
 static int prism2_ioctl_giwaplist(struct net_device *dev,
 				  struct iw_request_info *info,
-				  struct iw_point *data, char *extra)
+				  union iwreq_data *wrqu, char *extra)
 {
+	struct iw_point *data = &wrqu->data;
 	struct hostap_interface *iface;
 	local_info_t *local;
 	struct sockaddr *addr;
@@ -536,8 +544,9 @@ static int prism2_ioctl_giwaplist(struct net_device *dev,
 
 static int prism2_ioctl_siwrts(struct net_device *dev,
 			       struct iw_request_info *info,
-			       struct iw_param *rts, char *extra)
+			       union iwreq_data *wrqu, char *extra)
 {
+	struct iw_param *rts = &wrqu->rts;
 	struct hostap_interface *iface;
 	local_info_t *local;
 	__le16 val;
@@ -563,8 +572,9 @@ static int prism2_ioctl_siwrts(struct net_device *dev,
 
 static int prism2_ioctl_giwrts(struct net_device *dev,
 			       struct iw_request_info *info,
-			       struct iw_param *rts, char *extra)
+			       union iwreq_data *wrqu, char *extra)
 {
+	struct iw_param *rts = &wrqu->rts;
 	struct hostap_interface *iface;
 	local_info_t *local;
 	__le16 val;
@@ -586,8 +596,9 @@ static int prism2_ioctl_giwrts(struct net_device *dev,
 
 static int prism2_ioctl_siwfrag(struct net_device *dev,
 				struct iw_request_info *info,
-				struct iw_param *rts, char *extra)
+				union iwreq_data *wrqu, char *extra)
 {
+	struct iw_param *rts = &wrqu->rts;
 	struct hostap_interface *iface;
 	local_info_t *local;
 	__le16 val;
@@ -613,8 +624,9 @@ static int prism2_ioctl_siwfrag(struct net_device *dev,
 
 static int prism2_ioctl_giwfrag(struct net_device *dev,
 				struct iw_request_info *info,
-				struct iw_param *rts, char *extra)
+				union iwreq_data *wrqu, char *extra)
 {
+	struct iw_param *rts = &wrqu->rts;
 	struct hostap_interface *iface;
 	local_info_t *local;
 	__le16 val;
@@ -679,11 +691,12 @@ static int hostap_join_ap(struct net_device *dev)
 
 static int prism2_ioctl_siwap(struct net_device *dev,
 			      struct iw_request_info *info,
-			      struct sockaddr *ap_addr, char *extra)
+			      union iwreq_data *wrqu, char *extra)
 {
 #ifdef PRISM2_NO_STATION_MODES
 	return -EOPNOTSUPP;
 #else /* PRISM2_NO_STATION_MODES */
+	struct sockaddr *ap_addr = &wrqu->ap_addr;
 	struct hostap_interface *iface;
 	local_info_t *local;
 
@@ -719,8 +732,9 @@ static int prism2_ioctl_siwap(struct net_device *dev,
 
 static int prism2_ioctl_giwap(struct net_device *dev,
 			      struct iw_request_info *info,
-			      struct sockaddr *ap_addr, char *extra)
+			      union iwreq_data *wrqu, char *extra)
 {
+	struct sockaddr *ap_addr = &wrqu->ap_addr;
 	struct hostap_interface *iface;
 	local_info_t *local;
 
@@ -755,8 +769,9 @@ static int prism2_ioctl_giwap(struct net_device *dev,
 
 static int prism2_ioctl_siwnickn(struct net_device *dev,
 				 struct iw_request_info *info,
-				 struct iw_point *data, char *nickname)
+				 union iwreq_data *wrqu, char *nickname)
 {
+	struct iw_point *data = &wrqu->data;
 	struct hostap_interface *iface;
 	local_info_t *local;
 
@@ -776,8 +791,9 @@ static int prism2_ioctl_siwnickn(struct net_device *dev,
 
 static int prism2_ioctl_giwnickn(struct net_device *dev,
 				 struct iw_request_info *info,
-				 struct iw_point *data, char *nickname)
+				 union iwreq_data *wrqu, char *nickname)
 {
+	struct iw_point *data = &wrqu->data;
 	struct hostap_interface *iface;
 	local_info_t *local;
 	int len;
@@ -803,8 +819,9 @@ static int prism2_ioctl_giwnickn(struct net_device *dev,
 
 static int prism2_ioctl_siwfreq(struct net_device *dev,
 				struct iw_request_info *info,
-				struct iw_freq *freq, char *extra)
+				union iwreq_data *wrqu, char *extra)
 {
+	struct iw_freq *freq = &wrqu->freq;
 	struct hostap_interface *iface;
 	local_info_t *local;
 
@@ -840,8 +857,9 @@ static int prism2_ioctl_siwfreq(struct net_device *dev,
 
 static int prism2_ioctl_giwfreq(struct net_device *dev,
 				struct iw_request_info *info,
-				struct iw_freq *freq, char *extra)
+				union iwreq_data *wrqu, char *extra)
 {
+	struct iw_freq *freq = &wrqu->freq;
 	struct hostap_interface *iface;
 	local_info_t *local;
 	u16 val;
@@ -884,8 +902,9 @@ static void hostap_monitor_set_type(local_info_t *local)
 
 static int prism2_ioctl_siwessid(struct net_device *dev,
 				 struct iw_request_info *info,
-				 struct iw_point *data, char *ssid)
+				 union iwreq_data *wrqu, char *ssid)
 {
+	struct iw_point *data = &wrqu->data;
 	struct hostap_interface *iface;
 	local_info_t *local;
 
@@ -920,8 +939,9 @@ static int prism2_ioctl_siwessid(struct net_device *dev,
 
 static int prism2_ioctl_giwessid(struct net_device *dev,
 				 struct iw_request_info *info,
-				 struct iw_point *data, char *essid)
+				 union iwreq_data *wrqu, char *essid)
 {
+	struct iw_point *data = &wrqu->data;
 	struct hostap_interface *iface;
 	local_info_t *local;
 	u16 val;
@@ -956,8 +976,9 @@ static int prism2_ioctl_giwessid(struct net_device *dev,
 
 static int prism2_ioctl_giwrange(struct net_device *dev,
 				 struct iw_request_info *info,
-				 struct iw_point *data, char *extra)
+				 union iwreq_data *wrqu, char *extra)
 {
+	struct iw_point *data = &wrqu->data;
 	struct hostap_interface *iface;
 	local_info_t *local;
 	struct iw_range *range = (struct iw_range *) extra;
@@ -1131,8 +1152,9 @@ static int hostap_monitor_mode_disable(local_info_t *local)
 
 static int prism2_ioctl_siwmode(struct net_device *dev,
 				struct iw_request_info *info,
-				__u32 *mode, char *extra)
+				union iwreq_data *wrqu, char *extra)
 {
+	__u32 *mode = &wrqu->mode;
 	struct hostap_interface *iface;
 	local_info_t *local;
 	int double_reset = 0;
@@ -1207,8 +1229,9 @@ static int prism2_ioctl_siwmode(struct net_device *dev,
 
 static int prism2_ioctl_giwmode(struct net_device *dev,
 				struct iw_request_info *info,
-				__u32 *mode, char *extra)
+				union iwreq_data *wrqu, char *extra)
 {
+	__u32 *mode = &wrqu->mode;
 	struct hostap_interface *iface;
 	local_info_t *local;
 
@@ -1232,11 +1255,12 @@ static int prism2_ioctl_giwmode(struct net_device *dev,
 
 static int prism2_ioctl_siwpower(struct net_device *dev,
 				 struct iw_request_info *info,
-				 struct iw_param *wrq, char *extra)
+				 union iwreq_data *wrqu, char *extra)
 {
 #ifdef PRISM2_NO_STATION_MODES
 	return -EOPNOTSUPP;
 #else /* PRISM2_NO_STATION_MODES */
+	struct iw_param *wrq = &wrqu->power;
 	int ret = 0;
 
 	if (wrq->disabled)
@@ -1291,11 +1315,12 @@ static int prism2_ioctl_siwpower(struct net_device *dev,
 
 static int prism2_ioctl_giwpower(struct net_device *dev,
 				 struct iw_request_info *info,
-				 struct iw_param *rrq, char *extra)
+				 union iwreq_data *wrqu, char *extra)
 {
 #ifdef PRISM2_NO_STATION_MODES
 	return -EOPNOTSUPP;
 #else /* PRISM2_NO_STATION_MODES */
+	struct iw_param *rrq = &wrqu->power;
 	struct hostap_interface *iface;
 	local_info_t *local;
 	__le16 enable, mcast;
@@ -1349,8 +1374,9 @@ static int prism2_ioctl_giwpower(struct net_device *dev,
 
 static int prism2_ioctl_siwretry(struct net_device *dev,
 				 struct iw_request_info *info,
-				 struct iw_param *rrq, char *extra)
+				 union iwreq_data *wrqu, char *extra)
 {
+	struct iw_param *rrq = &wrqu->bitrate;
 	struct hostap_interface *iface;
 	local_info_t *local;
 
@@ -1410,8 +1436,9 @@ static int prism2_ioctl_siwretry(struct net_device *dev,
 
 static int prism2_ioctl_giwretry(struct net_device *dev,
 				 struct iw_request_info *info,
-				 struct iw_param *rrq, char *extra)
+				 union iwreq_data *wrqu, char *extra)
 {
+	struct iw_param *rrq = &wrqu->bitrate;
 	struct hostap_interface *iface;
 	local_info_t *local;
 	__le16 shortretry, longretry, lifetime, altretry;
@@ -1504,8 +1531,9 @@ static u16 prism2_txpower_dBm_to_hfa386x(int val)
 
 static int prism2_ioctl_siwtxpow(struct net_device *dev,
 				 struct iw_request_info *info,
-				 struct iw_param *rrq, char *extra)
+				 union iwreq_data *wrqu, char *extra)
 {
+	struct iw_param *rrq = &wrqu->bitrate;
 	struct hostap_interface *iface;
 	local_info_t *local;
 #ifdef RAW_TXPOWER_SETTING
@@ -1585,9 +1613,10 @@ static int prism2_ioctl_siwtxpow(struct net_device *dev,
 
 static int prism2_ioctl_giwtxpow(struct net_device *dev,
 				 struct iw_request_info *info,
-				 struct iw_param *rrq, char *extra)
+				 union iwreq_data *wrqu, char *extra)
 {
 #ifdef RAW_TXPOWER_SETTING
+	struct iw_param *rrq = &wrqu->bitrate;
 	struct hostap_interface *iface;
 	local_info_t *local;
 	u16 resp0;
@@ -1720,8 +1749,9 @@ static inline int prism2_request_scan(struct net_device *dev)
 
 static int prism2_ioctl_siwscan(struct net_device *dev,
 				struct iw_request_info *info,
-				struct iw_point *data, char *extra)
+				union iwreq_data *wrqu, char *extra)
 {
+	struct iw_point *data = &wrqu->data;
 	struct hostap_interface *iface;
 	local_info_t *local;
 	int ret;
@@ -2068,8 +2098,9 @@ static inline int prism2_ioctl_giwscan_sta(struct net_device *dev,
 
 static int prism2_ioctl_giwscan(struct net_device *dev,
 				struct iw_request_info *info,
-				struct iw_point *data, char *extra)
+				union iwreq_data *wrqu, char *extra)
 {
+	struct iw_point *data = &wrqu->data;
 	struct hostap_interface *iface;
 	local_info_t *local;
 	int res;
@@ -2314,7 +2345,7 @@ static int prism2_ioctl_priv_inquire(struct net_device *dev, int *i)
 
 static int prism2_ioctl_priv_prism2_param(struct net_device *dev,
 					  struct iw_request_info *info,
-					  void *wrqu, char *extra)
+					  union iwreq_data *wrqu, char *extra)
 {
 	struct hostap_interface *iface;
 	local_info_t *local;
@@ -2665,7 +2696,7 @@ static int prism2_ioctl_priv_prism2_param(struct net_device *dev,
 
 static int prism2_ioctl_priv_get_prism2_param(struct net_device *dev,
 					      struct iw_request_info *info,
-					      void *wrqu, char *extra)
+					      union iwreq_data *wrqu, char *extra)
 {
 	struct hostap_interface *iface;
 	local_info_t *local;
@@ -2852,7 +2883,7 @@ static int prism2_ioctl_priv_get_prism2_param(struct net_device *dev,
 
 static int prism2_ioctl_priv_readmif(struct net_device *dev,
 				     struct iw_request_info *info,
-				     void *wrqu, char *extra)
+				     union iwreq_data *wrqu, char *extra)
 {
 	struct hostap_interface *iface;
 	local_info_t *local;
@@ -2873,7 +2904,7 @@ static int prism2_ioctl_priv_readmif(struct net_device *dev,
 
 static int prism2_ioctl_priv_writemif(struct net_device *dev,
 				      struct iw_request_info *info,
-				      void *wrqu, char *extra)
+				      union iwreq_data *wrqu, char *extra)
 {
 	struct hostap_interface *iface;
 	local_info_t *local;
@@ -2911,7 +2942,7 @@ static int prism2_ioctl_priv_monitor(struct net_device *dev, int *i)
 		/* Disable monitor mode - old mode was not saved, so go to
 		 * Master mode */
 		mode = IW_MODE_MASTER;
-		ret = prism2_ioctl_siwmode(dev, NULL, &mode, NULL);
+		ret = prism2_ioctl_siwmode(dev, NULL, (union iwreq_data *)&mode, NULL);
 	} else if (*i == 1) {
 		/* netlink socket mode is not supported anymore since it did
 		 * not separate different devices from each other and was not
@@ -2928,7 +2959,7 @@ static int prism2_ioctl_priv_monitor(struct net_device *dev, int *i)
 			break;
 		}
 		mode = IW_MODE_MONITOR;
-		ret = prism2_ioctl_siwmode(dev, NULL, &mode, NULL);
+		ret = prism2_ioctl_siwmode(dev, NULL, (union iwreq_data *)&mode, NULL);
 		hostap_monitor_mode_enable(local);
 	} else
 		ret = -EINVAL;
@@ -3090,8 +3121,9 @@ static int prism2_set_genericelement(struct net_device *dev, u8 *elem,
 
 static int prism2_ioctl_siwauth(struct net_device *dev,
 				struct iw_request_info *info,
-				struct iw_param *data, char *extra)
+				union iwreq_data *wrqu, char *extra)
 {
+	struct iw_param *data = &wrqu->param;
 	struct hostap_interface *iface = netdev_priv(dev);
 	local_info_t *local = iface->local;
 
@@ -3156,8 +3188,9 @@ static int prism2_ioctl_siwauth(struct net_device *dev,
 
 static int prism2_ioctl_giwauth(struct net_device *dev,
 				struct iw_request_info *info,
-				struct iw_param *data, char *extra)
+				union iwreq_data *wrqu, char *extra)
 {
+	struct iw_param *data = &wrqu->param;
 	struct hostap_interface *iface = netdev_priv(dev);
 	local_info_t *local = iface->local;
 
@@ -3195,8 +3228,9 @@ static int prism2_ioctl_giwauth(struct net_device *dev,
 
 static int prism2_ioctl_siwencodeext(struct net_device *dev,
 				     struct iw_request_info *info,
-				     struct iw_point *erq, char *extra)
+				     union iwreq_data *wrqu, char *extra)
 {
+	struct iw_point *erq = &wrqu->encoding;
 	struct hostap_interface *iface = netdev_priv(dev);
 	local_info_t *local = iface->local;
 	struct iw_encode_ext *ext = (struct iw_encode_ext *) extra;
@@ -3369,8 +3403,9 @@ static int prism2_ioctl_siwencodeext(struct net_device *dev,
 
 static int prism2_ioctl_giwencodeext(struct net_device *dev,
 				     struct iw_request_info *info,
-				     struct iw_point *erq, char *extra)
+				     union iwreq_data *wrqu, char *extra)
 {
+	struct iw_point *erq = &wrqu->encoding;
 	struct hostap_interface *iface = netdev_priv(dev);
 	local_info_t *local = iface->local;
 	struct lib80211_crypt_data **crypt;
@@ -3677,16 +3712,19 @@ static int prism2_ioctl_set_assoc_ap_addr(local_info_t *local,
 
 static int prism2_ioctl_siwgenie(struct net_device *dev,
 				 struct iw_request_info *info,
-				 struct iw_point *data, char *extra)
+				 union iwreq_data *wrqu, char *extra)
 {
+	struct iw_point *data = &wrqu->data;
+
 	return prism2_set_genericelement(dev, extra, data->length);
 }
 
 
 static int prism2_ioctl_giwgenie(struct net_device *dev,
 				 struct iw_request_info *info,
-				 struct iw_point *data, char *extra)
+				 union iwreq_data *wrqu, char *extra)
 {
+	struct iw_point *data = &wrqu->data;
 	struct hostap_interface *iface = netdev_priv(dev);
 	local_info_t *local = iface->local;
 	int len = local->generic_elem_len - 2;
@@ -3724,7 +3762,7 @@ static int prism2_ioctl_set_generic_element(local_info_t *local,
 
 static int prism2_ioctl_siwmlme(struct net_device *dev,
 				struct iw_request_info *info,
-				struct iw_point *data, char *extra)
+				union iwreq_data *data, char *extra)
 {
 	struct hostap_interface *iface = netdev_priv(dev);
 	local_info_t *local = iface->local;
@@ -3875,70 +3913,70 @@ const struct ethtool_ops prism2_ethtool_ops = {
 
 static const iw_handler prism2_handler[] =
 {
-	(iw_handler) NULL,				/* SIOCSIWCOMMIT */
-	(iw_handler) prism2_get_name,			/* SIOCGIWNAME */
-	(iw_handler) NULL,				/* SIOCSIWNWID */
-	(iw_handler) NULL,				/* SIOCGIWNWID */
-	(iw_handler) prism2_ioctl_siwfreq,		/* SIOCSIWFREQ */
-	(iw_handler) prism2_ioctl_giwfreq,		/* SIOCGIWFREQ */
-	(iw_handler) prism2_ioctl_siwmode,		/* SIOCSIWMODE */
-	(iw_handler) prism2_ioctl_giwmode,		/* SIOCGIWMODE */
-	(iw_handler) prism2_ioctl_siwsens,		/* SIOCSIWSENS */
-	(iw_handler) prism2_ioctl_giwsens,		/* SIOCGIWSENS */
-	(iw_handler) NULL /* not used */,		/* SIOCSIWRANGE */
-	(iw_handler) prism2_ioctl_giwrange,		/* SIOCGIWRANGE */
-	(iw_handler) NULL /* not used */,		/* SIOCSIWPRIV */
-	(iw_handler) NULL /* kernel code */,		/* SIOCGIWPRIV */
-	(iw_handler) NULL /* not used */,		/* SIOCSIWSTATS */
-	(iw_handler) NULL /* kernel code */,		/* SIOCGIWSTATS */
-	iw_handler_set_spy,				/* SIOCSIWSPY */
-	iw_handler_get_spy,				/* SIOCGIWSPY */
-	iw_handler_set_thrspy,				/* SIOCSIWTHRSPY */
-	iw_handler_get_thrspy,				/* SIOCGIWTHRSPY */
-	(iw_handler) prism2_ioctl_siwap,		/* SIOCSIWAP */
-	(iw_handler) prism2_ioctl_giwap,		/* SIOCGIWAP */
-	(iw_handler) prism2_ioctl_siwmlme,		/* SIOCSIWMLME */
-	(iw_handler) prism2_ioctl_giwaplist,		/* SIOCGIWAPLIST */
-	(iw_handler) prism2_ioctl_siwscan,		/* SIOCSIWSCAN */
-	(iw_handler) prism2_ioctl_giwscan,		/* SIOCGIWSCAN */
-	(iw_handler) prism2_ioctl_siwessid,		/* SIOCSIWESSID */
-	(iw_handler) prism2_ioctl_giwessid,		/* SIOCGIWESSID */
-	(iw_handler) prism2_ioctl_siwnickn,		/* SIOCSIWNICKN */
-	(iw_handler) prism2_ioctl_giwnickn,		/* SIOCGIWNICKN */
-	(iw_handler) NULL,				/* -- hole -- */
-	(iw_handler) NULL,				/* -- hole -- */
-	(iw_handler) prism2_ioctl_siwrate,		/* SIOCSIWRATE */
-	(iw_handler) prism2_ioctl_giwrate,		/* SIOCGIWRATE */
-	(iw_handler) prism2_ioctl_siwrts,		/* SIOCSIWRTS */
-	(iw_handler) prism2_ioctl_giwrts,		/* SIOCGIWRTS */
-	(iw_handler) prism2_ioctl_siwfrag,		/* SIOCSIWFRAG */
-	(iw_handler) prism2_ioctl_giwfrag,		/* SIOCGIWFRAG */
-	(iw_handler) prism2_ioctl_siwtxpow,		/* SIOCSIWTXPOW */
-	(iw_handler) prism2_ioctl_giwtxpow,		/* SIOCGIWTXPOW */
-	(iw_handler) prism2_ioctl_siwretry,		/* SIOCSIWRETRY */
-	(iw_handler) prism2_ioctl_giwretry,		/* SIOCGIWRETRY */
-	(iw_handler) prism2_ioctl_siwencode,		/* SIOCSIWENCODE */
-	(iw_handler) prism2_ioctl_giwencode,		/* SIOCGIWENCODE */
-	(iw_handler) prism2_ioctl_siwpower,		/* SIOCSIWPOWER */
-	(iw_handler) prism2_ioctl_giwpower,		/* SIOCGIWPOWER */
-	(iw_handler) NULL,				/* -- hole -- */
-	(iw_handler) NULL,				/* -- hole -- */
-	(iw_handler) prism2_ioctl_siwgenie,		/* SIOCSIWGENIE */
-	(iw_handler) prism2_ioctl_giwgenie,		/* SIOCGIWGENIE */
-	(iw_handler) prism2_ioctl_siwauth,		/* SIOCSIWAUTH */
-	(iw_handler) prism2_ioctl_giwauth,		/* SIOCGIWAUTH */
-	(iw_handler) prism2_ioctl_siwencodeext,		/* SIOCSIWENCODEEXT */
-	(iw_handler) prism2_ioctl_giwencodeext,		/* SIOCGIWENCODEEXT */
-	(iw_handler) NULL,				/* SIOCSIWPMKSA */
-	(iw_handler) NULL,				/* -- hole -- */
+	NULL,				/* SIOCSIWCOMMIT */
+	prism2_get_name,		/* SIOCGIWNAME */
+	NULL,				/* SIOCSIWNWID */
+	NULL,				/* SIOCGIWNWID */
+	prism2_ioctl_siwfreq,		/* SIOCSIWFREQ */
+	prism2_ioctl_giwfreq,		/* SIOCGIWFREQ */
+	prism2_ioctl_siwmode,		/* SIOCSIWMODE */
+	prism2_ioctl_giwmode,		/* SIOCGIWMODE */
+	prism2_ioctl_siwsens,		/* SIOCSIWSENS */
+	prism2_ioctl_giwsens,		/* SIOCGIWSENS */
+	NULL /* not used */,		/* SIOCSIWRANGE */
+	prism2_ioctl_giwrange,		/* SIOCGIWRANGE */
+	NULL /* not used */,		/* SIOCSIWPRIV */
+	NULL /* kernel code */,		/* SIOCGIWPRIV */
+	NULL /* not used */,		/* SIOCSIWSTATS */
+	NULL /* kernel code */,		/* SIOCGIWSTATS */
+	iw_handler_set_spy,		/* SIOCSIWSPY */
+	iw_handler_get_spy,		/* SIOCGIWSPY */
+	iw_handler_set_thrspy,		/* SIOCSIWTHRSPY */
+	iw_handler_get_thrspy,		/* SIOCGIWTHRSPY */
+	prism2_ioctl_siwap,		/* SIOCSIWAP */
+	prism2_ioctl_giwap,		/* SIOCGIWAP */
+	prism2_ioctl_siwmlme,		/* SIOCSIWMLME */
+	prism2_ioctl_giwaplist,		/* SIOCGIWAPLIST */
+	prism2_ioctl_siwscan,		/* SIOCSIWSCAN */
+	prism2_ioctl_giwscan,		/* SIOCGIWSCAN */
+	prism2_ioctl_siwessid,		/* SIOCSIWESSID */
+	prism2_ioctl_giwessid,		/* SIOCGIWESSID */
+	prism2_ioctl_siwnickn,		/* SIOCSIWNICKN */
+	prism2_ioctl_giwnickn,		/* SIOCGIWNICKN */
+	NULL,				/* -- hole -- */
+	NULL,				/* -- hole -- */
+	prism2_ioctl_siwrate,		/* SIOCSIWRATE */
+	prism2_ioctl_giwrate,		/* SIOCGIWRATE */
+	prism2_ioctl_siwrts,		/* SIOCSIWRTS */
+	prism2_ioctl_giwrts,		/* SIOCGIWRTS */
+	prism2_ioctl_siwfrag,		/* SIOCSIWFRAG */
+	prism2_ioctl_giwfrag,		/* SIOCGIWFRAG */
+	prism2_ioctl_siwtxpow,		/* SIOCSIWTXPOW */
+	prism2_ioctl_giwtxpow,		/* SIOCGIWTXPOW */
+	prism2_ioctl_siwretry,		/* SIOCSIWRETRY */
+	prism2_ioctl_giwretry,		/* SIOCGIWRETRY */
+	prism2_ioctl_siwencode,		/* SIOCSIWENCODE */
+	prism2_ioctl_giwencode,		/* SIOCGIWENCODE */
+	prism2_ioctl_siwpower,		/* SIOCSIWPOWER */
+	prism2_ioctl_giwpower,		/* SIOCGIWPOWER */
+	NULL,				/* -- hole -- */
+	NULL,				/* -- hole -- */
+	prism2_ioctl_siwgenie,		/* SIOCSIWGENIE */
+	prism2_ioctl_giwgenie,		/* SIOCGIWGENIE */
+	prism2_ioctl_siwauth,		/* SIOCSIWAUTH */
+	prism2_ioctl_giwauth,		/* SIOCGIWAUTH */
+	prism2_ioctl_siwencodeext,	/* SIOCSIWENCODEEXT */
+	prism2_ioctl_giwencodeext,	/* SIOCGIWENCODEEXT */
+	NULL,				/* SIOCSIWPMKSA */
+	NULL,				/* -- hole -- */
 };
 
 static const iw_handler prism2_private_handler[] =
 {							/* SIOCIWFIRSTPRIV + */
-	(iw_handler) prism2_ioctl_priv_prism2_param,	/* 0 */
-	(iw_handler) prism2_ioctl_priv_get_prism2_param, /* 1 */
-	(iw_handler) prism2_ioctl_priv_writemif,	/* 2 */
-	(iw_handler) prism2_ioctl_priv_readmif,		/* 3 */
+	prism2_ioctl_priv_prism2_param,	/* 0 */
+	prism2_ioctl_priv_get_prism2_param, /* 1 */
+	prism2_ioctl_priv_writemif,	/* 2 */
+	prism2_ioctl_priv_readmif,		/* 3 */
 };
 
 const struct iw_handler_def hostap_iw_handler_def =
@@ -3946,8 +3984,8 @@ const struct iw_handler_def hostap_iw_handler_def =
 	.num_standard	= ARRAY_SIZE(prism2_handler),
 	.num_private	= ARRAY_SIZE(prism2_private_handler),
 	.num_private_args = ARRAY_SIZE(prism2_priv),
-	.standard	= (iw_handler *) prism2_handler,
-	.private	= (iw_handler *) prism2_private_handler,
+	.standard	= prism2_handler,
+	.private	= prism2_private_handler,
 	.private_args	= (struct iw_priv_args *) prism2_priv,
 	.get_wireless_stats = hostap_get_wireless_stats,
 };

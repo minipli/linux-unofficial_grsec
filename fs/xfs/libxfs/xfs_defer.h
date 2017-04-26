@@ -92,7 +92,7 @@ struct xfs_defer_op_type {
 	int (*diff_items)(void *, struct list_head *, struct list_head *);
 	void *(*create_intent)(struct xfs_trans *, uint);
 	void (*log_item)(struct xfs_trans *, void *, struct list_head *);
-};
+} __do_const;
 
 void xfs_defer_init_op_type(const struct xfs_defer_op_type *type);
 

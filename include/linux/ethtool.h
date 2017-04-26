@@ -373,4 +373,5 @@ struct ethtool_ops {
 	int	(*set_link_ksettings)(struct net_device *,
 				      const struct ethtool_link_ksettings *);
 };
+typedef struct ethtool_ops __no_const ethtool_ops_no_const;
 #endif /* _LINUX_ETHTOOL_H */

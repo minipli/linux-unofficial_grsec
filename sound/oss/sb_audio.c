@@ -900,7 +900,7 @@ sb16_copy_from_user(int dev,
 		buf16 = (signed short *)(localbuf + localoffs);
 		while (c)
 		{
-			locallen = (c >= LBUFCOPYSIZE ? LBUFCOPYSIZE : c);
+			locallen = ((unsigned)c >= LBUFCOPYSIZE ? LBUFCOPYSIZE : c);
 			if (copy_from_user(lbuf8,
 					   userbuf+useroffs + p,
 					   locallen))

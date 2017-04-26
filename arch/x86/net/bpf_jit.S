@@ -9,6 +9,7 @@
  */
 #include <linux/linkage.h>
 #include <asm/frame.h>
+#include <asm/alternative-asm.h>
 
 /*
  * Calling convention :
@@ -39,7 +40,7 @@ FUNC(sk_load_word_positive_offset)
 	jle	bpf_slow_path_word
 	mov     (SKBDATA,%rsi),%eax
 	bswap   %eax  			/* ntohl() */
-	ret
+	pax_ret __bpf_call_base
 
 FUNC(sk_load_half)
 	test	%esi,%esi
@@ -52,7 +53,7 @@ FUNC(sk_load_half_positive_offset)
 	jle	bpf_slow_path_half
 	movzwl	(SKBDATA,%rsi),%eax
 	rol	$8,%ax			# ntohs()
-	ret
+	pax_ret __bpf_call_base
 
 FUNC(sk_load_byte)
 	test	%esi,%esi
@@ -62,7 +63,7 @@ FUNC(sk_load_byte_positive_offset)
 	cmp	%esi,%r9d   /* if (offset >= hlen) goto bpf_slow_path_byte */
 	jle	bpf_slow_path_byte
 	movzbl	(SKBDATA,%rsi),%eax
-	ret
+	pax_ret __bpf_call_base
 
 /* rsi contains offset and can be scratched */
 #define bpf_slow_path_common(LEN)		\
@@ -73,7 +74,7 @@ FUNC(sk_load_byte_positive_offset)
 	push	SKBDATA;			\
 /* rsi already has offset */			\
 	mov	$LEN,%ecx;	/* len */	\
-	call	skb_copy_bits;			\
+	pax_direct_call skb_copy_bits;		\
 	test    %eax,%eax;			\
 	pop	SKBDATA;			\
 	pop	%r9;				\
@@ -85,7 +86,7 @@ bpf_slow_path_word:
 	js	bpf_error
 	mov	- MAX_BPF_STACK + 32(%rbp),%eax
 	bswap	%eax
-	ret
+	pax_ret __bpf_call_base
 
 bpf_slow_path_half:
 	bpf_slow_path_common(2)
@@ -93,13 +94,13 @@ bpf_slow_path_half:
 	mov	- MAX_BPF_STACK + 32(%rbp),%ax
 	rol	$8,%ax
 	movzwl	%ax,%eax
-	ret
+	pax_ret __bpf_call_base
 
 bpf_slow_path_byte:
 	bpf_slow_path_common(1)
 	js	bpf_error
 	movzbl	- MAX_BPF_STACK + 32(%rbp),%eax
-	ret
+	pax_ret __bpf_call_base
 
 #define sk_negative_common(SIZE)				\
 	FRAME_BEGIN;						\
@@ -108,7 +109,7 @@ bpf_slow_path_byte:
 	push	SKBDATA;					\
 /* rsi already has offset */					\
 	mov	$SIZE,%edx;	/* size */			\
-	call	bpf_internal_load_pointer_neg_helper;		\
+	pax_direct_call bpf_internal_load_pointer_neg_helper;	\
 	test	%rax,%rax;					\
 	pop	SKBDATA;					\
 	pop	%r9;						\
@@ -123,7 +124,7 @@ FUNC(sk_load_word_negative_offset)
 	sk_negative_common(4)
 	mov	(%rax), %eax
 	bswap	%eax
-	ret
+	pax_ret __bpf_call_base
 
 bpf_slow_path_half_neg:
 	cmp	SKF_MAX_NEG_OFF, %esi
@@ -134,7 +135,7 @@ FUNC(sk_load_half_negative_offset)
 	mov	(%rax),%ax
 	rol	$8,%ax
 	movzwl	%ax,%eax
-	ret
+	pax_ret __bpf_call_base
 
 bpf_slow_path_byte_neg:
 	cmp	SKF_MAX_NEG_OFF, %esi
@@ -143,7 +144,7 @@ bpf_slow_path_byte_neg:
 FUNC(sk_load_byte_negative_offset)
 	sk_negative_common(1)
 	movzbl	(%rax), %eax
-	ret
+	pax_ret __bpf_call_base
 
 bpf_error:
 # force a return 0 from jit handler
@@ -153,4 +154,4 @@ bpf_error:
 	mov	- MAX_BPF_STACK + 16(%rbp),%r14
 	mov	- MAX_BPF_STACK + 24(%rbp),%r15
 	leaveq
-	ret
+	pax_ret __bpf_call_base

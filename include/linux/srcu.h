@@ -228,7 +228,8 @@ static inline int srcu_read_lock_held(struct srcu_struct *sp)
  * srcu_read_unlock() in an irq handler if the matching srcu_read_lock()
  * was invoked in process context.
  */
-static inline int srcu_read_lock(struct srcu_struct *sp) __acquires(sp)
+static inline int srcu_read_lock(struct srcu_struct *sp) __acquires(sp);
+static inline int srcu_read_lock(struct srcu_struct *sp)
 {
 	int retval;
 
@@ -246,8 +247,8 @@ static inline int srcu_read_lock(struct srcu_struct *sp) __acquires(sp)
  *
  * Exit an SRCU read-side critical section.
  */
+static inline void srcu_read_unlock(struct srcu_struct *sp, int idx) __releases(sp);
 static inline void srcu_read_unlock(struct srcu_struct *sp, int idx)
-	__releases(sp)
 {
 	rcu_lock_release(&(sp)->dep_map);
 	__srcu_read_unlock(sp, idx);

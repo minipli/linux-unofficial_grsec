@@ -1867,8 +1867,9 @@ EXPORT_SYMBOL(snd_pcm_lib_ioctl);
  * Even if more than one periods have elapsed since the last call, you
  * have to call this only once.
  */
-void snd_pcm_period_elapsed(struct snd_pcm_substream *substream)
+void snd_pcm_period_elapsed(void *_substream)
 {
+	struct snd_pcm_substream *substream = _substream;
 	struct snd_pcm_runtime *runtime;
 	unsigned long flags;
 

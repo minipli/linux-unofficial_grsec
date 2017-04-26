@@ -21,7 +21,7 @@ struct xts_crypt_req {
 	void (*crypt_fn)(void *ctx, u8 *blks, unsigned int nbytes);
 };
 
-#define XTS_TWEAK_CAST(x) ((void (*)(void *, u8*, const u8*))(x))
+#define XTS_TWEAK_CAST(x) (x)
 
 int xts_crypt(struct blkcipher_desc *desc, struct scatterlist *dst,
 	      struct scatterlist *src, unsigned int nbytes,

@@ -49,8 +49,8 @@ static DEFINE_SPINLOCK(sunis_lock);
 
 
 #define ADD_LIMITED(s,v) \
-    atomic_add((v),&stats->s); \
-    if (atomic_read(&stats->s) < 0) atomic_set(&stats->s,INT_MAX);
+    atomic_add_unchecked((v),&stats->s); \
+    if (atomic_read_unchecked(&stats->s) < 0) atomic_set_unchecked(&stats->s,INT_MAX);
 
 
 static void suni_hz(unsigned long from_timer)

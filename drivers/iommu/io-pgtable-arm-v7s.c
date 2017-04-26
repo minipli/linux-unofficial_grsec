@@ -49,9 +49,6 @@
 #define io_pgtable_to_data(x)						\
 	container_of((x), struct arm_v7s_io_pgtable, iop)
 
-#define io_pgtable_ops_to_data(x)					\
-	io_pgtable_to_data(io_pgtable_ops_to_pgtable(x))
-
 /*
  * We have 32 bits total; 12 bits resolved at level 1, 8 bits at level 2,
  * and 12 bits in a page. With some carefully-chosen coefficients we can
@@ -426,11 +423,10 @@ static int __arm_v7s_map(struct arm_v7s_io_pgtable *data, unsigned long iova,
 	return __arm_v7s_map(data, iova, paddr, size, prot, lvl + 1, cptep);
 }
 
-static int arm_v7s_map(struct io_pgtable_ops *ops, unsigned long iova,
+static int arm_v7s_map(struct io_pgtable *iop, unsigned long iova,
 			phys_addr_t paddr, size_t size, int prot)
 {
-	struct arm_v7s_io_pgtable *data = io_pgtable_ops_to_data(ops);
-	struct io_pgtable *iop = &data->iop;
+	struct arm_v7s_io_pgtable *data = io_pgtable_to_data(iop);
 	int ret;
 
 	/* If no access, then nothing to do */
@@ -593,10 +589,10 @@ static int __arm_v7s_unmap(struct arm_v7s_io_pgtable *data,
 	return __arm_v7s_unmap(data, iova, size, lvl + 1, ptep);
 }
 
-static int arm_v7s_unmap(struct io_pgtable_ops *ops, unsigned long iova,
+static int arm_v7s_unmap(struct io_pgtable *iop, unsigned long iova,
 			 size_t size)
 {
-	struct arm_v7s_io_pgtable *data = io_pgtable_ops_to_data(ops);
+	struct arm_v7s_io_pgtable *data = io_pgtable_to_data(iop);
 	size_t unmapped;
 
 	unmapped = __arm_v7s_unmap(data, iova, size, 1, data->pgd);
@@ -606,10 +602,10 @@ static int arm_v7s_unmap(struct io_pgtable_ops *ops, unsigned long iova,
 	return unmapped;
 }
 
-static phys_addr_t arm_v7s_iova_to_phys(struct io_pgtable_ops *ops,
+static phys_addr_t arm_v7s_iova_to_phys(struct io_pgtable *iop,
 					unsigned long iova)
 {
-	struct arm_v7s_io_pgtable *data = io_pgtable_ops_to_data(ops);
+	struct arm_v7s_io_pgtable *data = io_pgtable_to_data(iop);
 	arm_v7s_iopte *ptep = data->pgd, pte;
 	int lvl = 0;
 	u32 mask;
@@ -627,6 +623,12 @@ static phys_addr_t arm_v7s_iova_to_phys(struct io_pgtable_ops *ops,
 		mask *= ARM_V7S_CONT_PAGES;
 	return (pte & mask) | (iova & ~mask);
 }
+
+static struct io_pgtable_ops arm_v7s_io_pgtable_ops = {
+	.map		= arm_v7s_map,
+	.unmap		= arm_v7s_unmap,
+	.iova_to_phys	= arm_v7s_iova_to_phys,
+};
 
 static struct io_pgtable *arm_v7s_alloc_pgtable(struct io_pgtable_cfg *cfg,
 						void *cookie)
@@ -662,11 +664,7 @@ static struct io_pgtable *arm_v7s_alloc_pgtable(struct io_pgtable_cfg *cfg,
 	if (!data->l2_tables)
 		goto out_free_data;
 
-	data->iop.ops = (struct io_pgtable_ops) {
-		.map		= arm_v7s_map,
-		.unmap		= arm_v7s_unmap,
-		.iova_to_phys	= arm_v7s_iova_to_phys,
-	};
+	data->iop.ops = &arm_v7s_io_pgtable_ops;
 
 	/* We have to do this early for __arm_v7s_alloc_table to work... */
 	data->iop.cfg = *cfg;
@@ -755,7 +753,7 @@ static struct iommu_gather_ops dummy_tlb_ops = {
 
 static int __init arm_v7s_do_selftests(void)
 {
-	struct io_pgtable_ops *ops;
+	struct io_pgtable *pgtbl;
 	struct io_pgtable_cfg cfg = {
 		.tlb = &dummy_tlb_ops,
 		.oas = 32,
@@ -770,8 +768,8 @@ static int __init arm_v7s_do_selftests(void)
 
 	cfg_cookie = &cfg;
 
-	ops = alloc_io_pgtable_ops(ARM_V7S, &cfg, &cfg);
-	if (!ops) {
+	pgtbl = alloc_io_pgtable(ARM_V7S, &cfg, &cfg);
+	if (!pgtbl) {
 		pr_err("selftest: failed to allocate io pgtable ops\n");
 		return -EINVAL;
 	}
@@ -780,13 +778,13 @@ static int __init arm_v7s_do_selftests(void)
 	 * Initial sanity checks.
 	 * Empty page tables shouldn't provide any translations.
 	 */
-	if (ops->iova_to_phys(ops, 42))
+	if (pgtbl->ops->iova_to_phys(pgtbl, 42))
 		return __FAIL(ops);
 
-	if (ops->iova_to_phys(ops, SZ_1G + 42))
+	if (pgtbl->ops->iova_to_phys(pgtbl, SZ_1G + 42))
 		return __FAIL(ops);
 
-	if (ops->iova_to_phys(ops, SZ_2G + 42))
+	if (pgtbl->ops->iova_to_phys(pgtbl, SZ_2G + 42))
 		return __FAIL(ops);
 
 	/*
@@ -796,18 +794,18 @@ static int __init arm_v7s_do_selftests(void)
 	i = find_first_bit(&cfg.pgsize_bitmap, BITS_PER_LONG);
 	while (i != BITS_PER_LONG) {
 		size = 1UL << i;
-		if (ops->map(ops, iova, iova, size, IOMMU_READ |
+		if (pgtbl->ops->map(pgtbl, iova, iova, size, IOMMU_READ |
 						    IOMMU_WRITE |
 						    IOMMU_NOEXEC |
 						    IOMMU_CACHE))
 			return __FAIL(ops);
 
 		/* Overlapping mappings */
-		if (!ops->map(ops, iova, iova + size, size,
+		if (!pgtbl->ops->map(pgtbl, iova, iova + size, size,
 			      IOMMU_READ | IOMMU_NOEXEC))
 			return __FAIL(ops);
 
-		if (ops->iova_to_phys(ops, iova + 42) != (iova + 42))
+		if (pgtbl->ops->iova_to_phys(pgtbl, iova + 42) != (iova + 42))
 			return __FAIL(ops);
 
 		iova += SZ_16M;
@@ -821,14 +819,14 @@ static int __init arm_v7s_do_selftests(void)
 	size = 1UL << __ffs(cfg.pgsize_bitmap);
 	while (i < loopnr) {
 		iova_start = i * SZ_16M;
-		if (ops->unmap(ops, iova_start + size, size) != size)
+		if (pgtbl->ops->unmap(pgtbl, iova_start + size, size) != size)
 			return __FAIL(ops);
 
 		/* Remap of partial unmap */
-		if (ops->map(ops, iova_start + size, size, size, IOMMU_READ))
+		if (pgtbl->ops->map(pgtbl, iova_start + size, size, size, IOMMU_READ))
 			return __FAIL(ops);
 
-		if (ops->iova_to_phys(ops, iova_start + size + 42)
+		if (pgtbl->ops->iova_to_phys(pgtbl, iova_start + size + 42)
 		    != (size + 42))
 			return __FAIL(ops);
 		i++;
@@ -840,17 +838,17 @@ static int __init arm_v7s_do_selftests(void)
 	while (i != BITS_PER_LONG) {
 		size = 1UL << i;
 
-		if (ops->unmap(ops, iova, size) != size)
+		if (pgtbl->ops->unmap(pgtbl, iova, size) != size)
 			return __FAIL(ops);
 
-		if (ops->iova_to_phys(ops, iova + 42))
+		if (pgtbl->ops->iova_to_phys(pgtbl, iova + 42))
 			return __FAIL(ops);
 
 		/* Remap full block */
-		if (ops->map(ops, iova, iova, size, IOMMU_WRITE))
+		if (pgtbl->ops->map(pgtbl, iova, iova, size, IOMMU_WRITE))
 			return __FAIL(ops);
 
-		if (ops->iova_to_phys(ops, iova + 42) != (iova + 42))
+		if (pgtbl->ops->iova_to_phys(pgtbl, iova + 42) != (iova + 42))
 			return __FAIL(ops);
 
 		iova += SZ_16M;
@@ -858,7 +856,7 @@ static int __init arm_v7s_do_selftests(void)
 		i = find_next_bit(&cfg.pgsize_bitmap, BITS_PER_LONG, i);
 	}
 
-	free_io_pgtable_ops(ops);
+	free_io_pgtable(pgtbl);
 
 	selftest_running = false;
 

@@ -127,8 +127,8 @@ static struct user_struct *uid_hash_find(kuid_t uid, struct hlist_head *hashent)
  * IRQ state (as stored in flags) is restored and uidhash_lock released
  * upon function exit.
  */
+static void free_user(struct user_struct *up, unsigned long flags) __releases(&uidhash_lock);
 static void free_user(struct user_struct *up, unsigned long flags)
-	__releases(&uidhash_lock)
 {
 	uid_hash_remove(up);
 	spin_unlock_irqrestore(&uidhash_lock, flags);

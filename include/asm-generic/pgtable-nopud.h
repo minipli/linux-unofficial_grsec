@@ -1,9 +1,14 @@
 #ifndef _PGTABLE_NOPUD_H
 #define _PGTABLE_NOPUD_H
 
-#ifndef __ASSEMBLY__
-
 #define __PAGETABLE_PUD_FOLDED
+
+#define PUD_SHIFT	PGDIR_SHIFT
+#define PTRS_PER_PUD	1
+#define PUD_SIZE  	(_AC(1,UL) << PUD_SHIFT)
+#define PUD_MASK  	(~(PUD_SIZE-1))
+
+#ifndef __ASSEMBLY__
 
 /*
  * Having the pud type consist of a pgd gets the size right, and allows
@@ -11,11 +16,6 @@
  * without casting.
  */
 typedef struct { pgd_t pgd; } pud_t;
-
-#define PUD_SHIFT	PGDIR_SHIFT
-#define PTRS_PER_PUD	1
-#define PUD_SIZE  	(1UL << PUD_SHIFT)
-#define PUD_MASK  	(~(PUD_SIZE-1))
 
 /*
  * The "pgd_xxx()" functions here are trivial for a folded two-level
@@ -29,6 +29,7 @@ static inline void pgd_clear(pgd_t *pgd)	{ }
 #define pud_ERROR(pud)				(pgd_ERROR((pud).pgd))
 
 #define pgd_populate(mm, pgd, pud)		do { } while (0)
+#define pgd_populate_kernel(mm, pgd, pud)	do { } while (0)
 /*
  * (puds are folded into pgds so this doesn't get actually called,
  * but the define is needed for a generic inline function.)

@@ -327,7 +327,7 @@ out:
 }
 EXPORT_SYMBOL(rtllib_wx_set_mode);
 
-void rtllib_wx_sync_scan_wq(void *data)
+void rtllib_wx_sync_scan_wq(struct work_struct *data)
 {
 	struct rtllib_device *ieee = container_of_work_rsl(data,
 				     struct rtllib_device, wx_sync_scan_wq);

@@ -42,51 +42,51 @@
 
 static __always_inline __le64 __cpu_to_le64p(const __u64 *p)
 {
-	return (__force __le64)*p;
+	return (__force const __le64)*p;
 }
-static __always_inline __u64 __le64_to_cpup(const __le64 *p)
+static __always_inline __u64 __intentional_overflow(-1) __le64_to_cpup(const __le64 *p)
 {
-	return (__force __u64)*p;
+	return (__force const __u64)*p;
 }
 static __always_inline __le32 __cpu_to_le32p(const __u32 *p)
 {
-	return (__force __le32)*p;
+	return (__force const __le32)*p;
 }
 static __always_inline __u32 __le32_to_cpup(const __le32 *p)
 {
-	return (__force __u32)*p;
+	return (__force const __u32)*p;
 }
 static __always_inline __le16 __cpu_to_le16p(const __u16 *p)
 {
-	return (__force __le16)*p;
+	return (__force const __le16)*p;
 }
 static __always_inline __u16 __le16_to_cpup(const __le16 *p)
 {
-	return (__force __u16)*p;
+	return (__force const __u16)*p;
 }
 static __always_inline __be64 __cpu_to_be64p(const __u64 *p)
 {
-	return (__force __be64)__swab64p(p);
+	return (__force const __be64)__swab64p(p);
 }
 static __always_inline __u64 __be64_to_cpup(const __be64 *p)
 {
-	return __swab64p((__u64 *)p);
+	return __swab64p((const __u64 *)p);
 }
 static __always_inline __be32 __cpu_to_be32p(const __u32 *p)
 {
-	return (__force __be32)__swab32p(p);
+	return (__force const __be32)__swab32p(p);
 }
-static __always_inline __u32 __be32_to_cpup(const __be32 *p)
+static __always_inline __u32 __intentional_overflow(-1) __be32_to_cpup(const __be32 *p)
 {
-	return __swab32p((__u32 *)p);
+	return __swab32p((const __u32 *)p);
 }
 static __always_inline __be16 __cpu_to_be16p(const __u16 *p)
 {
-	return (__force __be16)__swab16p(p);
+	return (__force const __be16)__swab16p(p);
 }
 static __always_inline __u16 __be16_to_cpup(const __be16 *p)
 {
-	return __swab16p((__u16 *)p);
+	return __swab16p((const __u16 *)p);
 }
 #define __cpu_to_le64s(x) do { (void)(x); } while (0)
 #define __le64_to_cpus(x) do { (void)(x); } while (0)

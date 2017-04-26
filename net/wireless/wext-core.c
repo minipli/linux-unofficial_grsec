@@ -781,8 +781,7 @@ static int ioctl_standard_iw_point(struct iw_point *iwp, unsigned int cmd,
 		 */
 
 		/* Support for very large requests */
-		if ((descr->flags & IW_DESCR_FLAG_NOMAX) &&
-		    (user_length > descr->max_tokens)) {
+		if (user_length > descr->max_tokens) {
 			/* Allow userspace to GET more than max so
 			 * we can support any size GET requests.
 			 * There is still a limit : -ENOMEM.
@@ -819,22 +818,6 @@ static int ioctl_standard_iw_point(struct iw_point *iwp, unsigned int cmd,
 				goto out;
 			}
 		}
-	}
-
-	if (IW_IS_GET(cmd) && !(descr->flags & IW_DESCR_FLAG_NOMAX)) {
-		/*
-		 * If this is a GET, but not NOMAX, it means that the extra
-		 * data is not bounded by userspace, but by max_tokens. Thus
-		 * set the length to max_tokens. This matches the extra data
-		 * allocation.
-		 * The driver should fill it with the number of tokens it
-		 * provided, and it may check iwp->length rather than having
-		 * knowledge of max_tokens. If the driver doesn't change the
-		 * iwp->length, this ioctl just copies back max_token tokens
-		 * filled with zeroes. Hopefully the driver isn't claiming
-		 * them to be valid data.
-		 */
-		iwp->length = descr->max_tokens;
 	}
 
 	err = handler(dev, info, (union iwreq_data *) iwp, extra);

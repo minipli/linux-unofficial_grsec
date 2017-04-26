@@ -71,7 +71,8 @@ struct hotplug_slot_ops {
 	int (*get_latch_status)		(struct hotplug_slot *slot, u8 *value);
 	int (*get_adapter_status)	(struct hotplug_slot *slot, u8 *value);
 	int (*reset_slot)		(struct hotplug_slot *slot, int probe);
-};
+} __do_const;
+typedef struct hotplug_slot_ops __no_const hotplug_slot_ops_no_const;
 
 /**
  * struct hotplug_slot_info - used to notify the hotplug pci core of the state of the slot

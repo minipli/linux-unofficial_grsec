@@ -48,7 +48,7 @@ module_param(gso, bool, 0444);
 DECLARE_EWMA(pkt_len, 1, 64)
 
 /* Minimum alignment for mergeable packet buffers. */
-#define MERGEABLE_BUFFER_ALIGN max(L1_CACHE_BYTES, 256)
+#define MERGEABLE_BUFFER_ALIGN max(L1_CACHE_BYTES, 256UL)
 
 #define VIRTNET_DRIVER_VERSION "1.0.0"
 

@@ -91,12 +91,16 @@ extern void key_type_put(struct key_type *ktype);
 
 extern int __key_link_begin(struct key *keyring,
 			    const struct keyring_index_key *index_key,
-			    struct assoc_array_edit **_edit);
+			    struct assoc_array_edit **_edit)
+			    __acquires(&keyring->sem)
+			    __acquires(&keyring_serialise_link_sem);
 extern int __key_link_check_live_key(struct key *keyring, struct key *key);
 extern void __key_link(struct key *key, struct assoc_array_edit **_edit);
 extern void __key_link_end(struct key *keyring,
 			   const struct keyring_index_key *index_key,
-			   struct assoc_array_edit *edit);
+			   struct assoc_array_edit *edit)
+			   __releases(&keyring->sem)
+			   __releases(&keyring_serialise_link_sem);
 
 extern key_ref_t find_key_to_update(key_ref_t keyring_ref,
 				    const struct keyring_index_key *index_key);
@@ -192,7 +196,7 @@ struct request_key_auth {
 	void			*callout_info;
 	size_t			callout_len;
 	pid_t			pid;
-};
+} __randomize_layout;
 
 extern struct key_type key_type_request_key_auth;
 extern struct key *request_key_auth_new(struct key *target,

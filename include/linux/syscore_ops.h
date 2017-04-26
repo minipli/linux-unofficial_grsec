@@ -16,7 +16,7 @@ struct syscore_ops {
 	int (*suspend)(void);
 	void (*resume)(void);
 	void (*shutdown)(void);
-};
+} __do_const;
 
 extern void register_syscore_ops(struct syscore_ops *ops);
 extern void unregister_syscore_ops(struct syscore_ops *ops);

@@ -396,7 +396,7 @@ static void stop_pci_io(struct octeon_device *oct)
  * this device has been detected.
  */
 static pci_ers_result_t liquidio_pcie_error_detected(struct pci_dev *pdev,
-						     pci_channel_state_t state)
+						     enum pci_channel_state state)
 {
 	struct octeon_device *oct = pci_get_drvdata(pdev);
 
@@ -3081,7 +3081,7 @@ static inline int send_nic_timestamp_pkt(struct octeon_device *oct,
  * @returns whether the packet was transmitted to the device okay or not
  *             (NETDEV_TX_OK or NETDEV_TX_BUSY)
  */
-static int liquidio_xmit(struct sk_buff *skb, struct net_device *netdev)
+static netdev_tx_t liquidio_xmit(struct sk_buff *skb, struct net_device *netdev)
 {
 	struct lio *lio;
 	struct octnet_buf_free_info *finfo;
@@ -3567,7 +3567,7 @@ static void liquidio_del_vxlan_port(struct net_device *netdev,
 				    OCTNET_CMD_VXLAN_PORT_DEL);
 }
 
-static struct net_device_ops lionetdevops = {
+static net_device_ops_no_const lionetdevops __read_only = {
 	.ndo_open		= liquidio_open,
 	.ndo_stop		= liquidio_stop,
 	.ndo_start_xmit		= liquidio_xmit,
@@ -3816,8 +3816,11 @@ static int setup_nic_devices(struct octeon_device *octeon_dev)
 
 		SET_NETDEV_DEV(netdev, &octeon_dev->pci_dev->dev);
 
-		if (num_iqueues > 1)
+		if (num_iqueues > 1) {
+			pax_open_kernel();
 			lionetdevops.ndo_select_queue = select_q;
+			pax_close_kernel();
+		}
 
 		/* Associate the routines that will handle different
 		 * netdev tasks.

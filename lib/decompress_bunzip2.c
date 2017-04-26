@@ -665,7 +665,8 @@ static int INIT start_bunzip(struct bunzip_data **bdp, void *inbuf, long len,
 
 	/* Fourth byte (ascii '1'-'9'), indicates block size in units of 100k of
 	   uncompressed data.  Allocate intermediate buffer for block. */
-	bd->dbufSize = 100000*(i-BZh0);
+	i -= BZh0;
+	bd->dbufSize = 100000 * i;
 
 	bd->dbuf = large_malloc(bd->dbufSize * sizeof(int));
 	if (!bd->dbuf)

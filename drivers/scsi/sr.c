@@ -80,7 +80,7 @@ static DEFINE_MUTEX(sr_mutex);
 static int sr_probe(struct device *);
 static int sr_remove(struct device *);
 static int sr_init_command(struct scsi_cmnd *SCpnt);
-static int sr_done(struct scsi_cmnd *);
+static unsigned int sr_done(struct scsi_cmnd *);
 static int sr_runtime_suspend(struct device *dev);
 
 static const struct dev_pm_ops sr_pm_ops = {
@@ -315,13 +315,13 @@ do_tur:
  * It will be notified on the end of a SCSI read / write, and will take one
  * of several actions based on success or failure.
  */
-static int sr_done(struct scsi_cmnd *SCpnt)
+static unsigned int sr_done(struct scsi_cmnd *SCpnt)
 {
 	int result = SCpnt->result;
-	int this_count = scsi_bufflen(SCpnt);
-	int good_bytes = (result == 0 ? this_count : 0);
-	int block_sectors = 0;
-	long error_sector;
+	unsigned int this_count = scsi_bufflen(SCpnt);
+	unsigned int good_bytes = (result == 0 ? this_count : 0);
+	unsigned int block_sectors = 0;
+	sector_t error_sector;
 	struct scsi_cd *cd = scsi_cd(SCpnt->request->rq_disk);
 
 #ifdef DEBUG
@@ -354,9 +354,12 @@ static int sr_done(struct scsi_cmnd *SCpnt)
 			if (cd->device->sector_size == 2048)
 				error_sector <<= 2;
 			error_sector &= ~(block_sectors - 1);
-			good_bytes = (error_sector -
-				      blk_rq_pos(SCpnt->request)) << 9;
-			if (good_bytes < 0 || good_bytes >= this_count)
+			if (error_sector >= blk_rq_pos(SCpnt->request)) {
+				good_bytes = (error_sector -
+					      blk_rq_pos(SCpnt->request)) << 9;
+				if (good_bytes >= this_count)
+					good_bytes = 0;
+			} else
 				good_bytes = 0;
 			/*
 			 * The SCSI specification allows for the value

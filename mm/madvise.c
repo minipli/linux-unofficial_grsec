@@ -56,6 +56,10 @@ static long madvise_behavior(struct vm_area_struct *vma,
 	pgoff_t pgoff;
 	unsigned long new_flags = vma->vm_flags;
 
+#ifdef CONFIG_PAX_SEGMEXEC
+	struct vm_area_struct *vma_m;
+#endif
+
 	switch (behavior) {
 	case MADV_NORMAL:
 		new_flags = new_flags & ~VM_RAND_READ & ~VM_SEQ_READ;
@@ -132,6 +136,13 @@ success:
 	/*
 	 * vm_flags is protected by the mmap_sem held in write mode.
 	 */
+
+#ifdef CONFIG_PAX_SEGMEXEC
+	vma_m = pax_find_mirror_vma(vma);
+	if (vma_m)
+		vma_m->vm_flags = new_flags & ~(VM_WRITE | VM_MAYWRITE | VM_ACCOUNT);
+#endif
+
 	vma->vm_flags = new_flags;
 
 out:
@@ -471,11 +482,27 @@ static long madvise_dontneed(struct vm_area_struct *vma,
 			     struct vm_area_struct **prev,
 			     unsigned long start, unsigned long end)
 {
+
+#ifdef CONFIG_PAX_SEGMEXEC
+	struct vm_area_struct *vma_m;
+#endif
+
 	*prev = vma;
 	if (vma->vm_flags & (VM_LOCKED|VM_HUGETLB|VM_PFNMAP))
 		return -EINVAL;
 
 	zap_page_range(vma, start, end - start, NULL);
+
+#ifdef CONFIG_PAX_SEGMEXEC
+	vma_m = pax_find_mirror_vma(vma);
+	if (vma_m) {
+		if (vma_m->vm_flags & (VM_LOCKED|VM_HUGETLB|VM_PFNMAP))
+			return -EINVAL;
+
+		zap_page_range(vma_m, start + SEGMEXEC_TASK_SIZE, end - start, NULL);
+	}
+#endif
+
 	return 0;
 }
 
@@ -700,6 +727,16 @@ SYSCALL_DEFINE3(madvise, unsigned long, start, size_t, len_in, int, behavior)
 
 	end = start + len;
 	if (end < start)
+		return error;
+
+#ifdef CONFIG_PAX_SEGMEXEC
+	if (current->mm->pax_flags & MF_PAX_SEGMEXEC) {
+		if (end > SEGMEXEC_TASK_SIZE)
+			return error;
+	} else
+#endif
+
+	if (end > TASK_SIZE)
 		return error;
 
 	error = 0;

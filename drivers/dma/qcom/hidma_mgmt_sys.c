@@ -194,7 +194,7 @@ static ssize_t set_values_channel(struct kobject *kobj,
 
 static int create_sysfs_entry(struct hidma_mgmt_dev *dev, char *name, int mode)
 {
-	struct device_attribute *attrs;
+	device_attribute_no_const *attrs;
 	char *name_copy;
 
 	attrs = devm_kmalloc(&dev->pdev->dev,

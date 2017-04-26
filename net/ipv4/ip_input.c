@@ -148,6 +148,10 @@
 #include <linux/netlink.h>
 #include <net/dst_metadata.h>
 
+#ifdef CONFIG_GRKERNSEC_BLACKHOLE
+extern int grsec_enable_blackhole;
+#endif
+
 /*
  *	Process Router Attention IP option (RFC 2113)
  */
@@ -223,6 +227,9 @@ static int ip_local_deliver_finish(struct net *net, struct sock *sk, struct sk_b
 			if (!raw) {
 				if (xfrm4_policy_check(NULL, XFRM_POLICY_IN, skb)) {
 					__IP_INC_STATS(net, IPSTATS_MIB_INUNKNOWNPROTOS);
+#ifdef CONFIG_GRKERNSEC_BLACKHOLE
+					if (!grsec_enable_blackhole || (skb->dev->flags & IFF_LOOPBACK))
+#endif
 					icmp_send(skb, ICMP_DEST_UNREACH,
 						  ICMP_PROT_UNREACH, 0);
 				}

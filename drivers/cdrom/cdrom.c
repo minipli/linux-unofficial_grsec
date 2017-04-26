@@ -610,7 +610,6 @@ int register_cdrom(struct cdrom_device_info *cdi)
 	ENSURE(reset, CDC_RESET);
 	ENSURE(generic_packet, CDC_GENERIC_PACKET);
 	cdi->mc_flags = 0;
-	cdo->n_minors = 0;
 	cdi->options = CDO_USE_FFLAGS;
 
 	if (autoclose == 1 && CDROM_CAN(CDC_CLOSE_TRAY))
@@ -630,8 +629,11 @@ int register_cdrom(struct cdrom_device_info *cdi)
 	else
 		cdi->cdda_method = CDDA_OLD;
 
-	if (!cdo->generic_packet)
-		cdo->generic_packet = cdrom_dummy_generic_packet;
+	if (!cdo->generic_packet) {
+		pax_open_kernel();
+		const_cast(cdo->generic_packet) = cdrom_dummy_generic_packet;
+		pax_close_kernel();
+	}
 
 	cd_dbg(CD_REG_UNREG, "drive \"/dev/%s\" registered\n", cdi->name);
 	mutex_lock(&cdrom_mutex);
@@ -652,7 +654,6 @@ void unregister_cdrom(struct cdrom_device_info *cdi)
 	if (cdi->exit)
 		cdi->exit(cdi);
 
-	cdi->ops->n_minors--;
 	cd_dbg(CD_REG_UNREG, "drive \"/dev/%s\" unregistered\n", cdi->name);
 }
 
@@ -2137,7 +2138,7 @@ static int cdrom_read_cdda_old(struct cdrom_device_info *cdi, __u8 __user *ubuf,
 	 */
 	nr = nframes;
 	do {
-		cgc.buffer = kmalloc(CD_FRAMESIZE_RAW * nr, GFP_KERNEL);
+		cgc.buffer = kcalloc(nr, CD_FRAMESIZE_RAW, GFP_KERNEL);
 		if (cgc.buffer)
 			break;
 
@@ -3441,7 +3442,7 @@ static int cdrom_print_info(const char *header, int val, char *info,
 	struct cdrom_device_info *cdi;
 	int ret;
 
-	ret = scnprintf(info + *pos, max_size - *pos, header);
+	ret = scnprintf(info + *pos, max_size - *pos, "%s", header);
 	if (!ret)
 		return 1;
 

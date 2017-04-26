@@ -33,8 +33,8 @@
  */
 #include "libfcoe.h"
 
-static atomic_t ctlr_num;
-static atomic_t fcf_num;
+static atomic_unchecked_t ctlr_num;
+static atomic_unchecked_t fcf_num;
 
 /*
  * fcoe_fcf_dev_loss_tmo: the default number of seconds that fcoe sysfs
@@ -724,7 +724,7 @@ struct fcoe_ctlr_device *fcoe_ctlr_device_add(struct device *parent,
 	if (!ctlr)
 		goto out;
 
-	ctlr->id = atomic_inc_return(&ctlr_num) - 1;
+	ctlr->id = atomic_inc_return_unchecked(&ctlr_num) - 1;
 	ctlr->f = f;
 	ctlr->mode = FIP_CONN_TYPE_FABRIC;
 	INIT_LIST_HEAD(&ctlr->fcfs);
@@ -941,7 +941,7 @@ struct fcoe_fcf_device *fcoe_fcf_device_add(struct fcoe_ctlr_device *ctlr,
 	fcf->dev.parent = &ctlr->dev;
 	fcf->dev.bus = &fcoe_bus_type;
 	fcf->dev.type = &fcoe_fcf_device_type;
-	fcf->id = atomic_inc_return(&fcf_num) - 1;
+	fcf->id = atomic_inc_return_unchecked(&fcf_num) - 1;
 	fcf->state = FCOE_FCF_STATE_UNKNOWN;
 
 	fcf->dev_loss_tmo = ctlr->fcf_dev_loss_tmo;
@@ -977,8 +977,8 @@ int __init fcoe_sysfs_setup(void)
 {
 	int error;
 
-	atomic_set(&ctlr_num, 0);
-	atomic_set(&fcf_num, 0);
+	atomic_set_unchecked(&ctlr_num, 0);
+	atomic_set_unchecked(&fcf_num, 0);
 
 	error = bus_register(&fcoe_bus_type);
 	if (error)

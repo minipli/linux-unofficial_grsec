@@ -3883,7 +3883,7 @@ int trace_keep_overwrite(struct tracer *tracer, u32 mask, int set)
 	return 0;
 }
 
-int set_tracer_flag(struct trace_array *tr, unsigned int mask, int enabled)
+int set_tracer_flag(struct trace_array *tr, unsigned long mask, int enabled)
 {
 	/* do nothing if flag is already set */
 	if (!!(tr->trace_flags & mask) == !!enabled)

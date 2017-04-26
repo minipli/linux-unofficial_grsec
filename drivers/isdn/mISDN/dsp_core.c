@@ -1092,7 +1092,7 @@ dspcreate(struct channel_req *crq)
 	ndsp->pcm_bank_tx = -1;
 	ndsp->hfc_conf = -1; /* current conference number */
 	/* set tone timer */
-	ndsp->tone.tl.function = (void *)dsp_tone_timeout;
+	ndsp->tone.tl.function = dsp_tone_timeout;
 	ndsp->tone.tl.data = (long) ndsp;
 	init_timer(&ndsp->tone.tl);
 
@@ -1204,7 +1204,7 @@ static int __init dsp_init(void)
 	}
 
 	/* set sample timer */
-	dsp_spl_tl.function = (void *)dsp_cmx_send;
+	dsp_spl_tl.function = dsp_cmx_send;
 	dsp_spl_tl.data = 0;
 	init_timer(&dsp_spl_tl);
 	dsp_spl_tl.expires = jiffies + dsp_tics;

@@ -1790,7 +1790,7 @@ int amdgpu_debugfs_firmware_init(struct amdgpu_device *adev);
  * amdgpu smumgr functions
  */
 struct amdgpu_smumgr_funcs {
-	int (*check_fw_load_finish)(struct amdgpu_device *adev, uint32_t fwtype);
+	int (*check_fw_load_finish)(struct amdgpu_device *adev, enum AMDGPU_UCODE_ID fwtype);
 	int (*request_smu_load_fw)(struct amdgpu_device *adev);
 	int (*request_smu_specific_fw)(struct amdgpu_device *adev, uint32_t fwtype);
 };

@@ -12,7 +12,7 @@
 
 #define DOUBLEFAULT_STACKSIZE (1024)
 static unsigned long doublefault_stack[DOUBLEFAULT_STACKSIZE];
-#define STACK_START (unsigned long)(doublefault_stack+DOUBLEFAULT_STACKSIZE)
+#define STACK_START (unsigned long)(doublefault_stack+DOUBLEFAULT_STACKSIZE-2)
 
 #define ptr_ok(x) ((x) > PAGE_OFFSET && (x) < PAGE_OFFSET + MAXMEM)
 
@@ -22,7 +22,7 @@ static void doublefault_fn(void)
 	unsigned long gdt, tss;
 
 	native_store_gdt(&gdt_desc);
-	gdt = gdt_desc.address;
+	gdt = (unsigned long)gdt_desc.address;
 
 	printk(KERN_EMERG "PANIC: double fault, gdt at %08lx [%d bytes]\n", gdt, gdt_desc.size);
 
@@ -59,10 +59,10 @@ struct tss_struct doublefault_tss __cacheline_aligned = {
 		/* 0x2 bit is always set */
 		.flags		= X86_EFLAGS_SF | 0x2,
 		.sp		= STACK_START,
-		.es		= __USER_DS,
+		.es		= __KERNEL_DS,
 		.cs		= __KERNEL_CS,
 		.ss		= __KERNEL_DS,
-		.ds		= __USER_DS,
+		.ds		= __KERNEL_DS,
 		.fs		= __KERNEL_PERCPU,
 
 		.__cr3		= __pa_nodebug(swapper_pg_dir),

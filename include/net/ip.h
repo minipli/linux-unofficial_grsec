@@ -354,7 +354,7 @@ static inline unsigned int ip_skb_dst_mtu(struct sock *sk,
 	return min(skb_dst(skb)->dev->mtu, IP_MAX_MTU);
 }
 
-u32 ip_idents_reserve(u32 hash, int segs);
+u32 ip_idents_reserve(u32 hash, int segs) __intentional_overflow(-1);
 void __ip_select_ident(struct net *net, struct iphdr *iph, int segs);
 
 static inline void ip_select_ident_segs(struct net *net, struct sk_buff *skb,

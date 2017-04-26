@@ -845,16 +845,18 @@ int hns_dsaf_ae_init(struct dsaf_device *dsaf_dev)
 	struct hnae_ae_dev *ae_dev = &dsaf_dev->ae_dev;
 	static atomic_t id = ATOMIC_INIT(-1);
 
+	pax_open_kernel();
 	switch (dsaf_dev->dsaf_ver) {
 	case AE_VERSION_1:
-		hns_dsaf_ops.toggle_ring_irq = hns_ae_toggle_ring_irq;
+		const_cast(hns_dsaf_ops.toggle_ring_irq) = hns_ae_toggle_ring_irq;
 		break;
 	case AE_VERSION_2:
-		hns_dsaf_ops.toggle_ring_irq = hns_aev2_toggle_ring_irq;
+		const_cast(hns_dsaf_ops.toggle_ring_irq) = hns_aev2_toggle_ring_irq;
 		break;
 	default:
 		break;
 	}
+	pax_close_kernel();
 
 	snprintf(ae_dev->name, AE_NAME_SIZE, "%s%d", DSAF_DEVICE_NAME,
 		 (int)atomic_inc_return(&id));

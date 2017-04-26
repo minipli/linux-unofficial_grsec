@@ -633,7 +633,7 @@ struct arm_smmu_domain {
 	struct arm_smmu_device		*smmu;
 	struct mutex			init_mutex; /* Protects smmu pointer */
 
-	struct io_pgtable_ops		*pgtbl_ops;
+	struct io_pgtable		*pgtbl;
 	spinlock_t			pgtbl_lock;
 
 	enum arm_smmu_domain_stage	stage;
@@ -1430,7 +1430,7 @@ static void arm_smmu_domain_free(struct iommu_domain *domain)
 	struct arm_smmu_device *smmu = smmu_domain->smmu;
 
 	iommu_put_dma_cookie(domain);
-	free_io_pgtable_ops(smmu_domain->pgtbl_ops);
+	free_io_pgtable(smmu_domain->pgtbl);
 
 	/* Free the CD and ASID, if we allocated them */
 	if (smmu_domain->stage == ARM_SMMU_DOMAIN_S1) {
@@ -1508,7 +1508,7 @@ static int arm_smmu_domain_finalise(struct iommu_domain *domain)
 	unsigned long ias, oas;
 	enum io_pgtable_fmt fmt;
 	struct io_pgtable_cfg pgtbl_cfg;
-	struct io_pgtable_ops *pgtbl_ops;
+	struct io_pgtable *iop;
 	int (*finalise_stage_fn)(struct arm_smmu_domain *,
 				 struct io_pgtable_cfg *);
 	struct arm_smmu_domain *smmu_domain = to_smmu_domain(domain);
@@ -1546,18 +1546,18 @@ static int arm_smmu_domain_finalise(struct iommu_domain *domain)
 		.iommu_dev	= smmu->dev,
 	};
 
-	pgtbl_ops = alloc_io_pgtable_ops(fmt, &pgtbl_cfg, smmu_domain);
-	if (!pgtbl_ops)
+	iop = alloc_io_pgtable(fmt, &pgtbl_cfg, smmu_domain);
+	if (!iop)
 		return -ENOMEM;
 
 	domain->pgsize_bitmap = pgtbl_cfg.pgsize_bitmap;
 	domain->geometry.aperture_end = (1UL << ias) - 1;
 	domain->geometry.force_aperture = true;
-	smmu_domain->pgtbl_ops = pgtbl_ops;
+	smmu_domain->pgtbl = iop;
 
 	ret = finalise_stage_fn(smmu_domain, &pgtbl_cfg);
 	if (ret < 0)
-		free_io_pgtable_ops(pgtbl_ops);
+		free_io_pgtable(iop);
 
 	return ret;
 }
@@ -1673,13 +1673,13 @@ static int arm_smmu_map(struct iommu_domain *domain, unsigned long iova,
 	int ret;
 	unsigned long flags;
 	struct arm_smmu_domain *smmu_domain = to_smmu_domain(domain);
-	struct io_pgtable_ops *ops = smmu_domain->pgtbl_ops;
+	struct io_pgtable *iop = smmu_domain->pgtbl;
 
-	if (!ops)
+	if (!iop)
 		return -ENODEV;
 
 	spin_lock_irqsave(&smmu_domain->pgtbl_lock, flags);
-	ret = ops->map(ops, iova, paddr, size, prot);
+	ret = iop->ops->map(iop, iova, paddr, size, prot);
 	spin_unlock_irqrestore(&smmu_domain->pgtbl_lock, flags);
 	return ret;
 }
@@ -1690,13 +1690,13 @@ arm_smmu_unmap(struct iommu_domain *domain, unsigned long iova, size_t size)
 	size_t ret;
 	unsigned long flags;
 	struct arm_smmu_domain *smmu_domain = to_smmu_domain(domain);
-	struct io_pgtable_ops *ops = smmu_domain->pgtbl_ops;
+	struct io_pgtable *iop = smmu_domain->pgtbl;
 
-	if (!ops)
+	if (!iop)
 		return 0;
 
 	spin_lock_irqsave(&smmu_domain->pgtbl_lock, flags);
-	ret = ops->unmap(ops, iova, size);
+	ret = iop->ops->unmap(iop, iova, size);
 	spin_unlock_irqrestore(&smmu_domain->pgtbl_lock, flags);
 	return ret;
 }
@@ -1707,13 +1707,13 @@ arm_smmu_iova_to_phys(struct iommu_domain *domain, dma_addr_t iova)
 	phys_addr_t ret;
 	unsigned long flags;
 	struct arm_smmu_domain *smmu_domain = to_smmu_domain(domain);
-	struct io_pgtable_ops *ops = smmu_domain->pgtbl_ops;
+	struct io_pgtable *iop = smmu_domain->pgtbl;
 
-	if (!ops)
+	if (!iop)
 		return 0;
 
 	spin_lock_irqsave(&smmu_domain->pgtbl_lock, flags);
-	ret = ops->iova_to_phys(ops, iova);
+	ret = iop->ops->iova_to_phys(iop, iova);
 	spin_unlock_irqrestore(&smmu_domain->pgtbl_lock, flags);
 
 	return ret;

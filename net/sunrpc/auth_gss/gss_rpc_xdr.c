@@ -731,10 +731,12 @@ static int gssx_enc_cb(struct xdr_stream *xdr, struct gssx_cb *cb)
 	return err;
 }
 
-void gssx_enc_accept_sec_context(struct rpc_rqst *req,
+void gssx_enc_accept_sec_context(void *_req,
 				 struct xdr_stream *xdr,
-				 struct gssx_arg_accept_sec_context *arg)
+				 void *_arg)
 {
+	struct rpc_rqst *req = _req;
+	struct gssx_arg_accept_sec_context *arg = _arg;
 	int err;
 
 	err = gssx_enc_call_ctx(xdr, &arg->call_ctx);
@@ -787,10 +789,11 @@ done:
 		dprintk("RPC:       gssx_enc_accept_sec_context: %d\n", err);
 }
 
-int gssx_dec_accept_sec_context(struct rpc_rqst *rqstp,
+int gssx_dec_accept_sec_context(void *rqstp,
 				struct xdr_stream *xdr,
-				struct gssx_res_accept_sec_context *res)
+				void *_res)
 {
+	struct gssx_res_accept_sec_context *res = _res;
 	u32 value_follows;
 	int err;
 	struct page *scratch;

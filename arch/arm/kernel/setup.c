@@ -112,6 +112,8 @@ EXPORT_SYMBOL(elf_hwcap);
 unsigned int elf_hwcap2 __read_mostly;
 EXPORT_SYMBOL(elf_hwcap2);
 
+pteval_t __supported_pte_mask __read_only;
+pmdval_t __supported_pmd_mask __read_only;
 
 #ifdef MULTI_CPU
 struct processor processor __ro_after_init;
@@ -257,9 +259,13 @@ static int __get_cpu_architecture(void)
 		 * Register 0 and check for VMSAv7 or PMSAv7 */
 		unsigned int mmfr0 = read_cpuid_ext(CPUID_EXT_MMFR0);
 		if ((mmfr0 & 0x0000000f) >= 0x00000003 ||
-		    (mmfr0 & 0x000000f0) >= 0x00000030)
+		    (mmfr0 & 0x000000f0) >= 0x00000030) {
 			cpu_arch = CPU_ARCH_ARMv7;
-		else if ((mmfr0 & 0x0000000f) == 0x00000002 ||
+			if ((mmfr0 & 0x0000000f) == 0x00000005 || (mmfr0 & 0x0000000f) == 0x00000004) {
+				__supported_pte_mask |= L_PTE_PXN;
+				__supported_pmd_mask |= PMD_PXNTABLE;
+			}
+		} else if ((mmfr0 & 0x0000000f) == 0x00000002 ||
 			 (mmfr0 & 0x000000f0) == 0x00000020)
 			cpu_arch = CPU_ARCH_ARMv6;
 		else

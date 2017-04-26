@@ -19,7 +19,7 @@
 #include <linux/module.h>
 
 struct xt_statistic_priv {
-	atomic_t count;
+	atomic_unchecked_t count;
 } ____cacheline_aligned_in_smp;
 
 MODULE_LICENSE("GPL");
@@ -42,9 +42,9 @@ statistic_mt(const struct sk_buff *skb, struct xt_action_param *par)
 		break;
 	case XT_STATISTIC_MODE_NTH:
 		do {
-			oval = atomic_read(&info->master->count);
+			oval = atomic_read_unchecked(&info->master->count);
 			nval = (oval == info->u.nth.every) ? 0 : oval + 1;
-		} while (atomic_cmpxchg(&info->master->count, oval, nval) != oval);
+		} while (atomic_cmpxchg_unchecked(&info->master->count, oval, nval) != oval);
 		if (nval == 0)
 			ret = !ret;
 		break;
@@ -64,7 +64,7 @@ static int statistic_mt_check(const struct xt_mtchk_param *par)
 	info->master = kzalloc(sizeof(*info->master), GFP_KERNEL);
 	if (info->master == NULL)
 		return -ENOMEM;
-	atomic_set(&info->master->count, info->u.nth.count);
+	atomic_set_unchecked(&info->master->count, info->u.nth.count);
 
 	return 0;
 }

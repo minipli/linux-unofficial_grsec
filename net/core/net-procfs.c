@@ -79,7 +79,13 @@ static void dev_seq_printf_stats(struct seq_file *seq, struct net_device *dev)
 	struct rtnl_link_stats64 temp;
 	const struct rtnl_link_stats64 *stats = dev_get_stats(dev, &temp);
 
-	seq_printf(seq, "%6s: %7llu %7llu %4llu %4llu %4llu %5llu %10llu %9llu "
+	if (gr_proc_is_restricted())
+		seq_printf(seq, "%6s: %7llu %7llu %4llu %4llu %4llu %5llu %10llu %9llu "
+		   "%8llu %7llu %4llu %4llu %4llu %5llu %7llu %10llu\n",
+		   dev->name, 0ULL, 0ULL, 0ULL, 0ULL, 0ULL, 0ULL, 0ULL, 0ULL, 0ULL, 0ULL,
+		   0ULL, 0ULL, 0ULL, 0ULL, 0ULL, 0ULL);
+	else
+		seq_printf(seq, "%6s: %7llu %7llu %4llu %4llu %4llu %5llu %10llu %9llu "
 		   "%8llu %7llu %4llu %4llu %4llu %5llu %7llu %10llu\n",
 		   dev->name, stats->rx_bytes, stats->rx_packets,
 		   stats->rx_errors,
@@ -167,7 +173,7 @@ static int softnet_seq_show(struct seq_file *seq, void *v)
 	return 0;
 }
 
-static const struct seq_operations dev_seq_ops = {
+const struct seq_operations dev_seq_ops = {
 	.start = dev_seq_start,
 	.next  = dev_seq_next,
 	.stop  = dev_seq_stop,
@@ -197,7 +203,7 @@ static const struct seq_operations softnet_seq_ops = {
 
 static int softnet_seq_open(struct inode *inode, struct file *file)
 {
-	return seq_open(file, &softnet_seq_ops);
+	return seq_open_restrict(file, &softnet_seq_ops);
 }
 
 static const struct file_operations softnet_seq_fops = {
@@ -284,8 +290,13 @@ static int ptype_seq_show(struct seq_file *seq, void *v)
 		else
 			seq_printf(seq, "%04x", ntohs(pt->type));
 
+#ifdef CONFIG_GRKERNSEC_HIDESYM
+		seq_printf(seq, " %-8s %pf\n",
+			   pt->dev ? pt->dev->name : "", NULL);
+#else
 		seq_printf(seq, " %-8s %pf\n",
 			   pt->dev ? pt->dev->name : "", pt->func);
+#endif
 	}
 
 	return 0;
@@ -348,7 +359,7 @@ static void __net_exit dev_proc_net_exit(struct net *net)
 	remove_proc_entry("dev", net->proc_net);
 }
 
-static struct pernet_operations __net_initdata dev_proc_ops = {
+static struct pernet_operations __net_initconst dev_proc_ops = {
 	.init = dev_proc_net_init,
 	.exit = dev_proc_net_exit,
 };
@@ -410,7 +421,7 @@ static void __net_exit dev_mc_net_exit(struct net *net)
 	remove_proc_entry("dev_mcast", net->proc_net);
 }
 
-static struct pernet_operations __net_initdata dev_mc_net_ops = {
+static struct pernet_operations __net_initconst dev_mc_net_ops = {
 	.init = dev_mc_net_init,
 	.exit = dev_mc_net_exit,
 };

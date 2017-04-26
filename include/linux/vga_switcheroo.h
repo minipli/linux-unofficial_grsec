@@ -170,9 +170,9 @@ enum vga_switcheroo_state vga_switcheroo_get_client_state(struct pci_dev *dev);
 
 void vga_switcheroo_set_dynamic_switch(struct pci_dev *pdev, enum vga_switcheroo_state dynamic);
 
-int vga_switcheroo_init_domain_pm_ops(struct device *dev, struct dev_pm_domain *domain);
+int vga_switcheroo_init_domain_pm_ops(struct device *dev, dev_pm_domain_no_const *domain);
 void vga_switcheroo_fini_domain_pm_ops(struct device *dev);
-int vga_switcheroo_init_domain_pm_optimus_hdmi_audio(struct device *dev, struct dev_pm_domain *domain);
+int vga_switcheroo_init_domain_pm_optimus_hdmi_audio(struct device *dev, dev_pm_domain_no_const *domain);
 #else
 
 static inline void vga_switcheroo_unregister_client(struct pci_dev *dev) {}
@@ -194,9 +194,9 @@ static inline enum vga_switcheroo_state vga_switcheroo_get_client_state(struct p
 
 static inline void vga_switcheroo_set_dynamic_switch(struct pci_dev *pdev, enum vga_switcheroo_state dynamic) {}
 
-static inline int vga_switcheroo_init_domain_pm_ops(struct device *dev, struct dev_pm_domain *domain) { return -EINVAL; }
+static inline int vga_switcheroo_init_domain_pm_ops(struct device *dev, dev_pm_domain_no_const *domain) { return -EINVAL; }
 static inline void vga_switcheroo_fini_domain_pm_ops(struct device *dev) {}
-static inline int vga_switcheroo_init_domain_pm_optimus_hdmi_audio(struct device *dev, struct dev_pm_domain *domain) { return -EINVAL; }
+static inline int vga_switcheroo_init_domain_pm_optimus_hdmi_audio(struct device *dev, dev_pm_domain_no_const *domain) { return -EINVAL; }
 
 #endif
 #endif /* _LINUX_VGA_SWITCHEROO_H_ */

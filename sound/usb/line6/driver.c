@@ -337,7 +337,7 @@ int line6_read_data(struct usb_line6 *line6, unsigned address, void *data,
 {
 	struct usb_device *usbdev = line6->usbdev;
 	int ret;
-	unsigned char len;
+	unsigned char *plen;
 	unsigned count;
 
 	if (address > 0xffff || datalen > 0xff)
@@ -354,6 +354,10 @@ int line6_read_data(struct usb_line6 *line6, unsigned address, void *data,
 		return ret;
 	}
 
+	plen = kmalloc(1, GFP_KERNEL);
+	if (plen == NULL)
+		return -ENOMEM;
+
 	/* Wait for data length. We'll get 0xff until length arrives. */
 	for (count = 0; count < LINE6_READ_WRITE_MAX_RETRIES; count++) {
 		mdelay(LINE6_READ_WRITE_STATUS_DELAY);
@@ -361,29 +365,34 @@ int line6_read_data(struct usb_line6 *line6, unsigned address, void *data,
 		ret = usb_control_msg(usbdev, usb_rcvctrlpipe(usbdev, 0), 0x67,
 				      USB_TYPE_VENDOR | USB_RECIP_DEVICE |
 				      USB_DIR_IN,
-				      0x0012, 0x0000, &len, 1,
+				      0x0012, 0x0000, plen, 1,
 				      LINE6_TIMEOUT * HZ);
 		if (ret < 0) {
 			dev_err(line6->ifcdev,
 				"receive length failed (error %d)\n", ret);
+			kfree(plen);
 			return ret;
 		}
 
-		if (len != 0xff)
+		if (*plen != 0xff)
 			break;
 	}
 
-	if (len == 0xff) {
+	if (*plen == 0xff) {
 		dev_err(line6->ifcdev, "read failed after %d retries\n",
 			count);
+		kfree(plen);
 		return -EIO;
-	} else if (len != datalen) {
+	} else if (*plen != datalen) {
 		/* should be equal or something went wrong */
 		dev_err(line6->ifcdev,
 			"length mismatch (expected %d, got %d)\n",
-			(int)datalen, (int)len);
+			(int)datalen, (int)*plen);
+		kfree(plen);
 		return -EIO;
 	}
+
+	kfree(plen);
 
 	/* receive the result: */
 	ret = usb_control_msg(usbdev, usb_rcvctrlpipe(usbdev, 0), 0x67,
@@ -408,7 +417,7 @@ int line6_write_data(struct usb_line6 *line6, unsigned address, void *data,
 {
 	struct usb_device *usbdev = line6->usbdev;
 	int ret;
-	unsigned char status;
+	unsigned char *status;
 	int count;
 
 	if (address > 0xffff || datalen > 0xffff)
@@ -425,6 +434,10 @@ int line6_write_data(struct usb_line6 *line6, unsigned address, void *data,
 		return ret;
 	}
 
+	status = kmalloc(1, GFP_KERNEL);
+	if (status == NULL)
+		return -ENOMEM;
+
 	for (count = 0; count < LINE6_READ_WRITE_MAX_RETRIES; count++) {
 		mdelay(LINE6_READ_WRITE_STATUS_DELAY);
 
@@ -433,26 +446,31 @@ int line6_write_data(struct usb_line6 *line6, unsigned address, void *data,
 				      USB_TYPE_VENDOR | USB_RECIP_DEVICE |
 				      USB_DIR_IN,
 				      0x0012, 0x0000,
-				      &status, 1, LINE6_TIMEOUT * HZ);
+				      status, 1, LINE6_TIMEOUT * HZ);
 
 		if (ret < 0) {
 			dev_err(line6->ifcdev,
 				"receiving status failed (error %d)\n", ret);
+			kfree(status);
 			return ret;
 		}
 
-		if (status != 0xff)
+		if (*status != 0xff)
 			break;
 	}
 
-	if (status == 0xff) {
+	if (*status == 0xff) {
 		dev_err(line6->ifcdev, "write failed after %d retries\n",
 			count);
+		kfree(status);
 		return -EIO;
-	} else if (status != 0) {
+	} else if (*status != 0) {
 		dev_err(line6->ifcdev, "write failed (error %d)\n", ret);
+		kfree(status);
 		return -EIO;
 	}
+
+	kfree(status);
 
 	return 0;
 }

@@ -295,7 +295,7 @@ static int via_cputemp_cpu_callback(struct notifier_block *nfb,
 	return NOTIFY_OK;
 }
 
-static struct notifier_block via_cputemp_cpu_notifier __refdata = {
+static struct notifier_block via_cputemp_cpu_notifier = {
 	.notifier_call = via_cputemp_cpu_callback,
 };
 

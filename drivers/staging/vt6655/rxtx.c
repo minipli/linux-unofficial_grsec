@@ -1250,7 +1250,7 @@ static void vnt_fill_txkey(struct ieee80211_hdr *hdr, u8 *key_buffer,
 		mic_hdr->payload_len = cpu_to_be16(payload_len);
 		ether_addr_copy(mic_hdr->mic_addr2, hdr->addr2);
 
-		pn64 = atomic64_read(&tx_key->tx_pn);
+		pn64 = atomic64_read_unchecked(&tx_key->tx_pn);
 		mic_hdr->ccmp_pn[5] = pn64;
 		mic_hdr->ccmp_pn[4] = pn64 >> 8;
 		mic_hdr->ccmp_pn[3] = pn64 >> 16;

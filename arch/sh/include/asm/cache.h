@@ -9,10 +9,11 @@
 #define __ASM_SH_CACHE_H
 #ifdef __KERNEL__
 
+#include <linux/const.h>
 #include <linux/init.h>
 #include <cpu/cache.h>
 
-#define L1_CACHE_BYTES		(1 << L1_CACHE_SHIFT)
+#define L1_CACHE_BYTES		(_AC(1,UL) << L1_CACHE_SHIFT)
 
 #define __read_mostly __attribute__((__section__(".data..read_mostly")))
 

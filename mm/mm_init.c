@@ -169,7 +169,7 @@ static int __meminit mm_compute_batch_notifier(struct notifier_block *self,
 	return NOTIFY_OK;
 }
 
-static struct notifier_block compute_batch_nb __meminitdata = {
+static struct notifier_block compute_batch_nb = {
 	.notifier_call = mm_compute_batch_notifier,
 	.priority = IPC_CALLBACK_PRI, /* use lowest priority */
 };

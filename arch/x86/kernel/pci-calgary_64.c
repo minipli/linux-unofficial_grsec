@@ -1347,7 +1347,7 @@ static void __init get_tce_space_from_tar(void)
 			tce_space = be64_to_cpu(readq(target));
 			tce_space = tce_space & TAR_SW_BITS;
 
-			tce_space = tce_space & (~specified_table_size);
+			tce_space = tce_space & (~(unsigned long)specified_table_size);
 			info->tce_space = (u64 *)__va(tce_space);
 		}
 	}

@@ -92,7 +92,7 @@ static inline int is_arm_mapping_symbol(const char *str)
 }
 
 static int check_symbol_range(const char *sym, unsigned long long addr,
-			      struct addr_range *ranges, int entries)
+			      struct addr_range *ranges, size_t entries)
 {
 	size_t i;
 	struct addr_range *ar;
@@ -183,7 +183,7 @@ static int read_symbol(FILE *in, struct sym_entry *s)
 }
 
 static int symbol_in_range(struct sym_entry *s, struct addr_range *ranges,
-			   int entries)
+			   size_t entries)
 {
 	size_t i;
 	struct addr_range *ar;

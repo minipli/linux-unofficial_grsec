@@ -14,7 +14,7 @@ struct nf_conntrack_ecache;
 struct nf_proto_net {
 #ifdef CONFIG_SYSCTL
 	struct ctl_table_header *ctl_table_header;
-	struct ctl_table        *ctl_table;
+	ctl_table_no_const      *ctl_table;
 #endif
 	unsigned int		users;
 };

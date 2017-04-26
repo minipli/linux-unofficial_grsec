@@ -468,9 +468,9 @@ void edac_device_reset_delay_period(struct edac_device_ctl_info *edac_dev,
  */
 int edac_device_alloc_index(void)
 {
-	static atomic_t device_indexes = ATOMIC_INIT(0);
+	static atomic_unchecked_t device_indexes = ATOMIC_INIT(0);
 
-	return atomic_inc_return(&device_indexes) - 1;
+	return atomic_inc_return_unchecked(&device_indexes) - 1;
 }
 EXPORT_SYMBOL_GPL(edac_device_alloc_index);
 

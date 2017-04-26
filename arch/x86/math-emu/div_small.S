@@ -43,5 +43,5 @@ ENTRY(FPU_div_small)
 	popl	%esi
 
 	leave
-	ret
+	pax_ret FPU_div_small
 

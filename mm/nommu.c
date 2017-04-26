@@ -48,7 +48,6 @@ unsigned long max_mapnr;
 EXPORT_SYMBOL(max_mapnr);
 unsigned long highest_memmap_pfn;
 int sysctl_nr_trim_pages = CONFIG_NOMMU_INITIAL_TRIM_EXCESS;
-int heap_stack_gap = 0;
 
 atomic_long_t mmap_pages_allocated;
 
@@ -828,15 +827,6 @@ struct vm_area_struct *find_vma(struct mm_struct *mm, unsigned long addr)
 EXPORT_SYMBOL(find_vma);
 
 /*
- * find a VMA
- * - we don't extend stack VMAs under NOMMU conditions
- */
-struct vm_area_struct *find_extend_vma(struct mm_struct *mm, unsigned long addr)
-{
-	return find_vma(mm, addr);
-}
-
-/*
  * expand a stack to a given address
  * - not supported under NOMMU conditions
  */
@@ -1501,6 +1491,7 @@ int split_vma(struct mm_struct *mm, struct vm_area_struct *vma,
 
 	/* most fields are the same, copy all, and then fixup */
 	*new = *vma;
+	INIT_LIST_HEAD(&new->anon_vma_chain);
 	*region = *vma->vm_region;
 	new->vm_region = region;
 
@@ -1808,8 +1799,8 @@ void filemap_map_pages(struct fault_env *fe,
 }
 EXPORT_SYMBOL(filemap_map_pages);
 
-int __access_remote_vm(struct task_struct *tsk, struct mm_struct *mm,
-		unsigned long addr, void *buf, int len, unsigned int gup_flags)
+ssize_t __access_remote_vm(struct task_struct *tsk, struct mm_struct *mm,
+		unsigned long addr, void *buf, size_t len, unsigned int gup_flags)
 {
 	struct vm_area_struct *vma;
 	int write = gup_flags & FOLL_WRITE;
@@ -1851,8 +1842,8 @@ int __access_remote_vm(struct task_struct *tsk, struct mm_struct *mm,
  *
  * The caller must hold a reference on @mm.
  */
-int access_remote_vm(struct mm_struct *mm, unsigned long addr,
-		void *buf, int len, unsigned int gup_flags)
+ssize_t access_remote_vm(struct mm_struct *mm, unsigned long addr,
+		void *buf, size_t len, unsigned int gup_flags)
 {
 	return __access_remote_vm(NULL, mm, addr, buf, len, gup_flags);
 }
@@ -1861,7 +1852,7 @@ int access_remote_vm(struct mm_struct *mm, unsigned long addr,
  * Access another process' address space.
  * - source/target buffer must be kernel space
  */
-int access_process_vm(struct task_struct *tsk, unsigned long addr, void *buf, int len,
+ssize_t access_process_vm(struct task_struct *tsk, unsigned long addr, void *buf, size_t len,
 		unsigned int gup_flags)
 {
 	struct mm_struct *mm;

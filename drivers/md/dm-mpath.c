@@ -88,7 +88,7 @@ struct multipath {
 
 	atomic_t nr_valid_paths;	/* Total number of usable paths */
 	atomic_t pg_init_in_progress;	/* Only one pg_init allowed at once */
-	atomic_t pg_init_count;		/* Number of times pg_init called */
+	atomic_unchecked_t pg_init_count;/* Number of times pg_init called */
 
 	unsigned queue_mode;
 
@@ -203,7 +203,7 @@ static struct multipath *alloc_multipath(struct dm_target *ti)
 		set_bit(MPATHF_QUEUE_IO, &m->flags);
 		atomic_set(&m->nr_valid_paths, 0);
 		atomic_set(&m->pg_init_in_progress, 0);
-		atomic_set(&m->pg_init_count, 0);
+		atomic_set_unchecked(&m->pg_init_count, 0);
 		m->pg_init_delay_msecs = DM_PG_INIT_DELAY_DEFAULT;
 		INIT_WORK(&m->trigger_event, trigger_event);
 		init_waitqueue_head(&m->pg_init_wait);
@@ -351,7 +351,7 @@ static int __pg_init_all_paths(struct multipath *m)
 	if (atomic_read(&m->pg_init_in_progress) || test_bit(MPATHF_PG_INIT_DISABLED, &m->flags))
 		return 0;
 
-	atomic_inc(&m->pg_init_count);
+	atomic_inc_unchecked(&m->pg_init_count);
 	clear_bit(MPATHF_PG_INIT_REQUIRED, &m->flags);
 
 	/* Check here to reset pg_init_required */
@@ -397,7 +397,7 @@ static void __switch_pg(struct multipath *m, struct priority_group *pg)
 		clear_bit(MPATHF_QUEUE_IO, &m->flags);
 	}
 
-	atomic_set(&m->pg_init_count, 0);
+	atomic_set_unchecked(&m->pg_init_count, 0);
 }
 
 static struct pgpath *choose_path_in_pg(struct multipath *m,
@@ -1418,7 +1418,7 @@ static bool pg_init_limit_reached(struct multipath *m, struct pgpath *pgpath)
 
 	spin_lock_irqsave(&m->lock, flags);
 
-	if (atomic_read(&m->pg_init_count) <= m->pg_init_retries &&
+	if (atomic_read_unchecked(&m->pg_init_count) <= m->pg_init_retries &&
 	    !test_bit(MPATHF_PG_INIT_DISABLED, &m->flags))
 		set_bit(MPATHF_PG_INIT_REQUIRED, &m->flags);
 	else
@@ -1736,7 +1736,7 @@ static void multipath_status(struct dm_target *ti, status_type_t type,
 	/* Features */
 	if (type == STATUSTYPE_INFO)
 		DMEMIT("2 %u %u ", test_bit(MPATHF_QUEUE_IO, &m->flags),
-		       atomic_read(&m->pg_init_count));
+		       atomic_read_unchecked(&m->pg_init_count));
 	else {
 		DMEMIT("%u ", test_bit(MPATHF_QUEUE_IF_NO_PATH, &m->flags) +
 			      (m->pg_init_retries > 0) * 2 +

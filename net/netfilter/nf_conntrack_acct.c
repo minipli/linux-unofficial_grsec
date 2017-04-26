@@ -64,7 +64,7 @@ static struct nf_ct_ext_type acct_extend __read_mostly = {
 #ifdef CONFIG_SYSCTL
 static int nf_conntrack_acct_init_sysctl(struct net *net)
 {
-	struct ctl_table *table;
+	ctl_table_no_const *table;
 
 	table = kmemdup(acct_sysctl_table, sizeof(acct_sysctl_table),
 			GFP_KERNEL);

@@ -111,8 +111,9 @@ static void snd_midi_input_event(struct snd_rawmidi_substream *substream)
 	}
 }
 
-static int dump_midi(struct snd_rawmidi_substream *substream, const char *buf, int count)
+static int dump_midi(void *_substream, const void *buf, int count)
 {
+	struct snd_rawmidi_substream *substream = _substream;
 	struct snd_rawmidi_runtime *runtime;
 	int tmp;
 
@@ -148,7 +149,7 @@ static int event_process_midi(struct snd_seq_event *ev, int direct,
 			pr_debug("ALSA: seq_midi: invalid sysex event flags = 0x%x\n", ev->flags);
 			return 0;
 		}
-		snd_seq_dump_var_event(ev, (snd_seq_dump_func_t)dump_midi, substream);
+		snd_seq_dump_var_event(ev, dump_midi, substream);
 		snd_midi_event_reset_decode(msynth->parser);
 	} else {
 		if (msynth->parser == NULL)

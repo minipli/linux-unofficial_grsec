@@ -15,7 +15,8 @@
 
 struct module;
 
-#ifdef CONFIG_KALLSYMS
+#if !defined(__INCLUDED_BY_HIDESYM) || !defined(CONFIG_KALLSYMS)
+#if defined(CONFIG_KALLSYMS) && !defined(CONFIG_GRKERNSEC_HIDESYM)
 /* Lookup the address for a symbol. Returns 0 if not found. */
 unsigned long kallsyms_lookup_name(const char *name);
 
@@ -40,7 +41,7 @@ extern int sprint_symbol_no_offset(char *buffer, unsigned long address);
 extern int sprint_backtrace(char *buffer, unsigned long address);
 
 /* Look up a kernel symbol and print it to the kernel messages. */
-extern void __print_symbol(const char *fmt, unsigned long address);
+extern __printf(1, 3) void __print_symbol(const char *fmt, unsigned long address, ...);
 
 int lookup_symbol_name(unsigned long addr, char *symname);
 int lookup_symbol_attrs(unsigned long addr, unsigned long *size, unsigned long *offset, char *modname, char *name);
@@ -104,21 +105,26 @@ static inline int lookup_symbol_attrs(unsigned long addr, unsigned long *size, u
 }
 
 /* Stupid that this does nothing, but I didn't create this mess. */
-#define __print_symbol(fmt, addr)
+#define __print_symbol(fmt, addr, args...)
 #endif /*CONFIG_KALLSYMS*/
+#else /* when included by kallsyms.c, vsnprintf.c, kprobes.c, or
+	arch/x86/kernel/dumpstack.c, with HIDESYM enabled */
+extern unsigned long kallsyms_lookup_name(const char *name);
+extern __printf(1, 3) void __print_symbol(const char *fmt, unsigned long address, ...);
+extern int sprint_backtrace(char *buffer, unsigned long address);
+extern int sprint_symbol(char *buffer, unsigned long address);
+extern int sprint_symbol_no_offset(char *buffer, unsigned long address);
+const char *kallsyms_lookup(unsigned long addr,
+			    unsigned long *symbolsize,
+			    unsigned long *offset,
+			    char **modname, char *namebuf);
+extern int kallsyms_lookup_size_offset(unsigned long addr,
+				  unsigned long *symbolsize,
+				  unsigned long *offset);
+#endif
 
-/* This macro allows us to keep printk typechecking */
-static __printf(1, 2)
-void __check_printsym_format(const char *fmt, ...)
-{
-}
-
-static inline void print_symbol(const char *fmt, unsigned long addr)
-{
-	__check_printsym_format(fmt, "");
-	__print_symbol(fmt, (unsigned long)
-		       __builtin_extract_return_addr((void *)addr));
-}
+#define print_symbol(fmt, addr) \
+	__print_symbol(fmt, addr, "")
 
 static inline void print_ip_sym(unsigned long ip)
 {

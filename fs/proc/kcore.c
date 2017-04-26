@@ -316,7 +316,7 @@ static char *storenote(struct memelfnote *men, char *bufp)
  * store an ELF coredump header in the supplied buffer
  * nphdr is the number of elf_phdr to insert
  */
-static void elf_kcore_store_hdr(char *bufp, int nphdr, int dataoff)
+static void elf_kcore_store_hdr(char *bufp, int nphdr, size_t dataoff)
 {
 	struct elf_prstatus prstatus;	/* NT_PRSTATUS */
 	struct elf_prpsinfo prpsinfo;	/* NT_PRPSINFO */
@@ -484,9 +484,10 @@ read_kcore(struct file *file, char __user *buffer, size_t buflen, loff_t *fpos)
 	 * the addresses in the elf_phdr on our list.
 	 */
 	start = kc_offset_to_vaddr(*fpos - elf_buflen);
-	if ((tsz = (PAGE_SIZE - (start & ~PAGE_MASK))) > buflen)
+	tsz = PAGE_SIZE - (start & ~PAGE_MASK);
+	if (tsz > buflen)
 		tsz = buflen;
-		
+
 	while (buflen) {
 		struct kcore_list *m;
 
@@ -508,24 +509,22 @@ read_kcore(struct file *file, char __user *buffer, size_t buflen, loff_t *fpos)
 		} else {
 			if (kern_addr_valid(start)) {
 				unsigned long n;
+				mm_segment_t oldfs;
 
 				/*
 				 * Using bounce buffer to bypass the
 				 * hardened user copy kernel text checks.
 				 */
-				memcpy(buf, (char *) start, tsz);
-				n = copy_to_user(buffer, buf, tsz);
-				/*
-				 * We cannot distinguish between fault on source
-				 * and fault on destination. When this happens
-				 * we clear too and hope it will trigger the
-				 * EFAULT again.
-				 */
-				if (n) { 
-					if (clear_user(buffer + tsz - n,
-								n))
-						return -EFAULT;
-				}
+				oldfs = get_fs();
+				set_fs(KERNEL_DS);
+				n = __copy_from_user(buf, (const void __user *)start, tsz);
+				set_fs(oldfs);
+				if (n)
+					n = clear_user(buffer, tsz);
+				else
+					n = copy_to_user(buffer, buf, tsz);
+				if (n)
+					return -EFAULT;
 			} else {
 				if (clear_user(buffer, tsz))
 					return -EFAULT;
@@ -545,10 +544,13 @@ read_kcore(struct file *file, char __user *buffer, size_t buflen, loff_t *fpos)
 
 static int open_kcore(struct inode *inode, struct file *filp)
 {
+#if defined(CONFIG_GRKERNSEC_PROC_ADD) || defined(CONFIG_GRKERNSEC_HIDESYM)
+	return -EPERM;
+#endif
 	if (!capable(CAP_SYS_RAWIO))
 		return -EPERM;
 
-	filp->private_data = kmalloc(PAGE_SIZE, GFP_KERNEL);
+	filp->private_data = kmalloc(PAGE_SIZE, GFP_KERNEL|GFP_USERCOPY);
 	if (!filp->private_data)
 		return -ENOMEM;
 
@@ -589,7 +591,7 @@ static int __meminit kcore_callback(struct notifier_block *self,
 	return NOTIFY_OK;
 }
 
-static struct notifier_block kcore_callback_nb __meminitdata = {
+static struct notifier_block kcore_callback_nb = {
 	.notifier_call = kcore_callback,
 	.priority = 0,
 };

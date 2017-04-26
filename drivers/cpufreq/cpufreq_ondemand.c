@@ -408,7 +408,7 @@ static void od_start(struct cpufreq_policy *policy)
 	ondemand_powersave_bias_init(policy);
 }
 
-static struct od_ops od_ops = {
+static struct od_ops od_ops __read_only = {
 	.powersave_bias_target = generic_powersave_bias_target,
 };
 
@@ -464,14 +464,18 @@ void od_register_powersave_bias_handler(unsigned int (*f)
 		(struct cpufreq_policy *, unsigned int, unsigned int),
 		unsigned int powersave_bias)
 {
-	od_ops.powersave_bias_target = f;
+	pax_open_kernel();
+	const_cast(od_ops.powersave_bias_target) = f;
+	pax_close_kernel();
 	od_set_powersave_bias(powersave_bias);
 }
 EXPORT_SYMBOL_GPL(od_register_powersave_bias_handler);
 
 void od_unregister_powersave_bias_handler(void)
 {
-	od_ops.powersave_bias_target = generic_powersave_bias_target;
+	pax_open_kernel();
+	const_cast(od_ops.powersave_bias_target) = generic_powersave_bias_target;
+	pax_close_kernel();
 	od_set_powersave_bias(0);
 }
 EXPORT_SYMBOL_GPL(od_unregister_powersave_bias_handler);

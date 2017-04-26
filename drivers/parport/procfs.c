@@ -65,7 +65,7 @@ static int do_active_device(struct ctl_table *table, int write,
 
 	*ppos += len;
 
-	return copy_to_user(result, buffer, len) ? -EFAULT : 0;
+	return (len > sizeof buffer || copy_to_user(result, buffer, len)) ? -EFAULT : 0;
 }
 
 #ifdef CONFIG_PARPORT_1284
@@ -107,7 +107,7 @@ static int do_autoprobe(struct ctl_table *table, int write,
 
 	*ppos += len;
 
-	return copy_to_user (result, buffer, len) ? -EFAULT : 0;
+	return (len > sizeof buffer || copy_to_user (result, buffer, len)) ? -EFAULT : 0;
 }
 #endif /* IEEE1284.3 support. */
 

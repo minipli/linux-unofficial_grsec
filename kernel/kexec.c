@@ -236,7 +236,8 @@ COMPAT_SYSCALL_DEFINE4(kexec_load, compat_ulong_t, entry,
 		       compat_ulong_t, flags)
 {
 	struct compat_kexec_segment in;
-	struct kexec_segment out, __user *ksegments;
+	struct kexec_segment out;
+	struct kexec_segment __user *ksegments;
 	unsigned long i, result;
 
 	/* Don't allow clients that don't understand the native

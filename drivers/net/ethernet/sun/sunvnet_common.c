@@ -1126,7 +1126,7 @@ static inline struct sk_buff *vnet_skb_shape(struct sk_buff *skb, int ncookies)
 	return skb;
 }
 
-static int vnet_handle_offloads(struct vnet_port *port, struct sk_buff *skb,
+static netdev_tx_t vnet_handle_offloads(struct vnet_port *port, struct sk_buff *skb,
 				struct vnet_port *(*vnet_tx_port)
 				(struct sk_buff *, struct net_device *))
 {
@@ -1134,7 +1134,7 @@ static int vnet_handle_offloads(struct vnet_port *port, struct sk_buff *skb,
 	struct vio_dring_state *dr = &port->vio.drings[VIO_DRIVER_TX_RING];
 	struct sk_buff *segs;
 	int maclen, datalen;
-	int status;
+	netdev_tx_t status;
 	int gso_size, gso_type, gso_segs;
 	int hlen = skb_transport_header(skb) - skb_mac_header(skb);
 	int proto = IPPROTO_IP;
@@ -1190,7 +1190,7 @@ static int vnet_handle_offloads(struct vnet_port *port, struct sk_buff *skb,
 	skb_push(skb, maclen);
 	skb_reset_mac_header(skb);
 
-	status = 0;
+	status = NETDEV_TX_OK;
 	while (segs) {
 		struct sk_buff *curr = segs;
 

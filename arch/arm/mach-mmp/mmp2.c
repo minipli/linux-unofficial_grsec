@@ -98,7 +98,9 @@ void __init mmp2_init_irq(void)
 {
 	mmp2_init_icu();
 #ifdef CONFIG_PM
-	icu_irq_chip.irq_set_wake = mmp2_set_wake;
+	pax_open_kernel();
+	const_cast(icu_irq_chip.irq_set_wake) = mmp2_set_wake;
+	pax_close_kernel();
 #endif
 }
 

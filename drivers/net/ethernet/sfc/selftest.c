@@ -82,8 +82,8 @@ struct efx_loopback_state {
 	int packet_count;
 	struct sk_buff **skbs;
 	bool offload_csum;
-	atomic_t rx_good;
-	atomic_t rx_bad;
+	atomic_unchecked_t rx_good;
+	atomic_unchecked_t rx_bad;
 	struct efx_loopback_payload payload;
 };
 
@@ -357,12 +357,12 @@ void efx_loopback_rx_packet(struct efx_nic *efx,
 	netif_vdbg(efx, drv, efx->net_dev,
 		   "got loopback RX in %s loopback test\n", LOOPBACK_MODE(efx));
 
-	atomic_inc(&state->rx_good);
+	atomic_inc_unchecked(&state->rx_good);
 	return;
 
  err:
 #ifdef DEBUG
-	if (atomic_read(&state->rx_bad) == 0) {
+	if (atomic_read_unchecked(&state->rx_bad) == 0) {
 		netif_err(efx, drv, efx->net_dev, "received packet:\n");
 		print_hex_dump(KERN_ERR, "", DUMP_PREFIX_OFFSET, 0x10, 1,
 			       buf_ptr, pkt_len, 0);
@@ -371,7 +371,7 @@ void efx_loopback_rx_packet(struct efx_nic *efx,
 			       &state->payload, sizeof(state->payload), 0);
 	}
 #endif
-	atomic_inc(&state->rx_bad);
+	atomic_inc_unchecked(&state->rx_bad);
 }
 
 /* Initialise an efx_selftest_state for a new iteration */
@@ -405,8 +405,8 @@ static void efx_iterate_state(struct efx_nic *efx)
 	memcpy(&payload->msg, payload_msg, sizeof(payload_msg));
 
 	/* Fill out remaining state members */
-	atomic_set(&state->rx_good, 0);
-	atomic_set(&state->rx_bad, 0);
+	atomic_set_unchecked(&state->rx_good, 0);
+	atomic_set_unchecked(&state->rx_bad, 0);
 	smp_wmb();
 }
 
@@ -464,7 +464,7 @@ static int efx_poll_loopback(struct efx_nic *efx)
 {
 	struct efx_loopback_state *state = efx->loopback_selftest;
 
-	return atomic_read(&state->rx_good) == state->packet_count;
+	return atomic_read_unchecked(&state->rx_good) == state->packet_count;
 }
 
 static int efx_end_loopback(struct efx_tx_queue *tx_queue,
@@ -490,8 +490,8 @@ static int efx_end_loopback(struct efx_tx_queue *tx_queue,
 	netif_tx_unlock_bh(efx->net_dev);
 
 	/* Check TX completion and received packet counts */
-	rx_good = atomic_read(&state->rx_good);
-	rx_bad = atomic_read(&state->rx_bad);
+	rx_good = atomic_read_unchecked(&state->rx_good);
+	rx_bad = atomic_read_unchecked(&state->rx_bad);
 	if (tx_done != state->packet_count) {
 		/* Don't free the skbs; they will be picked up on TX
 		 * overflow or channel teardown.

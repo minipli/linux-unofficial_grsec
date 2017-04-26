@@ -51,7 +51,7 @@ struct smp_ops_t {
 	int   (*cpu_disable)(void);
 	void  (*cpu_die)(unsigned int nr);
 	int   (*cpu_bootable)(unsigned int nr);
-};
+} __no_const;
 
 extern void smp_send_debugger_break(void);
 extern void start_secondary_resume(void);

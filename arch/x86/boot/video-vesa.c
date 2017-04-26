@@ -201,6 +201,7 @@ static void vesa_store_pm_info(void)
 
 	boot_params.screen_info.vesapm_seg = oreg.es;
 	boot_params.screen_info.vesapm_off = oreg.di;
+	boot_params.screen_info.vesapm_size = oreg.cx;
 }
 
 /*

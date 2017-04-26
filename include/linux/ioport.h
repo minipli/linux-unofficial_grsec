@@ -190,7 +190,7 @@ struct resource *lookup_resource(struct resource *root, resource_size_t start);
 int adjust_resource(struct resource *res, resource_size_t start,
 		    resource_size_t size);
 resource_size_t resource_alignment(struct resource *res);
-static inline resource_size_t resource_size(const struct resource *res)
+static inline resource_size_t __intentional_overflow(-1) resource_size(const struct resource *res)
 {
 	return res->end - res->start + 1;
 }

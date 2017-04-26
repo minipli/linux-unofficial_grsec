@@ -178,7 +178,7 @@ static ide_startstop_t __ide_do_rw_disk(ide_drive_t *drive, struct request *rq,
  * 1073741822 == 549756 MB or 48bit addressing fake drive
  */
 
-static ide_startstop_t ide_do_rw_disk(ide_drive_t *drive, struct request *rq,
+static ide_startstop_t __intentional_overflow(-1) ide_do_rw_disk(ide_drive_t *drive, struct request *rq,
 				      sector_t block)
 {
 	ide_hwif_t *hwif = drive->hwif;

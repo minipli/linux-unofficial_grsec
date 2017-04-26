@@ -15,11 +15,12 @@
 #ifndef _ASM_TILE_CACHE_H
 #define _ASM_TILE_CACHE_H
 
+#include <linux/const.h>
 #include <arch/chip.h>
 
 /* bytes per L1 data cache line */
 #define L1_CACHE_SHIFT		CHIP_L1D_LOG_LINE_SIZE()
-#define L1_CACHE_BYTES		(1 << L1_CACHE_SHIFT)
+#define L1_CACHE_BYTES		(_AC(1,UL) << L1_CACHE_SHIFT)
 
 /* bytes per L2 cache line */
 #define L2_CACHE_SHIFT		CHIP_L2_LOG_LINE_SIZE()

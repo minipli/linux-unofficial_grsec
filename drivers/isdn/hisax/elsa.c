@@ -606,8 +606,9 @@ check_arcofi(struct IsdnCardState *cs)
 #endif /* ARCOFI_USE */
 
 static void
-elsa_led_handler(struct IsdnCardState *cs)
+elsa_led_handler(unsigned long _cs)
 {
+	struct IsdnCardState *cs = (struct IsdnCardState *)_cs;
 	int blink = 0;
 
 	if (cs->subtyp == ELSA_PCMCIA || cs->subtyp == ELSA_PCMCIA_IPAC)
@@ -715,7 +716,7 @@ Elsa_card_msg(struct IsdnCardState *cs, int mt, void *arg)
 			init_modem(cs);
 		}
 #endif
-		elsa_led_handler(cs);
+		elsa_led_handler((unsigned long)cs);
 		return (ret);
 	case (MDL_REMOVE | REQUEST):
 		cs->hw.elsa.status &= 0;
@@ -767,7 +768,7 @@ Elsa_card_msg(struct IsdnCardState *cs, int mt, void *arg)
 		else
 			cs->hw.elsa.status &= ~ELSA_BAD_PWR;
 	}
-	elsa_led_handler(cs);
+	elsa_led_handler((unsigned long)cs);
 	return (ret);
 }
 
@@ -1147,7 +1148,7 @@ static int setup_elsa_common(struct IsdnCard *card)
 	init_arcofi(cs);
 #endif
 	setup_isac(cs);
-	cs->hw.elsa.tl.function = (void *) elsa_led_handler;
+	cs->hw.elsa.tl.function = elsa_led_handler;
 	cs->hw.elsa.tl.data = (long) cs;
 	init_timer(&cs->hw.elsa.tl);
 	/* Teste Timer */

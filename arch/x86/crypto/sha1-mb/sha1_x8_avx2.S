@@ -53,6 +53,7 @@
  */
 
 #include <linux/linkage.h>
+#include <asm/alternative-asm.h>
 #include "sha1_mb_mgr_datastruct.S"
 
 ## code to compute oct SHA1 using SSE-256
@@ -457,7 +458,7 @@ lloop:
 	pop	%r13
 	pop	%r12
 
-	ret
+	pax_ret sha1_x8_avx2
 ENDPROC(sha1_x8_avx2)
 
 

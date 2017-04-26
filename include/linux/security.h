@@ -30,6 +30,7 @@
 #include <linux/string.h>
 #include <linux/mm.h>
 #include <linux/fs.h>
+#include <linux/grsecurity.h>
 
 struct linux_binprm;
 struct cred;

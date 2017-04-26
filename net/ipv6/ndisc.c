@@ -680,7 +680,7 @@ static void ndisc_solicit(struct neighbour *neigh, struct sk_buff *skb)
 	struct in6_addr mcaddr;
 	struct net_device *dev = neigh->dev;
 	struct in6_addr *target = (struct in6_addr *)&neigh->primary_key;
-	int probes = atomic_read(&neigh->probes);
+	int probes = atomic_read_unchecked(&neigh->probes);
 
 	if (skb && ipv6_chk_addr_and_flags(dev_net(dev), &ipv6_hdr(skb)->saddr,
 					   dev, 1,

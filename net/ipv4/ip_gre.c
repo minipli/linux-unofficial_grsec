@@ -110,7 +110,7 @@ static bool log_ecn_error = true;
 module_param(log_ecn_error, bool, 0644);
 MODULE_PARM_DESC(log_ecn_error, "Log packets received with corrupted ECN");
 
-static struct rtnl_link_ops ipgre_link_ops __read_mostly;
+static struct rtnl_link_ops ipgre_link_ops;
 static int ipgre_tunnel_init(struct net_device *dev);
 
 static int ipgre_net_id __read_mostly;
@@ -1095,7 +1095,7 @@ static const struct nla_policy ipgre_policy[IFLA_GRE_MAX + 1] = {
 	[IFLA_GRE_IGNORE_DF]	= { .type = NLA_U8 },
 };
 
-static struct rtnl_link_ops ipgre_link_ops __read_mostly = {
+static struct rtnl_link_ops ipgre_link_ops = {
 	.kind		= "gre",
 	.maxtype	= IFLA_GRE_MAX,
 	.policy		= ipgre_policy,
@@ -1110,7 +1110,7 @@ static struct rtnl_link_ops ipgre_link_ops __read_mostly = {
 	.get_link_net	= ip_tunnel_get_link_net,
 };
 
-static struct rtnl_link_ops ipgre_tap_ops __read_mostly = {
+static struct rtnl_link_ops ipgre_tap_ops = {
 	.kind		= "gretap",
 	.maxtype	= IFLA_GRE_MAX,
 	.policy		= ipgre_policy,

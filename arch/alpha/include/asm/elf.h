@@ -91,6 +91,13 @@ typedef elf_fpreg_t elf_fpregset_t[ELF_NFPREG];
 
 #define ELF_ET_DYN_BASE		(TASK_UNMAPPED_BASE + 0x1000000)
 
+#ifdef CONFIG_PAX_ASLR
+#define PAX_ELF_ET_DYN_BASE	(current->personality & ADDR_LIMIT_32BIT ? 0x10000 : 0x120000000UL)
+
+#define PAX_DELTA_MMAP_LEN	(current->personality & ADDR_LIMIT_32BIT ? 14 : 28)
+#define PAX_DELTA_STACK_LEN	(current->personality & ADDR_LIMIT_32BIT ? 14 : 19)
+#endif
+
 /* $0 is set by ld.so to a pointer to a function which might be 
    registered using atexit.  This provides a mean for the dynamic
    linker to call DT_FINI functions for shared libraries that have

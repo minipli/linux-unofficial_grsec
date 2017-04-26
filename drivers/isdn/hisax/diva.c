@@ -796,8 +796,9 @@ reset_diva(struct IsdnCardState *cs)
 #define DIVA_ASSIGN 1
 
 static void
-diva_led_handler(struct IsdnCardState *cs)
+diva_led_handler(unsigned long _cs)
 {
+	struct IsdnCardState *cs = (struct IsdnCardState *)_cs;
 	int blink = 0;
 
 	if ((cs->subtyp == DIVA_IPAC_ISA) ||
@@ -898,7 +899,7 @@ Diva_card_msg(struct IsdnCardState *cs, int mt, void *arg)
 	    (cs->subtyp != DIVA_IPAC_PCI) &&
 	    (cs->subtyp != DIVA_IPACX_PCI)) {
 		spin_lock_irqsave(&cs->lock, flags);
-		diva_led_handler(cs);
+		diva_led_handler((unsigned long)cs);
 		spin_unlock_irqrestore(&cs->lock, flags);
 	}
 	return (0);
@@ -976,7 +977,7 @@ static int setup_diva_common(struct IsdnCardState *cs)
 		printk(KERN_INFO "Diva: IPACX Design Id: %x\n",
 		       MemReadISAC_IPACX(cs, IPACX_ID) & 0x3F);
 	} else { /* DIVA 2.0 */
-		cs->hw.diva.tl.function = (void *) diva_led_handler;
+		cs->hw.diva.tl.function = diva_led_handler;
 		cs->hw.diva.tl.data = (long) cs;
 		init_timer(&cs->hw.diva.tl);
 		cs->readisac  = &ReadISAC;

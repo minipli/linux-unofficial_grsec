@@ -342,6 +342,13 @@ struct pt_regs;	/* forward declaration... */
 
 #define ELF_ET_DYN_BASE         (TASK_UNMAPPED_BASE + 0x01000000)
 
+#ifdef CONFIG_PAX_ASLR
+#define PAX_ELF_ET_DYN_BASE	0x10000UL
+
+#define PAX_DELTA_MMAP_LEN	16
+#define PAX_DELTA_STACK_LEN	16
+#endif
+
 /* This yields a mask that user programs can use to figure out what
    instruction set this CPU supports.  This could be done in user space,
    but it's not easy, and we've already done it here.  */

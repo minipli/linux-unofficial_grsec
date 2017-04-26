@@ -29,6 +29,7 @@ void *_mmx_memcpy(void *to, const void *from, size_t len)
 {
 	void *p;
 	int i;
+	unsigned long cr0;
 
 	if (unlikely(in_interrupt()))
 		return __memcpy(to, from, len);
@@ -39,44 +40,72 @@ void *_mmx_memcpy(void *to, const void *from, size_t len)
 	kernel_fpu_begin();
 
 	__asm__ __volatile__ (
-		"1: prefetch (%0)\n"		/* This set is 28 bytes */
-		"   prefetch 64(%0)\n"
-		"   prefetch 128(%0)\n"
-		"   prefetch 192(%0)\n"
-		"   prefetch 256(%0)\n"
+		"1: prefetch (%1)\n"		/* This set is 28 bytes */
+		"   prefetch 64(%1)\n"
+		"   prefetch 128(%1)\n"
+		"   prefetch 192(%1)\n"
+		"   prefetch 256(%1)\n"
 		"2:  \n"
 		".section .fixup, \"ax\"\n"
-		"3: movw $0x1AEB, 1b\n"	/* jmp on 26 bytes */
+		"3:  \n"
+
+#ifdef CONFIG_PAX_KERNEXEC
+		"   movl %%cr0, %0\n"
+		"   movl %0, %%eax\n"
+		"   andl $0xFFFEFFFF, %%eax\n"
+		"   movl %%eax, %%cr0\n"
+#endif
+
+		"   movw $0x1AEB, 1b\n"	/* jmp on 26 bytes */
+
+#ifdef CONFIG_PAX_KERNEXEC
+		"   movl %0, %%cr0\n"
+#endif
+
 		"   jmp 2b\n"
 		".previous\n"
 			_ASM_EXTABLE(1b, 3b)
-			: : "r" (from));
+			: "=&r" (cr0) : "r" (from) : "ax");
 
 	for ( ; i > 5; i--) {
 		__asm__ __volatile__ (
-		"1:  prefetch 320(%0)\n"
-		"2:  movq (%0), %%mm0\n"
-		"  movq 8(%0), %%mm1\n"
-		"  movq 16(%0), %%mm2\n"
-		"  movq 24(%0), %%mm3\n"
-		"  movq %%mm0, (%1)\n"
-		"  movq %%mm1, 8(%1)\n"
-		"  movq %%mm2, 16(%1)\n"
-		"  movq %%mm3, 24(%1)\n"
-		"  movq 32(%0), %%mm0\n"
-		"  movq 40(%0), %%mm1\n"
-		"  movq 48(%0), %%mm2\n"
-		"  movq 56(%0), %%mm3\n"
-		"  movq %%mm0, 32(%1)\n"
-		"  movq %%mm1, 40(%1)\n"
-		"  movq %%mm2, 48(%1)\n"
-		"  movq %%mm3, 56(%1)\n"
+		"1:  prefetch 320(%1)\n"
+		"2:  movq (%1), %%mm0\n"
+		"  movq 8(%1), %%mm1\n"
+		"  movq 16(%1), %%mm2\n"
+		"  movq 24(%1), %%mm3\n"
+		"  movq %%mm0, (%2)\n"
+		"  movq %%mm1, 8(%2)\n"
+		"  movq %%mm2, 16(%2)\n"
+		"  movq %%mm3, 24(%2)\n"
+		"  movq 32(%1), %%mm0\n"
+		"  movq 40(%1), %%mm1\n"
+		"  movq 48(%1), %%mm2\n"
+		"  movq 56(%1), %%mm3\n"
+		"  movq %%mm0, 32(%2)\n"
+		"  movq %%mm1, 40(%2)\n"
+		"  movq %%mm2, 48(%2)\n"
+		"  movq %%mm3, 56(%2)\n"
 		".section .fixup, \"ax\"\n"
-		"3: movw $0x05EB, 1b\n"	/* jmp on 5 bytes */
+		"3:\n"
+
+#ifdef CONFIG_PAX_KERNEXEC
+		"   movl %%cr0, %0\n"
+		"   movl %0, %%eax\n"
+		"   andl $0xFFFEFFFF, %%eax\n"
+		"   movl %%eax, %%cr0\n"
+#endif
+
+		"   movw $0x05EB, 1b\n"	/* jmp on 5 bytes */
+
+#ifdef CONFIG_PAX_KERNEXEC
+		"   movl %0, %%cr0\n"
+#endif
+
 		"   jmp 2b\n"
 		".previous\n"
 			_ASM_EXTABLE(1b, 3b)
-			: : "r" (from), "r" (to) : "memory");
+			: "=&r" (cr0) : "r" (from), "r" (to) : "memory", "ax");
 
 		from += 64;
 		to += 64;
@@ -158,6 +187,7 @@ static void fast_clear_page(void *page)
 static void fast_copy_page(void *to, void *from)
 {
 	int i;
+	unsigned long cr0;
 
 	kernel_fpu_begin();
 
@@ -166,42 +196,70 @@ static void fast_copy_page(void *to, void *from)
 	 * but that is for later. -AV
 	 */
 	__asm__ __volatile__(
-		"1: prefetch (%0)\n"
-		"   prefetch 64(%0)\n"
-		"   prefetch 128(%0)\n"
-		"   prefetch 192(%0)\n"
-		"   prefetch 256(%0)\n"
+		"1: prefetch (%1)\n"
+		"   prefetch 64(%1)\n"
+		"   prefetch 128(%1)\n"
+		"   prefetch 192(%1)\n"
+		"   prefetch 256(%1)\n"
 		"2:  \n"
 		".section .fixup, \"ax\"\n"
-		"3: movw $0x1AEB, 1b\n"	/* jmp on 26 bytes */
+		"3:  \n"
+
+#ifdef CONFIG_PAX_KERNEXEC
+		"   movl %%cr0, %0\n"
+		"   movl %0, %%eax\n"
+		"   andl $0xFFFEFFFF, %%eax\n"
+		"   movl %%eax, %%cr0\n"
+#endif
+
+		"   movw $0x1AEB, 1b\n"	/* jmp on 26 bytes */
+
+#ifdef CONFIG_PAX_KERNEXEC
+		"   movl %0, %%cr0\n"
+#endif
+
 		"   jmp 2b\n"
 		".previous\n"
-			_ASM_EXTABLE(1b, 3b) : : "r" (from));
+			_ASM_EXTABLE(1b, 3b) : "=&r" (cr0) : "r" (from) : "ax");
 
 	for (i = 0; i < (4096-320)/64; i++) {
 		__asm__ __volatile__ (
-		"1: prefetch 320(%0)\n"
-		"2: movq (%0), %%mm0\n"
-		"   movntq %%mm0, (%1)\n"
-		"   movq 8(%0), %%mm1\n"
-		"   movntq %%mm1, 8(%1)\n"
-		"   movq 16(%0), %%mm2\n"
-		"   movntq %%mm2, 16(%1)\n"
-		"   movq 24(%0), %%mm3\n"
-		"   movntq %%mm3, 24(%1)\n"
-		"   movq 32(%0), %%mm4\n"
-		"   movntq %%mm4, 32(%1)\n"
-		"   movq 40(%0), %%mm5\n"
-		"   movntq %%mm5, 40(%1)\n"
-		"   movq 48(%0), %%mm6\n"
-		"   movntq %%mm6, 48(%1)\n"
-		"   movq 56(%0), %%mm7\n"
-		"   movntq %%mm7, 56(%1)\n"
+		"1: prefetch 320(%1)\n"
+		"2: movq (%1), %%mm0\n"
+		"   movntq %%mm0, (%2)\n"
+		"   movq 8(%1), %%mm1\n"
+		"   movntq %%mm1, 8(%2)\n"
+		"   movq 16(%1), %%mm2\n"
+		"   movntq %%mm2, 16(%2)\n"
+		"   movq 24(%1), %%mm3\n"
+		"   movntq %%mm3, 24(%2)\n"
+		"   movq 32(%1), %%mm4\n"
+		"   movntq %%mm4, 32(%2)\n"
+		"   movq 40(%1), %%mm5\n"
+		"   movntq %%mm5, 40(%2)\n"
+		"   movq 48(%1), %%mm6\n"
+		"   movntq %%mm6, 48(%2)\n"
+		"   movq 56(%1), %%mm7\n"
+		"   movntq %%mm7, 56(%2)\n"
 		".section .fixup, \"ax\"\n"
-		"3: movw $0x05EB, 1b\n"	/* jmp on 5 bytes */
+		"3:\n"
+
+#ifdef CONFIG_PAX_KERNEXEC
+		"   movl %%cr0, %0\n"
+		"   movl %0, %%eax\n"
+		"   andl $0xFFFEFFFF, %%eax\n"
+		"   movl %%eax, %%cr0\n"
+#endif
+
+		"   movw $0x05EB, 1b\n"	/* jmp on 5 bytes */
+
+#ifdef CONFIG_PAX_KERNEXEC
+		"   movl %0, %%cr0\n"
+#endif
+
 		"   jmp 2b\n"
 		".previous\n"
-		_ASM_EXTABLE(1b, 3b) : : "r" (from), "r" (to) : "memory");
+		_ASM_EXTABLE(1b, 3b) : "=&r" (cr0) : "r" (from), "r" (to) : "memory", "ax");
 
 		from += 64;
 		to += 64;
@@ -280,47 +338,76 @@ static void fast_clear_page(void *page)
 static void fast_copy_page(void *to, void *from)
 {
 	int i;
+	unsigned long cr0;
 
 	kernel_fpu_begin();
 
 	__asm__ __volatile__ (
-		"1: prefetch (%0)\n"
-		"   prefetch 64(%0)\n"
-		"   prefetch 128(%0)\n"
-		"   prefetch 192(%0)\n"
-		"   prefetch 256(%0)\n"
+		"1: prefetch (%1)\n"
+		"   prefetch 64(%1)\n"
+		"   prefetch 128(%1)\n"
+		"   prefetch 192(%1)\n"
+		"   prefetch 256(%1)\n"
 		"2:  \n"
 		".section .fixup, \"ax\"\n"
-		"3: movw $0x1AEB, 1b\n"	/* jmp on 26 bytes */
+		"3:  \n"
+
+#ifdef CONFIG_PAX_KERNEXEC
+		"   movl %%cr0, %0\n"
+		"   movl %0, %%eax\n"
+		"   andl $0xFFFEFFFF, %%eax\n"
+		"   movl %%eax, %%cr0\n"
+#endif
+
+		"   movw $0x1AEB, 1b\n"	/* jmp on 26 bytes */
+
+#ifdef CONFIG_PAX_KERNEXEC
+		"   movl %0, %%cr0\n"
+#endif
+
 		"   jmp 2b\n"
 		".previous\n"
-			_ASM_EXTABLE(1b, 3b) : : "r" (from));
+			_ASM_EXTABLE(1b, 3b) : "=&r" (cr0) : "r" (from) : "ax");
 
 	for (i = 0; i < 4096/64; i++) {
 		__asm__ __volatile__ (
-		"1: prefetch 320(%0)\n"
-		"2: movq (%0), %%mm0\n"
-		"   movq 8(%0), %%mm1\n"
-		"   movq 16(%0), %%mm2\n"
-		"   movq 24(%0), %%mm3\n"
-		"   movq %%mm0, (%1)\n"
-		"   movq %%mm1, 8(%1)\n"
-		"   movq %%mm2, 16(%1)\n"
-		"   movq %%mm3, 24(%1)\n"
-		"   movq 32(%0), %%mm0\n"
-		"   movq 40(%0), %%mm1\n"
-		"   movq 48(%0), %%mm2\n"
-		"   movq 56(%0), %%mm3\n"
-		"   movq %%mm0, 32(%1)\n"
-		"   movq %%mm1, 40(%1)\n"
-		"   movq %%mm2, 48(%1)\n"
-		"   movq %%mm3, 56(%1)\n"
+		"1: prefetch 320(%1)\n"
+		"2: movq (%1), %%mm0\n"
+		"   movq 8(%1), %%mm1\n"
+		"   movq 16(%1), %%mm2\n"
+		"   movq 24(%1), %%mm3\n"
+		"   movq %%mm0, (%2)\n"
+		"   movq %%mm1, 8(%2)\n"
+		"   movq %%mm2, 16(%2)\n"
+		"   movq %%mm3, 24(%2)\n"
+		"   movq 32(%1), %%mm0\n"
+		"   movq 40(%1), %%mm1\n"
+		"   movq 48(%1), %%mm2\n"
+		"   movq 56(%1), %%mm3\n"
+		"   movq %%mm0, 32(%2)\n"
+		"   movq %%mm1, 40(%2)\n"
+		"   movq %%mm2, 48(%2)\n"
+		"   movq %%mm3, 56(%2)\n"
 		".section .fixup, \"ax\"\n"
-		"3: movw $0x05EB, 1b\n"	/* jmp on 5 bytes */
+		"3:\n"
+
+#ifdef CONFIG_PAX_KERNEXEC
+		"   movl %%cr0, %0\n"
+		"   movl %0, %%eax\n"
+		"   andl $0xFFFEFFFF, %%eax\n"
+		"   movl %%eax, %%cr0\n"
+#endif
+
+		"   movw $0x05EB, 1b\n"	/* jmp on 5 bytes */
+
+#ifdef CONFIG_PAX_KERNEXEC
+		"   movl %0, %%cr0\n"
+#endif
+
 		"   jmp 2b\n"
 		".previous\n"
 			_ASM_EXTABLE(1b, 3b)
-			: : "r" (from), "r" (to) : "memory");
+			: "=&r" (cr0) : "r" (from), "r" (to) : "memory", "ax");
 
 		from += 64;
 		to += 64;

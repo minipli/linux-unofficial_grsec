@@ -410,7 +410,7 @@ static const struct file_operations regmap_reg_ranges_fops = {
 static int regmap_access_show(struct seq_file *s, void *ignored)
 {
 	struct regmap *map = s->private;
-	int i, reg_len;
+	unsigned int i, reg_len;
 
 	reg_len = regmap_calc_reg_len(map->max_register);
 

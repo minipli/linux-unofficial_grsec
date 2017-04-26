@@ -21,6 +21,7 @@
 #include <asm/tlbflush.h>
 #include <asm/io.h>
 #include <asm/fixmap.h>
+#include <asm/boot.h>
 
 int __read_mostly alternatives_patched;
 
@@ -262,7 +263,9 @@ static void __init_or_module add_nops(void *insns, unsigned int len)
 		unsigned int noplen = len;
 		if (noplen > ASM_NOP_MAX)
 			noplen = ASM_NOP_MAX;
+		pax_open_kernel();
 		memcpy(insns, ideal_nops[noplen], noplen);
+		pax_close_kernel();
 		insns += noplen;
 		len -= noplen;
 	}
@@ -289,6 +292,13 @@ recompute_jump(struct alt_instr *a, u8 *orig_insn, u8 *repl_insn, u8 *insnbuf)
 
 	if (a->replacementlen != 5)
 		return;
+
+#if defined(CONFIG_X86_32) && defined(CONFIG_PAX_KERNEXEC)
+	if (orig_insn < (u8 *)_text || (u8 *)_einittext <= orig_insn)
+		orig_insn = (u8 *)ktva_ktla((unsigned long)orig_insn);
+	else
+		orig_insn -= ____LOAD_PHYSICAL_ADDR - LOAD_PHYSICAL_ADDR;
+#endif
 
 	o_dspl = *(s32 *)(insnbuf + 1);
 
@@ -365,6 +375,7 @@ void __init_or_module apply_alternatives(struct alt_instr *start,
 {
 	struct alt_instr *a;
 	u8 *instr, *replacement;
+	u8 *vinstr, *vreplacement;
 	u8 insnbuf[MAX_PATCH_LEN];
 
 	DPRINTK("alt table %p -> %p", start, end);
@@ -380,46 +391,81 @@ void __init_or_module apply_alternatives(struct alt_instr *start,
 	for (a = start; a < end; a++) {
 		int insnbuf_sz = 0;
 
-		instr = (u8 *)&a->instr_offset + a->instr_offset;
-		replacement = (u8 *)&a->repl_offset + a->repl_offset;
+		vinstr = instr = (u8 *)&a->instr_offset + a->instr_offset;
+
+#if defined(CONFIG_X86_32) && defined(CONFIG_PAX_KERNEXEC)
+		if ((u8 *)_text - (____LOAD_PHYSICAL_ADDR - LOAD_PHYSICAL_ADDR) <= instr &&
+		    instr < (u8 *)_einittext - (____LOAD_PHYSICAL_ADDR - LOAD_PHYSICAL_ADDR)) {
+			instr += ____LOAD_PHYSICAL_ADDR - LOAD_PHYSICAL_ADDR;
+			vinstr = (u8 *)ktla_ktva((unsigned long)instr);
+		} else if ((u8 *)_text <= instr && instr < (u8 *)_einittext) {
+			vinstr = (u8 *)ktla_ktva((unsigned long)instr);
+		} else {
+			instr = (u8 *)ktva_ktla((unsigned long)instr);
+		}
+#endif
+
+		vreplacement = replacement = (u8 *)&a->repl_offset + a->repl_offset;
+
+#if defined(CONFIG_X86_32) && defined(CONFIG_PAX_KERNEXEC)
+		if ((u8 *)_text - (____LOAD_PHYSICAL_ADDR - LOAD_PHYSICAL_ADDR) <= replacement &&
+		    replacement < (u8 *)_einittext - (____LOAD_PHYSICAL_ADDR - LOAD_PHYSICAL_ADDR)) {
+			replacement += ____LOAD_PHYSICAL_ADDR - LOAD_PHYSICAL_ADDR;
+			vreplacement = (u8 *)ktla_ktva((unsigned long)replacement);
+		} else if ((u8 *)_text <= replacement && replacement < (u8 *)_einittext) {
+			vreplacement = (u8 *)ktla_ktva((unsigned long)replacement);
+		} else
+			replacement = (u8 *)ktva_ktla((unsigned long)replacement);
+#endif
+
 		BUG_ON(a->instrlen > sizeof(insnbuf));
 		BUG_ON(a->cpuid >= (NCAPINTS + NBUGINTS) * 32);
 		if (!boot_cpu_has(a->cpuid)) {
 			if (a->padlen > 1)
-				optimize_nops(a, instr);
+				optimize_nops(a, vinstr);
 
 			continue;
 		}
 
-		DPRINTK("feat: %d*32+%d, old: (%p, len: %d), repl: (%p, len: %d), pad: %d",
+		DPRINTK("feat: %d*32+%d, old: (%p/%p, len: %d), repl: (%p, len: %d), pad: %d",
 			a->cpuid >> 5,
 			a->cpuid & 0x1f,
-			instr, a->instrlen,
-			replacement, a->replacementlen, a->padlen);
+			instr, vinstr, a->instrlen,
+			vreplacement, a->replacementlen, a->padlen);
 
-		DUMP_BYTES(instr, a->instrlen, "%p: old_insn: ", instr);
-		DUMP_BYTES(replacement, a->replacementlen, "%p: rpl_insn: ", replacement);
+		DUMP_BYTES(vinstr, a->instrlen, "%p: old_insn: ", vinstr);
+		DUMP_BYTES(vreplacement, a->replacementlen, "%p: rpl_insn: ", vreplacement);
 
-		memcpy(insnbuf, replacement, a->replacementlen);
+		memcpy(insnbuf, vreplacement, a->replacementlen);
 		insnbuf_sz = a->replacementlen;
 
-		/* 0xe8 is a relative jump; fix the offset. */
+		/* 0xe8 is a call; fix the relative offset. */
 		if (*insnbuf == 0xe8 && a->replacementlen == 5) {
-			*(s32 *)(insnbuf + 1) += replacement - instr;
+			*(s32 *)(insnbuf + 1) += vreplacement - instr;
 			DPRINTK("Fix CALL offset: 0x%x, CALL 0x%lx",
 				*(s32 *)(insnbuf + 1),
-				(unsigned long)instr + *(s32 *)(insnbuf + 1) + 5);
+				(unsigned long)vinstr + *(s32 *)(insnbuf + 1) + 5);
 		}
 
-		if (a->replacementlen && is_jmp(replacement[0]))
-			recompute_jump(a, instr, replacement, insnbuf);
+#ifdef CONFIG_PAX_RAP
+		/* 0xeb ... 0xe8 is a rap_call; fix the relative offset. */
+		if (*insnbuf == 0xeb && a->replacementlen == 5 + 3 + 8 + 2 && insnbuf[a->replacementlen - 5] == 0xe8) {
+			*(s32 *)(insnbuf + a->replacementlen - 4) += vreplacement - instr;
+			DPRINTK("Fix CALL offset: 0x%x, CALL 0x%lx",
+				*(s32 *)(insnbuf + a->replacementlen - 4),
+				(unsigned long)vinstr + *(s32 *)(insnbuf + a->replacementlen - 4) + 5);
+		}
+#endif
+
+		if (a->replacementlen && is_jmp(vreplacement[0]))
+			recompute_jump(a, instr, vreplacement, insnbuf);
 
 		if (a->instrlen > a->replacementlen) {
 			add_nops(insnbuf + a->replacementlen,
 				 a->instrlen - a->replacementlen);
 			insnbuf_sz += a->instrlen - a->replacementlen;
 		}
-		DUMP_BYTES(insnbuf, insnbuf_sz, "%p: final_insn: ", instr);
+		DUMP_BYTES(insnbuf, insnbuf_sz, "%p: final_insn: ", vinstr);
 
 		text_poke_early(instr, insnbuf, insnbuf_sz);
 	}
@@ -435,10 +481,16 @@ static void alternatives_smp_lock(const s32 *start, const s32 *end,
 	for (poff = start; poff < end; poff++) {
 		u8 *ptr = (u8 *)poff + *poff;
 
+#if defined(CONFIG_X86_32) && defined(CONFIG_PAX_KERNEXEC)
+		ptr += ____LOAD_PHYSICAL_ADDR - LOAD_PHYSICAL_ADDR;
+		if (ptr < (u8 *)_text || (u8 *)_einittext <= ptr)
+			ptr -= ____LOAD_PHYSICAL_ADDR - LOAD_PHYSICAL_ADDR;
+#endif
+
 		if (!*poff || ptr < text || ptr >= text_end)
 			continue;
 		/* turn DS segment override prefix into lock prefix */
-		if (*ptr == 0x3e)
+		if (*(u8 *)ktla_ktva((unsigned long)ptr) == 0x3e)
 			text_poke(ptr, ((unsigned char []){0xf0}), 1);
 	}
 	mutex_unlock(&text_mutex);
@@ -453,10 +505,16 @@ static void alternatives_smp_unlock(const s32 *start, const s32 *end,
 	for (poff = start; poff < end; poff++) {
 		u8 *ptr = (u8 *)poff + *poff;
 
+#if defined(CONFIG_X86_32) && defined(CONFIG_PAX_KERNEXEC)
+		ptr += ____LOAD_PHYSICAL_ADDR - LOAD_PHYSICAL_ADDR;
+		if (ptr < (u8 *)_text || (u8 *)_einittext <= ptr)
+			ptr -= ____LOAD_PHYSICAL_ADDR - LOAD_PHYSICAL_ADDR;
+#endif
+
 		if (!*poff || ptr < text || ptr >= text_end)
 			continue;
 		/* turn lock prefix into DS segment override prefix */
-		if (*ptr == 0xf0)
+		if (*(u8 *)ktla_ktva((unsigned long)ptr) == 0xf0)
 			text_poke(ptr, ((unsigned char []){0x3E}), 1);
 	}
 	mutex_unlock(&text_mutex);
@@ -545,7 +603,9 @@ void alternatives_enable_smp(void)
 	if (uniproc_patched) {
 		pr_info("switching to SMP code\n");
 		BUG_ON(num_online_cpus() != 1);
+		pax_open_kernel();
 		clear_cpu_cap(&boot_cpu_data, X86_FEATURE_UP);
+		pax_close_kernel();
 		clear_cpu_cap(&cpu_data(0), X86_FEATURE_UP);
 		list_for_each_entry(mod, &smp_alt_modules, next)
 			alternatives_smp_lock(mod->locks, mod->locks_end,
@@ -593,7 +653,7 @@ void __init_or_module apply_paravirt(struct paravirt_patch_site *start,
 
 		BUG_ON(p->len > MAX_PATCH_LEN);
 		/* prep the buffer with the original instructions */
-		memcpy(insnbuf, p->instr, p->len);
+		memcpy(insnbuf, (const void *)ktla_ktva((unsigned long)p->instr), p->len);
 		used = pv_init_ops.patch(p->instrtype, p->clobbers, insnbuf,
 					 (unsigned long)p->instr, p->len);
 
@@ -640,7 +700,7 @@ void __init alternative_instructions(void)
 	if (!uniproc_patched || num_possible_cpus() == 1)
 		free_init_pages("SMP alternatives",
 				(unsigned long)__smp_locks,
-				(unsigned long)__smp_locks_end);
+				PAGE_ALIGN((unsigned long)__smp_locks_end));
 #endif
 
 	apply_paravirt(__parainstructions, __parainstructions_end);
@@ -661,13 +721,17 @@ void __init alternative_instructions(void)
  * instructions. And on the local CPU you need to be protected again NMI or MCE
  * handlers seeing an inconsistent instruction while you patch.
  */
-void *__init_or_module text_poke_early(void *addr, const void *opcode,
+void *__kprobes text_poke_early(void *addr, const void *opcode,
 					      size_t len)
 {
 	unsigned long flags;
 	local_irq_save(flags);
-	memcpy(addr, opcode, len);
+
+	pax_open_kernel();
+	memcpy((void *)ktla_ktva((unsigned long)addr), opcode, len);
 	sync_core();
+	pax_close_kernel();
+
 	local_irq_restore(flags);
 	/* Could also do a CLFLUSH here to speed up CPU recovery; but
 	   that causes hangs on some VIA CPUs. */
@@ -689,20 +753,29 @@ void *__init_or_module text_poke_early(void *addr, const void *opcode,
  */
 void *text_poke(void *addr, const void *opcode, size_t len)
 {
-	unsigned long flags;
-	char *vaddr;
+	unsigned char *vaddr = (void *)ktla_ktva((unsigned long)addr);
 	struct page *pages[2];
-	int i;
+	size_t i;
+
+#ifndef CONFIG_PAX_KERNEXEC
+	unsigned long flags;
+#endif
 
 	if (!core_kernel_text((unsigned long)addr)) {
-		pages[0] = vmalloc_to_page(addr);
-		pages[1] = vmalloc_to_page(addr + PAGE_SIZE);
+		pages[0] = vmalloc_to_page(vaddr);
+		pages[1] = vmalloc_to_page(vaddr + PAGE_SIZE);
 	} else {
-		pages[0] = virt_to_page(addr);
+		pages[0] = virt_to_page(vaddr);
 		WARN_ON(!PageReserved(pages[0]));
-		pages[1] = virt_to_page(addr + PAGE_SIZE);
+		pages[1] = virt_to_page(vaddr + PAGE_SIZE);
 	}
 	BUG_ON(!pages[0]);
+
+#ifdef CONFIG_PAX_KERNEXEC
+	text_poke_early(addr, opcode, len);
+	for (i = 0; i < len; i++)
+		BUG_ON((vaddr)[i] != ((const unsigned char *)opcode)[i]);
+#else
 	local_irq_save(flags);
 	set_fixmap(FIX_TEXT_POKE0, page_to_phys(pages[0]));
 	if (pages[1])
@@ -719,6 +792,7 @@ void *text_poke(void *addr, const void *opcode, size_t len)
 	for (i = 0; i < len; i++)
 		BUG_ON(((char *)addr)[i] != ((char *)opcode)[i]);
 	local_irq_restore(flags);
+#endif
 	return addr;
 }
 
@@ -772,7 +846,7 @@ int poke_int3_handler(struct pt_regs *regs)
  */
 void *text_poke_bp(void *addr, const void *opcode, size_t len, void *handler)
 {
-	unsigned char int3 = 0xcc;
+	const unsigned char int3 = 0xcc;
 
 	bp_int3_handler = handler;
 	bp_int3_addr = (u8 *)addr + sizeof(int3);

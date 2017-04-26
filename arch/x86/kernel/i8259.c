@@ -110,7 +110,7 @@ static int i8259A_irq_pending(unsigned int irq)
 static void make_8259A_irq(unsigned int irq)
 {
 	disable_irq_nosync(irq);
-	io_apic_irqs &= ~(1<<irq);
+	io_apic_irqs &= ~(1UL<<irq);
 	irq_set_chip_and_handler(irq, &i8259A_chip, handle_level_irq);
 	enable_irq(irq);
 }
@@ -208,7 +208,7 @@ spurious_8259A_irq:
 			       "spurious 8259A interrupt: IRQ%d.\n", irq);
 			spurious_irq_mask |= irqmask;
 		}
-		atomic_inc(&irq_err_count);
+		atomic_inc_unchecked(&irq_err_count);
 		/*
 		 * Theoretically we do not have to handle this IRQ,
 		 * but in Linux this does not cause problems and is
@@ -356,14 +356,16 @@ static void init_8259A(int auto_eoi)
 	/* (slave's support for AEOI in flat mode is to be investigated) */
 	outb_pic(SLAVE_ICW4_DEFAULT, PIC_SLAVE_IMR);
 
+	pax_open_kernel();
 	if (auto_eoi)
 		/*
 		 * In AEOI mode we just have to mask the interrupt
 		 * when acking.
 		 */
-		i8259A_chip.irq_mask_ack = disable_8259A_irq;
+		const_cast(i8259A_chip.irq_mask_ack) = disable_8259A_irq;
 	else
-		i8259A_chip.irq_mask_ack = mask_and_ack_8259A;
+		const_cast(i8259A_chip.irq_mask_ack) = mask_and_ack_8259A;
+	pax_close_kernel();
 
 	udelay(100);		/* wait for 8259A to initialize */
 

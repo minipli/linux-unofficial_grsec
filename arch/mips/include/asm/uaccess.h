@@ -148,6 +148,7 @@ static inline bool eva_kernel_access(void)
 	__ok == 0;							\
 })
 
+#define access_ok_noprefault(type, addr, size) access_ok((type), (addr), (size))
 #define access_ok(type, addr, size)					\
 	likely(__access_ok((addr), (size), __access_mask))
 

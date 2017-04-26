@@ -24,6 +24,7 @@
 #include <asm/errno.h>
 #include <linux/delay.h>
 #include <linux/slab.h>
+#include <linux/sched.h>
 #include <linux/mtd/mtd.h>
 #include <linux/mtd/nand.h>
 #include <linux/mtd/nftl.h>

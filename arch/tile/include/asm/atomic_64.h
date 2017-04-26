@@ -195,6 +195,16 @@ static inline long atomic64_add_unless(atomic64_t *v, long a, long u)
 
 #define atomic64_inc_not_zero(v)	atomic64_add_unless((v), 1, 0)
 
+#define atomic64_read_unchecked(v)		atomic64_read(v)
+#define atomic64_set_unchecked(v, i)		atomic64_set((v), (i))
+#define atomic64_add_unchecked(a, v)		atomic64_add((a), (v))
+#define atomic64_add_return_unchecked(a, v)	atomic64_add_return((a), (v))
+#define atomic64_sub_unchecked(a, v)		atomic64_sub((a), (v))
+#define atomic64_inc_unchecked(v)		atomic64_inc(v)
+#define atomic64_inc_return_unchecked(v)	atomic64_inc_return(v)
+#define atomic64_dec_unchecked(v)		atomic64_dec(v)
+#define atomic64_cmpxchg_unchecked(v, o, n)	atomic64_cmpxchg((v), (o), (n))
+
 #endif /* !__ASSEMBLY__ */
 
 #endif /* _ASM_TILE_ATOMIC_64_H */

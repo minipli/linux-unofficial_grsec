@@ -8,7 +8,7 @@
 #include <asm/ptrace.h>
 #include <asm/ftrace.h>
 #include <asm/export.h>
-
+#include <asm/alternative-asm.h>
 
 	.code64
 	.section .entry.text, "ax"
@@ -151,8 +151,8 @@ EXPORT_SYMBOL(mcount)
 #ifdef CONFIG_DYNAMIC_FTRACE
 
 ENTRY(function_hook)
-	retq
-END(function_hook)
+	pax_ret mcount
+ENDPROC(function_hook)
 
 ENTRY(ftrace_caller)
 	/* save_mcount_regs fills in first two parameters */
@@ -165,8 +165,7 @@ GLOBAL(ftrace_caller_op_ptr)
 	/* regs go into 4th parameter (but make it NULL) */
 	movq $0, %rcx
 
-GLOBAL(ftrace_call)
-	call ftrace_stub
+	pax_direct_call_global ftrace_stub ftrace_call
 
 	restore_mcount_regs
 
@@ -182,13 +181,13 @@ GLOBAL(ftrace_epilogue)
 
 #ifdef CONFIG_FUNCTION_GRAPH_TRACER
 GLOBAL(ftrace_graph_call)
-	jmp ftrace_stub
 #endif
+	jmp ftrace_stub
 
 /* This is weak to keep gas from relaxing the jumps */
-WEAK(ftrace_stub)
-	retq
-END(ftrace_caller)
+RAP_WEAK(ftrace_stub)
+	pax_ret ftrace_stub
+ENDPROC(ftrace_caller)
 
 ENTRY(ftrace_regs_caller)
 	/* Save the current flags before any operations that can change them */
@@ -225,8 +224,7 @@ GLOBAL(ftrace_regs_caller_op_ptr)
 	/* regs go into 4th parameter */
 	leaq (%rsp), %rcx
 
-GLOBAL(ftrace_regs_call)
-	call ftrace_stub
+	pax_direct_call_global ftrace_stub ftrace_regs_call
 
 	/* Copy flags back to SS, to restore them */
 	movq EFLAGS(%rsp), %rax
@@ -259,7 +257,7 @@ GLOBAL(ftrace_regs_caller_end)
 
 	jmp ftrace_epilogue
 
-END(ftrace_regs_caller)
+ENDPROC(ftrace_regs_caller)
 
 
 #else /* ! CONFIG_DYNAMIC_FTRACE */
@@ -278,7 +276,7 @@ fgraph_trace:
 #endif
 
 GLOBAL(ftrace_stub)
-	retq
+	pax_ret ftrace_stub
 
 trace:
 	/* save_mcount_regs fills in first two parameters */
@@ -290,12 +288,13 @@ trace:
 	 * ip and parent ip are used and the list function is called when
 	 * function tracing is enabled.
 	 */
-	call   *ftrace_trace_function
+	pax_force_fptr ftrace_trace_function
+	pax_indirect_call "ftrace_trace_function", ftrace_stub
 
 	restore_mcount_regs
 
 	jmp fgraph_trace
-END(function_hook)
+ENDPROC(function_hook)
 #endif /* CONFIG_DYNAMIC_FTRACE */
 #endif /* CONFIG_FUNCTION_TRACER */
 
@@ -313,13 +312,14 @@ ENTRY(ftrace_graph_caller)
 	/* ftrace does sanity checks against frame pointers */
 	movq (%rdx), %rdx
 #endif
-	call	prepare_ftrace_return
+	pax_direct_call prepare_ftrace_return
 
 	restore_mcount_regs
 
-	retq
-END(ftrace_graph_caller)
+	pax_ret ftrace_graph_caller
+ENDPROC(ftrace_graph_caller)
 
+	pax_retloc return_to_handler
 GLOBAL(return_to_handler)
 	subq  $24, %rsp
 
@@ -328,11 +328,13 @@ GLOBAL(return_to_handler)
 	movq %rdx, 8(%rsp)
 	movq %rbp, %rdi
 
-	call ftrace_return_to_handler
+	pax_direct_call ftrace_return_to_handler
 
 	movq %rax, %rdi
 	movq 8(%rsp), %rdx
 	movq (%rsp), %rax
 	addq $24, %rsp
+	pax_force_fptr %rdi
 	jmp *%rdi
+ENDPROC(return_to_handler)
 #endif

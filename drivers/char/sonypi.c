@@ -54,6 +54,7 @@
 
 #include <asm/uaccess.h>
 #include <asm/io.h>
+#include <asm/local.h>
 
 #include <linux/sonypi.h>
 
@@ -490,7 +491,7 @@ static struct sonypi_device {
 	spinlock_t fifo_lock;
 	wait_queue_head_t fifo_proc_list;
 	struct fasync_struct *fifo_async;
-	int open_count;
+	local_t open_count;
 	int model;
 	struct input_dev *input_jog_dev;
 	struct input_dev *input_key_dev;
@@ -892,7 +893,7 @@ static int sonypi_misc_fasync(int fd, struct file *filp, int on)
 static int sonypi_misc_release(struct inode *inode, struct file *file)
 {
 	mutex_lock(&sonypi_device.lock);
-	sonypi_device.open_count--;
+	local_dec(&sonypi_device.open_count);
 	mutex_unlock(&sonypi_device.lock);
 	return 0;
 }
@@ -901,9 +902,9 @@ static int sonypi_misc_open(struct inode *inode, struct file *file)
 {
 	mutex_lock(&sonypi_device.lock);
 	/* Flush input queue on first open */
-	if (!sonypi_device.open_count)
+	if (!local_read(&sonypi_device.open_count))
 		kfifo_reset(&sonypi_device.fifo);
-	sonypi_device.open_count++;
+	local_inc(&sonypi_device.open_count);
 	mutex_unlock(&sonypi_device.lock);
 
 	return 0;
@@ -1491,7 +1492,7 @@ static struct platform_driver sonypi_driver = {
 
 static struct platform_device *sonypi_platform_device;
 
-static struct dmi_system_id __initdata sonypi_dmi_table[] = {
+static const struct dmi_system_id __initconst sonypi_dmi_table[] = {
 	{
 		.ident = "Sony Vaio",
 		.matches = {

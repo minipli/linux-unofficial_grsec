@@ -15,6 +15,7 @@
 #include <linux/static_key.h>
 #include <linux/jump_label_ratelimit.h>
 #include <linux/bug.h>
+#include <linux/mm.h>
 
 #ifdef HAVE_JUMP_LABEL
 
@@ -52,7 +53,9 @@ jump_label_sort_entries(struct jump_entry *start, struct jump_entry *stop)
 
 	size = (((unsigned long)stop - (unsigned long)start)
 					/ sizeof(struct jump_entry));
+	pax_open_kernel();
 	sort(start, size, sizeof(struct jump_entry), jump_label_cmp, NULL);
+	pax_close_kernel();
 }
 
 static void jump_label_update(struct static_key *key);
@@ -482,10 +485,12 @@ static void jump_label_invalidate_module_init(struct module *mod)
 	struct jump_entry *iter_stop = iter_start + mod->num_jump_entries;
 	struct jump_entry *iter;
 
+	pax_open_kernel();
 	for (iter = iter_start; iter < iter_stop; iter++) {
 		if (within_module_init(iter->code, mod))
 			iter->code = 0;
 	}
+	pax_close_kernel();
 }
 
 static int

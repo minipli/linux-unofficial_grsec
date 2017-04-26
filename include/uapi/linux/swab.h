@@ -43,7 +43,7 @@
  * ___swab16, ___swab32, ___swab64, ___swahw32, ___swahb32
  */
 
-static inline __attribute_const__ __u16 __fswab16(__u16 val)
+static inline __intentional_overflow(0) __attribute_const__ __u16 __fswab16(__u16 val)
 {
 #if defined (__arch_swab16)
 	return __arch_swab16(val);
@@ -52,7 +52,7 @@ static inline __attribute_const__ __u16 __fswab16(__u16 val)
 #endif
 }
 
-static inline __attribute_const__ __u32 __fswab32(__u32 val)
+static inline __intentional_overflow(0) __attribute_const__ __u32 __fswab32(__u32 val)
 {
 #if defined(__arch_swab32)
 	return __arch_swab32(val);
@@ -61,7 +61,7 @@ static inline __attribute_const__ __u32 __fswab32(__u32 val)
 #endif
 }
 
-static inline __attribute_const__ __u64 __fswab64(__u64 val)
+static inline __intentional_overflow(0) __attribute_const__ __u64 __fswab64(__u64 val)
 {
 #if defined (__arch_swab64)
 	return __arch_swab64(val);

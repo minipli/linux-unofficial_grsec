@@ -340,26 +340,26 @@ L_exit:
 	popl	%esi
 
 	leave
-	ret
+	pax_ret div_Xsig
 
 
 #ifdef PARANOID
 /* The logic is wrong if we got here */
 L_bugged:
 	pushl	EX_INTERNAL|0x240
-	call	EXCEPTION
+	pax_direct_call EXCEPTION
 	pop	%ebx
 	jmp	L_exit
 
 L_bugged_1:
 	pushl	EX_INTERNAL|0x241
-	call	EXCEPTION
+	pax_direct_call EXCEPTION
 	pop	%ebx
 	jmp	L_exit
 
 L_bugged_2:
 	pushl	EX_INTERNAL|0x242
-	call	EXCEPTION
+	pax_direct_call EXCEPTION
 	pop	%ebx
 	jmp	L_exit
 #endif /* PARANOID */ 

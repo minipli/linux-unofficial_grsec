@@ -30,6 +30,9 @@
 void common(void) {
 	BLANK();
 	OFFSET(TASK_threadsp, task_struct, thread.sp);
+#ifdef CONFIG_PAX_RAP
+	OFFSET(TASK_stack, task_struct, stack);
+#endif
 #ifdef CONFIG_CC_STACKPROTECTOR
 	OFFSET(TASK_stack_canary, task_struct, stack_canary);
 #endif
@@ -37,6 +40,8 @@ void common(void) {
 	BLANK();
 	OFFSET(TASK_TI_flags, task_struct, thread_info.flags);
 	OFFSET(TASK_addr_limit, task_struct, thread.addr_limit);
+	OFFSET(TASK_lowest_stack, task_struct, thread.lowest_stack);
+	OFFSET(TASK_thread_sp0, task_struct, thread.sp0);
 
 	BLANK();
 	OFFSET(crypto_tfm_ctx_offset, crypto_tfm, __crt_ctx);
@@ -71,7 +76,25 @@ void common(void) {
 	OFFSET(PV_CPU_iret, pv_cpu_ops, iret);
 	OFFSET(PV_CPU_read_cr0, pv_cpu_ops, read_cr0);
 	OFFSET(PV_MMU_read_cr2, pv_mmu_ops, read_cr2);
+
+#ifdef CONFIG_PAX_KERNEXEC
+	OFFSET(PV_CPU_write_cr0, pv_cpu_ops, write_cr0);
 #endif
+
+#ifdef CONFIG_PAX_MEMORY_UDEREF
+	OFFSET(PV_MMU_read_cr3, pv_mmu_ops, read_cr3);
+	OFFSET(PV_MMU_write_cr3, pv_mmu_ops, write_cr3);
+#ifdef CONFIG_X86_64
+	OFFSET(PV_MMU_set_pgd_batched, pv_mmu_ops, set_pgd_batched);
+#endif
+#endif
+
+#endif
+
+	BLANK();
+	DEFINE(PAGE_SIZE_asm, PAGE_SIZE);
+	DEFINE(PAGE_SHIFT_asm, PAGE_SHIFT);
+	DEFINE(THREAD_SIZE_asm, THREAD_SIZE);
 
 #ifdef CONFIG_XEN
 	BLANK();
@@ -91,4 +114,5 @@ void common(void) {
 
 	BLANK();
 	DEFINE(PTREGS_SIZE, sizeof(struct pt_regs));
+	DEFINE(TSS_size, sizeof(struct tss_struct));
 }

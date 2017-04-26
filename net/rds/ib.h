@@ -153,7 +153,7 @@ struct rds_ib_connection {
 	/* sending acks */
 	unsigned long		i_ack_flags;
 #ifdef KERNEL_HAS_ATOMIC64
-	atomic64_t		i_ack_next;	/* next ACK to send */
+	atomic64_unchecked_t	i_ack_next;	/* next ACK to send */
 #else
 	spinlock_t		i_ack_lock;	/* protect i_ack_next */
 	u64			i_ack_next;	/* next ACK to send */

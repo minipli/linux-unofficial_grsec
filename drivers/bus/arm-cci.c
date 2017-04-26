@@ -1472,8 +1472,10 @@ static int cci_pmu_init(struct cci_pmu *cci_pmu, struct platform_device *pdev)
 	char *name = model->name;
 	u32 num_cntrs;
 
-	pmu_event_attr_group.attrs = model->event_attrs;
-	pmu_format_attr_group.attrs = model->format_attrs;
+	pax_open_kernel();
+	const_cast(pmu_event_attr_group.attrs) = model->event_attrs;
+	const_cast(pmu_format_attr_group.attrs) = model->format_attrs;
+	pax_close_kernel();
 
 	cci_pmu->pmu = (struct pmu) {
 		.name		= cci_pmu->model->name,

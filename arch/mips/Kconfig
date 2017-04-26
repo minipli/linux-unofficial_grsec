@@ -50,6 +50,7 @@ config MIPS
 	select HAVE_MOD_ARCH_SPECIFIC
 	select HAVE_NMI
 	select VIRT_TO_BUS
+	select HAVE_GCC_PLUGINS
 	select MODULES_USE_ELF_REL if MODULES
 	select MODULES_USE_ELF_RELA if MODULES && 64BIT
 	select CLONE_BACKWARDS
@@ -2596,7 +2597,7 @@ config RELOCATION_TABLE_SIZE
 
 config RANDOMIZE_BASE
 	bool "Randomize the address of the kernel image"
-	depends on RELOCATABLE
+	depends on RELOCATABLE && BROKEN_SECURITY
 	---help---
 	   Randomizes the physical and virtual address at which the
 	   kernel image is loaded, as a security feature that
@@ -2812,6 +2813,7 @@ source "kernel/Kconfig.preempt"
 config KEXEC
 	bool "Kexec system call"
 	select KEXEC_CORE
+	depends on !GRKERNSEC_KMEM
 	help
 	  kexec is a system call that implements the ability to shutdown your
 	  current kernel, and to start another kernel.  It is like a reboot

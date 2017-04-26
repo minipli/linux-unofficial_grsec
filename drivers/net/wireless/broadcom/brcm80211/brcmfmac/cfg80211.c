@@ -5229,6 +5229,50 @@ static struct cfg80211_ops brcmf_cfg80211_ops = {
 	.tdls_oper = brcmf_cfg80211_tdls_oper,
 };
 
+static struct cfg80211_ops brcmf_cfg80211_ops2 = {
+	.add_virtual_intf = brcmf_cfg80211_add_iface,
+	.del_virtual_intf = brcmf_cfg80211_del_iface,
+	.change_virtual_intf = brcmf_cfg80211_change_iface,
+	.scan = brcmf_cfg80211_scan,
+	.set_wiphy_params = brcmf_cfg80211_set_wiphy_params,
+	.join_ibss = brcmf_cfg80211_join_ibss,
+	.leave_ibss = brcmf_cfg80211_leave_ibss,
+	.get_station = brcmf_cfg80211_get_station,
+	.dump_station = brcmf_cfg80211_dump_station,
+	.set_tx_power = brcmf_cfg80211_set_tx_power,
+	.get_tx_power = brcmf_cfg80211_get_tx_power,
+	.add_key = brcmf_cfg80211_add_key,
+	.del_key = brcmf_cfg80211_del_key,
+	.get_key = brcmf_cfg80211_get_key,
+	.set_default_key = brcmf_cfg80211_config_default_key,
+	.set_default_mgmt_key = brcmf_cfg80211_config_default_mgmt_key,
+	.set_power_mgmt = brcmf_cfg80211_set_power_mgmt,
+	.connect = brcmf_cfg80211_connect,
+	.disconnect = brcmf_cfg80211_disconnect,
+	.suspend = brcmf_cfg80211_suspend,
+	.resume = brcmf_cfg80211_resume,
+	.set_pmksa = brcmf_cfg80211_set_pmksa,
+	.del_pmksa = brcmf_cfg80211_del_pmksa,
+	.flush_pmksa = brcmf_cfg80211_flush_pmksa,
+	.start_ap = brcmf_cfg80211_start_ap,
+	.stop_ap = brcmf_cfg80211_stop_ap,
+	.change_beacon = brcmf_cfg80211_change_beacon,
+	.del_station = brcmf_cfg80211_del_station,
+	.change_station = brcmf_cfg80211_change_station,
+	.sched_scan_start = brcmf_cfg80211_sched_scan_start,
+	.sched_scan_stop = brcmf_cfg80211_sched_scan_stop,
+	.mgmt_frame_register = brcmf_cfg80211_mgmt_frame_register,
+	.mgmt_tx = brcmf_cfg80211_mgmt_tx,
+	.remain_on_channel = brcmf_p2p_remain_on_channel,
+	.cancel_remain_on_channel = brcmf_cfg80211_cancel_remain_on_channel,
+	.start_p2p_device = brcmf_p2p_start_device,
+	.stop_p2p_device = brcmf_p2p_stop_device,
+	.crit_proto_start = brcmf_cfg80211_crit_proto_start,
+	.crit_proto_stop = brcmf_cfg80211_crit_proto_stop,
+	.tdls_oper = brcmf_cfg80211_tdls_oper,
+	.set_rekey_data = brcmf_cfg80211_set_rekey_data,
+};
+
 struct brcmf_cfg80211_vif *brcmf_alloc_vif(struct brcmf_cfg80211_info *cfg,
 					   enum nl80211_iftype type)
 {
@@ -6845,7 +6889,7 @@ struct brcmf_cfg80211_info *brcmf_cfg80211_attach(struct brcmf_pub *drvr,
 	struct net_device *ndev = brcmf_get_ifp(drvr, 0)->ndev;
 	struct brcmf_cfg80211_info *cfg;
 	struct wiphy *wiphy;
-	struct cfg80211_ops *ops;
+	struct cfg80211_ops *ops = &brcmf_cfg80211_ops;
 	struct brcmf_cfg80211_vif *vif;
 	struct brcmf_if *ifp;
 	s32 err = 0;
@@ -6857,14 +6901,10 @@ struct brcmf_cfg80211_info *brcmf_cfg80211_attach(struct brcmf_pub *drvr,
 		return NULL;
 	}
 
-	ops = kmemdup(&brcmf_cfg80211_ops, sizeof(*ops), GFP_KERNEL);
-	if (!ops)
-		return NULL;
-
 	ifp = netdev_priv(ndev);
 #ifdef CONFIG_PM
 	if (brcmf_feat_is_enabled(ifp, BRCMF_FEAT_WOWL_GTK))
-		ops->set_rekey_data = brcmf_cfg80211_set_rekey_data;
+		ops = &brcmf_cfg80211_ops2;
 #endif
 	wiphy = wiphy_new(ops, sizeof(struct brcmf_cfg80211_info));
 	if (!wiphy) {
@@ -7003,7 +7043,6 @@ priv_out:
 	ifp->vif = NULL;
 wiphy_out:
 	brcmf_free_wiphy(wiphy);
-	kfree(ops);
 	return NULL;
 }
 
@@ -7014,7 +7053,6 @@ void brcmf_cfg80211_detach(struct brcmf_cfg80211_info *cfg)
 
 	brcmf_btcoex_detach(cfg);
 	wiphy_unregister(cfg->wiphy);
-	kfree(cfg->ops);
 	wl_deinit_priv(cfg);
 	brcmf_free_wiphy(cfg->wiphy);
 }

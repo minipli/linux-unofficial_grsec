@@ -1376,7 +1376,7 @@ static struct rtnl_af_ops br_af_ops __read_mostly = {
 	.get_link_af_size	= br_get_link_af_size_filtered,
 };
 
-struct rtnl_link_ops br_link_ops __read_mostly = {
+struct rtnl_link_ops br_link_ops = {
 	.kind			= "bridge",
 	.priv_size		= sizeof(struct net_bridge),
 	.setup			= br_dev_setup,

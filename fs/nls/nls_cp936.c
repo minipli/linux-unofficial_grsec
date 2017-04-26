@@ -10997,7 +10997,7 @@ static const unsigned char charset2upper[256] = {
 	0xf8, 0xf9, 0xfa, 0xfb, 0xfc, 0xfd, 0xfe, 0xff, /* 0xf8-0xff */
 };
 
-static int uni2char(const wchar_t uni,
+static int uni2char(wchar_t uni,
 			unsigned char *out, int boundlen)
 {
 	const unsigned char *uni2charset;

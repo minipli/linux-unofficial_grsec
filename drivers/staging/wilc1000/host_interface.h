@@ -1,6 +1,7 @@
 #ifndef HOST_INT_H
 #define HOST_INT_H
 
+#include <linux/netdevice.h>
 #include "coreconfigurator.h"
 
 #define IP_ALEN  4

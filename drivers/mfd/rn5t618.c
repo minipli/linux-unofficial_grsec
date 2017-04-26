@@ -52,7 +52,6 @@ static const struct regmap_config rn5t618_regmap_config = {
 };
 
 static struct rn5t618 *rn5t618_pm_power_off;
-static struct notifier_block rn5t618_restart_handler;
 
 static void rn5t618_trigger_poweroff_sequence(bool repower)
 {
@@ -83,6 +82,12 @@ static int rn5t618_restart(struct notifier_block *this,
 
 	return NOTIFY_DONE;
 }
+
+static struct notifier_block rn5t618_restart_handler = {
+	.notifier_call = rn5t618_restart,
+	.priority = 192,
+
+};
 
 static const struct of_device_id rn5t618_of_match[] = {
 	{ .compatible = "ricoh,rn5t567", .data = (void *)RN5T567 },
@@ -132,9 +137,6 @@ static int rn5t618_i2c_probe(struct i2c_client *i2c,
 		else
 			dev_warn(&i2c->dev, "Poweroff callback already assigned\n");
 	}
-
-	rn5t618_restart_handler.notifier_call = rn5t618_restart;
-	rn5t618_restart_handler.priority = 192;
 
 	ret = register_restart_handler(&rn5t618_restart_handler);
 	if (ret) {

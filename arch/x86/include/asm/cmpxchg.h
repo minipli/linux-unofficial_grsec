@@ -15,8 +15,12 @@ extern void __cmpxchg_wrong_size(void)
 	__compiletime_error("Bad argument size for cmpxchg");
 extern void __xadd_wrong_size(void)
 	__compiletime_error("Bad argument size for xadd");
+extern void __xadd_check_overflow_wrong_size(void)
+	__compiletime_error("Bad argument size for xadd_check_overflow");
 extern void __add_wrong_size(void)
 	__compiletime_error("Bad argument size for add");
+extern void __add_check_overflow_wrong_size(void)
+	__compiletime_error("Bad argument size for add_check_overflow");
 
 /*
  * Constants for operation sizes. On 32-bit, the 64-bit size it set to
@@ -67,6 +71,32 @@ extern void __add_wrong_size(void)
 		}							\
 		__ret;							\
 	})
+
+#ifdef CONFIG_PAX_REFCOUNT
+#define __xchg_op_check_overflow(ptr, arg, op, lock)			\
+	({								\
+	        __typeof__ (*(ptr)) __ret = (arg);			\
+		switch (sizeof(*(ptr))) {				\
+		case __X86_CASE_L:					\
+			asm volatile (lock #op "l %0, %1\n"		\
+				      PAX_REFCOUNT_OVERFLOW(4)		\
+				      : "+r" (__ret), [counter] "+m" (*(ptr))\
+				      : : "memory", "cc", "cx");	\
+			break;						\
+		case __X86_CASE_Q:					\
+			asm volatile (lock #op "q %q0, %1\n"		\
+				      PAX_REFCOUNT_OVERFLOW(8)		\
+				      : "+r" (__ret), [counter] "+m" (*(ptr))\
+				      : : "memory", "cc", "cx");	\
+			break;						\
+		default:						\
+			__ ## op ## _check_overflow_wrong_size();	\
+		}							\
+		__ret;							\
+	})
+#else
+#define __xchg_op_check_overflow(ptr, arg, op, lock) __xchg_op(ptr, arg, op, lock)
+#endif
 
 /*
  * Note: no "lock" prefix even on SMP: xchg always implies lock anyway.
@@ -161,6 +191,9 @@ extern void __add_wrong_size(void)
  */
 #define __xadd(ptr, inc, lock)	__xchg_op((ptr), (inc), xadd, lock)
 #define xadd(ptr, inc)		__xadd((ptr), (inc), LOCK_PREFIX)
+
+#define __xadd_check_overflow(ptr, inc, lock)	__xchg_op_check_overflow((ptr), (inc), xadd, lock)
+#define xadd_check_overflow(ptr, inc)		__xadd_check_overflow((ptr), (inc), LOCK_PREFIX)
 
 #define __cmpxchg_double(pfx, p1, p2, o1, o2, n1, n2)			\
 ({									\

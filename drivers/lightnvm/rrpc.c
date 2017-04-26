@@ -231,7 +231,7 @@ static void rrpc_put_blks(struct rrpc *rrpc)
 
 static struct rrpc_lun *get_next_lun(struct rrpc *rrpc)
 {
-	int next = atomic_inc_return(&rrpc->next_lun);
+	int next = atomic_inc_return_unchecked(&rrpc->next_lun);
 
 	return &rrpc->luns[next % rrpc->nr_luns];
 }
@@ -1389,7 +1389,7 @@ static void *rrpc_init(struct nvm_dev *dev, struct gendisk *tdisk,
 	rrpc->nr_sects = (unsigned long long)dev->sec_per_lun * rrpc->nr_luns;
 
 	/* simple round-robin strategy */
-	atomic_set(&rrpc->next_lun, -1);
+	atomic_set_unchecked(&rrpc->next_lun, -1);
 
 	ret = rrpc_area_init(rrpc, &soffset);
 	if (ret < 0) {

@@ -16,6 +16,7 @@
 
 #include <linux/linkage.h>
 #include <asm/frame.h>
+#include <asm/alternative-asm.h>
 #include "glue_helper-asm-avx2.S"
 
 .file "serpent-avx2-asm_64.S"
@@ -611,7 +612,7 @@ __serpent_enc_blk16:
 	write_blocks(RA1, RB1, RC1, RD1, RK0, RK1, RK2);
 	write_blocks(RA2, RB2, RC2, RD2, RK0, RK1, RK2);
 
-	ret;
+	pax_ret __serpent_enc_blk16;
 ENDPROC(__serpent_enc_blk16)
 
 .align 8
@@ -665,10 +666,10 @@ __serpent_dec_blk16:
 	write_blocks(RC1, RD1, RB1, RE1, RK0, RK1, RK2);
 	write_blocks(RC2, RD2, RB2, RE2, RK0, RK1, RK2);
 
-	ret;
+	pax_ret __serpent_dec_blk16;
 ENDPROC(__serpent_dec_blk16)
 
-ENTRY(serpent_ecb_enc_16way)
+RAP_ENTRY(serpent_ecb_enc_16way)
 	/* input:
 	 *	%rdi: ctx, CTX
 	 *	%rsi: dst
@@ -680,17 +681,17 @@ ENTRY(serpent_ecb_enc_16way)
 
 	load_16way(%rdx, RA1, RB1, RC1, RD1, RA2, RB2, RC2, RD2);
 
-	call __serpent_enc_blk16;
+	pax_direct_call __serpent_enc_blk16;
 
 	store_16way(%rsi, RA1, RB1, RC1, RD1, RA2, RB2, RC2, RD2);
 
 	vzeroupper;
 
 	FRAME_END
-	ret;
+	pax_ret serpent_ecb_enc_16way;
 ENDPROC(serpent_ecb_enc_16way)
 
-ENTRY(serpent_ecb_dec_16way)
+RAP_ENTRY(serpent_ecb_dec_16way)
 	/* input:
 	 *	%rdi: ctx, CTX
 	 *	%rsi: dst
@@ -702,17 +703,17 @@ ENTRY(serpent_ecb_dec_16way)
 
 	load_16way(%rdx, RA1, RB1, RC1, RD1, RA2, RB2, RC2, RD2);
 
-	call __serpent_dec_blk16;
+	pax_direct_call __serpent_dec_blk16;
 
 	store_16way(%rsi, RC1, RD1, RB1, RE1, RC2, RD2, RB2, RE2);
 
 	vzeroupper;
 
 	FRAME_END
-	ret;
+	pax_ret serpent_ecb_dec_16way;
 ENDPROC(serpent_ecb_dec_16way)
 
-ENTRY(serpent_cbc_dec_16way)
+RAP_ENTRY(serpent_cbc_dec_16way)
 	/* input:
 	 *	%rdi: ctx, CTX
 	 *	%rsi: dst
@@ -724,7 +725,7 @@ ENTRY(serpent_cbc_dec_16way)
 
 	load_16way(%rdx, RA1, RB1, RC1, RD1, RA2, RB2, RC2, RD2);
 
-	call __serpent_dec_blk16;
+	pax_direct_call __serpent_dec_blk16;
 
 	store_cbc_16way(%rdx, %rsi, RC1, RD1, RB1, RE1, RC2, RD2, RB2, RE2,
 			RK0);
@@ -732,10 +733,10 @@ ENTRY(serpent_cbc_dec_16way)
 	vzeroupper;
 
 	FRAME_END
-	ret;
+	pax_ret serpent_cbc_dec_16way;
 ENDPROC(serpent_cbc_dec_16way)
 
-ENTRY(serpent_ctr_16way)
+RAP_ENTRY(serpent_ctr_16way)
 	/* input:
 	 *	%rdi: ctx, CTX
 	 *	%rsi: dst (16 blocks)
@@ -750,17 +751,17 @@ ENTRY(serpent_ctr_16way)
 		       RD2, RK0, RK0x, RK1, RK1x, RK2, RK2x, RK3, RK3x, RNOT,
 		       tp);
 
-	call __serpent_enc_blk16;
+	pax_direct_call __serpent_enc_blk16;
 
 	store_ctr_16way(%rdx, %rsi, RA1, RB1, RC1, RD1, RA2, RB2, RC2, RD2);
 
 	vzeroupper;
 
 	FRAME_END
-	ret;
+	pax_ret serpent_ctr_16way;
 ENDPROC(serpent_ctr_16way)
 
-ENTRY(serpent_xts_enc_16way)
+RAP_ENTRY(serpent_xts_enc_16way)
 	/* input:
 	 *	%rdi: ctx, CTX
 	 *	%rsi: dst (16 blocks)
@@ -776,17 +777,17 @@ ENTRY(serpent_xts_enc_16way)
 		       .Lxts_gf128mul_and_shl1_mask_0,
 		       .Lxts_gf128mul_and_shl1_mask_1);
 
-	call __serpent_enc_blk16;
+	pax_direct_call __serpent_enc_blk16;
 
 	store_xts_16way(%rsi, RA1, RB1, RC1, RD1, RA2, RB2, RC2, RD2);
 
 	vzeroupper;
 
 	FRAME_END
-	ret;
+	pax_ret serpent_xts_enc_16way;
 ENDPROC(serpent_xts_enc_16way)
 
-ENTRY(serpent_xts_dec_16way)
+RAP_ENTRY(serpent_xts_dec_16way)
 	/* input:
 	 *	%rdi: ctx, CTX
 	 *	%rsi: dst (16 blocks)
@@ -802,12 +803,12 @@ ENTRY(serpent_xts_dec_16way)
 		       .Lxts_gf128mul_and_shl1_mask_0,
 		       .Lxts_gf128mul_and_shl1_mask_1);
 
-	call __serpent_dec_blk16;
+	pax_direct_call __serpent_dec_blk16;
 
 	store_xts_16way(%rsi, RC1, RD1, RB1, RE1, RC2, RD2, RB2, RE2);
 
 	vzeroupper;
 
 	FRAME_END
-	ret;
+	pax_ret serpent_xts_dec_16way;
 ENDPROC(serpent_xts_dec_16way)

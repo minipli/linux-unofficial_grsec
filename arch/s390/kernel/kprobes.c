@@ -269,6 +269,7 @@ static void pop_kprobe(struct kprobe_ctlblk *kcb)
 }
 NOKPROBE_SYMBOL(pop_kprobe);
 
+#ifdef CONFIG_KRETPROBES
 void arch_prepare_kretprobe(struct kretprobe_instance *ri, struct pt_regs *regs)
 {
 	ri->ret_addr = (kprobe_opcode_t *) regs->gprs[14];
@@ -277,6 +278,7 @@ void arch_prepare_kretprobe(struct kretprobe_instance *ri, struct pt_regs *regs)
 	regs->gprs[14] = (unsigned long) &kretprobe_trampoline;
 }
 NOKPROBE_SYMBOL(arch_prepare_kretprobe);
+#endif
 
 static void kprobe_reenter_check(struct kprobe_ctlblk *kcb, struct kprobe *p)
 {
@@ -740,8 +742,10 @@ int __init arch_init_kprobes(void)
 	return register_kprobe(&trampoline);
 }
 
+#ifdef CONFIG_KRETPROBES
 int arch_trampoline_kprobe(struct kprobe *p)
 {
 	return p->addr == (kprobe_opcode_t *) &kretprobe_trampoline;
 }
 NOKPROBE_SYMBOL(arch_trampoline_kprobe);
+#endif

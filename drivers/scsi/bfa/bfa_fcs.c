@@ -39,10 +39,21 @@ struct bfa_fcs_mod_s {
 #define BFA_FCS_MODULE(_mod) { _mod ## _modinit, _mod ## _modexit }
 
 static struct bfa_fcs_mod_s fcs_modules[] = {
-	{ bfa_fcs_port_attach, NULL, NULL },
-	{ bfa_fcs_uf_attach, NULL, NULL },
-	{ bfa_fcs_fabric_attach, bfa_fcs_fabric_modinit,
-	  bfa_fcs_fabric_modexit },
+	{
+		.attach = bfa_fcs_port_attach,
+		.modinit = NULL,
+		.modexit = NULL
+	},
+	{
+		.attach = bfa_fcs_uf_attach,
+		.modinit = NULL,
+		.modexit = NULL
+	},
+	{
+		.attach = bfa_fcs_fabric_attach,
+		.modinit = bfa_fcs_fabric_modinit,
+		.modexit = bfa_fcs_fabric_modexit
+	},
 };
 
 /*

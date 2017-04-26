@@ -83,7 +83,7 @@ void irias_insert_object(struct ias_object *obj);
 int  irias_delete_object(struct ias_object *obj);
 int  irias_delete_attrib(struct ias_object *obj, struct ias_attrib *attrib,
 			 int cleanobject);
-void __irias_delete_object(struct ias_object *obj);
+void __irias_delete_object(void *_obj);
 
 void irias_add_integer_attrib(struct ias_object *obj, char *name, int value,
 			      int user);

@@ -1027,7 +1027,7 @@ static int do_ipv6_getsockopt(struct sock *sk, int level, int optname,
 		if (sk->sk_type != SOCK_STREAM)
 			return -ENOPROTOOPT;
 
-		msg.msg_control = optval;
+		msg.msg_control = (void __force_kernel *)optval;
 		msg.msg_controllen = len;
 		msg.msg_flags = flags;
 

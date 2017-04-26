@@ -21,14 +21,22 @@
 #include "rtl.h"
 #include "tm_p.h"
 #include "flags.h"
+//#include "insn-attr.h"
+//#include "insn-config.h"
+//#include "insn-flags.h"
 #include "hard-reg-set.h"
+//#include "recog.h"
 #include "output.h"
 #include "except.h"
 #include "function.h"
 #include "toplev.h"
+#if BUILDING_GCC_VERSION >= 5000
+#include "expr.h"
+#endif
 #include "basic-block.h"
 #include "intl.h"
 #include "ggc.h"
+//#include "regs.h"
 #include "timevar.h"
 
 #include "params.h"
@@ -43,12 +51,18 @@
 #include "memmodel.h"
 #endif
 #include "emit-rtl.h"
+//#include "reload.h"
+//#include "ira.h"
+//#include "dwarf2asm.h"
 #include "debug.h"
 #include "target.h"
 #include "langhooks.h"
 #include "cfgloop.h"
+//#include "hosthooks.h"
 #include "cgraph.h"
 #include "opts.h"
+//#include "coverage.h"
+//#include "value-prof.h"
 
 #if BUILDING_GCC_VERSION == 4005
 #include <sys/mman.h>
@@ -60,6 +74,8 @@
 #endif
 
 #if BUILDING_GCC_VERSION >= 4006
+//#include "c-tree.h"
+//#include "cp/cp-tree.h"
 #include "c-family/c-common.h"
 #else
 #include "c-common.h"
@@ -78,8 +94,13 @@
 #endif
 
 #include "diagnostic.h"
+//#include "tree-diagnostic.h"
 #include "tree-dump.h"
 #include "tree-pass.h"
+#if BUILDING_GCC_VERSION >= 4009
+#include "pass_manager.h"
+#endif
+//#include "df.h"
 #include "predict.h"
 #include "ipa-utils.h"
 
@@ -90,6 +111,7 @@
 #include "internal-fn.h"
 #include "gimple-expr.h"
 #include "gimple-fold.h"
+//#include "diagnostic-color.h"
 #include "context.h"
 #include "tree-ssa-alias.h"
 #include "tree-ssa.h"
@@ -115,28 +137,34 @@
 #include "ssa-iterators.h"
 #endif
 
+//#include "lto/lto.h"
+#if BUILDING_GCC_VERSION >= 4007
+//#include "data-streamer.h"
+#else
+//#include "lto-streamer.h"
+#endif
+//#include "lto-compress.h"
 #if BUILDING_GCC_VERSION >= 5000
+//#include "lto-section-names.h"
 #include "builtins.h"
 #endif
 
-/* #include "expr.h" where are you... */
-extern rtx emit_move_insn(rtx x, rtx y);
-
 /* missing from basic_block.h... */
-extern void debug_dominance_info(enum cdi_direction dir);
-extern void debug_dominance_tree(enum cdi_direction dir, basic_block root);
+void debug_dominance_info(enum cdi_direction dir);
+void debug_dominance_tree(enum cdi_direction dir, basic_block root);
 
 #if BUILDING_GCC_VERSION == 4006
-extern void debug_gimple_stmt(gimple);
-extern void debug_gimple_seq(gimple_seq);
-extern void print_gimple_seq(FILE *, gimple_seq, int, int);
-extern void print_gimple_stmt(FILE *, gimple, int, int);
-extern void print_gimple_expr(FILE *, gimple, int, int);
-extern void dump_gimple_stmt(pretty_printer *, gimple, int, int);
+void debug_gimple_stmt(gimple);
+void debug_gimple_seq(gimple_seq);
+void print_gimple_seq(FILE *, gimple_seq, int, int);
+void print_gimple_stmt(FILE *, gimple, int, int);
+void print_gimple_expr(FILE *, gimple, int, int);
+void dump_gimple_stmt(pretty_printer *, gimple, int, int);
 #endif
 
-#define __unused __attribute__((__unused__))
+#define __unused __attribute__((unused))
 #define __visible __attribute__((visibility("default")))
+#define __weak __attribute__((weak))
 
 #define DECL_NAME_POINTER(node) IDENTIFIER_POINTER(DECL_NAME(node))
 #define DECL_NAME_LENGTH(node) IDENTIFIER_LENGTH(DECL_NAME(node))
@@ -145,6 +173,36 @@ extern void dump_gimple_stmt(pretty_printer *, gimple, int, int);
 
 /* should come from c-tree.h if only it were installed for gcc 4.5... */
 #define C_TYPE_FIELDS_READONLY(TYPE) TREE_LANG_FLAG_1(TYPE)
+
+static inline tree build_const_char_string(int len, const char *str)
+{
+	tree cstr, elem, index, type;
+
+	cstr = build_string(len, str);
+	elem = build_type_variant(char_type_node, 1, 0);
+	index = build_index_type(size_int(len - 1));
+	type = build_array_type(elem, index);
+	TREE_TYPE(cstr) = type;
+	TREE_CONSTANT(cstr) = 1;
+	TREE_READONLY(cstr) = 1;
+	TREE_STATIC(cstr) = 1;
+	return cstr;
+}
+
+static inline void error_gcc_version(struct plugin_gcc_version *version)
+{
+	error(G_("incompatible gcc/plugin versions: need %s %s %s %s but have %s %s %s %s"),
+	      gcc_version.basever, gcc_version.datestamp, gcc_version.devphase, gcc_version.revision,
+	      version->basever, version->datestamp, version->devphase, version->revision);
+}
+
+#define PASS_INFO(NAME, REF, ID, POS)		\
+struct register_pass_info NAME##_pass_info = {	\
+	.pass = make_##NAME##_pass(),		\
+	.reference_pass_name = REF,		\
+	.ref_pass_instance_number = ID,		\
+	.pos_op = POS,				\
+}
 
 #if BUILDING_GCC_VERSION == 4005
 #define FOR_EACH_LOCAL_DECL(FUN, I, D)			\
@@ -172,6 +230,7 @@ static inline bool gimple_call_builtin_p(gimple stmt, enum built_in_function cod
 	fndecl = gimple_call_fndecl(stmt);
 	if (!fndecl || DECL_BUILT_IN_CLASS(fndecl) != BUILT_IN_NORMAL)
 		return false;
+//	print_node(stderr, "pax", fndecl, 4);
 	return DECL_FUNCTION_CODE(fndecl) == code;
 }
 
@@ -344,6 +403,23 @@ static inline bool gimple_store_p(gimple gs)
 
 static inline void gimple_init_singleton(gimple g __unused)
 {
+}
+
+enum expand_modifier {
+	EXPAND_NORMAL = 0,
+	EXPAND_STACK_PARM,
+	EXPAND_SUM,
+	EXPAND_CONST_ADDRESS,
+	EXPAND_INITIALIZER,
+	EXPAND_WRITE,
+	EXPAND_MEMORY
+};
+
+rtx expand_expr_real(tree, rtx, enum machine_mode, enum expand_modifier, rtx *);
+
+static inline rtx expand_expr(tree exp, rtx target, enum machine_mode mode, enum expand_modifier modifier)
+{
+	return expand_expr_real(exp, target, mode, modifier, NULL);
 }
 #endif
 
@@ -518,6 +594,28 @@ static inline const greturn *as_a_const_greturn(const_gimple stmt)
 #define create_var_ann(var)
 #define TODO_dump_func 0
 #define TODO_dump_cgraph 0
+
+#define VEC(T, A) vec<T, va_##A>
+#define VEC_safe_push(T, A, V, O) vec_safe_push((V), (O));
+#endif
+
+#if BUILDING_GCC_VERSION == 4008 || BUILDING_GCC_VERSION == 4009
+enum expand_modifier {
+	EXPAND_NORMAL = 0,
+	EXPAND_STACK_PARM,
+	EXPAND_SUM,
+	EXPAND_CONST_ADDRESS,
+	EXPAND_INITIALIZER,
+	EXPAND_WRITE,
+	EXPAND_MEMORY
+};
+
+rtx expand_expr_real(tree, rtx, enum machine_mode, enum expand_modifier, rtx *, bool);
+
+static inline rtx expand_expr(tree exp, rtx target, enum machine_mode mode, enum expand_modifier modifier)
+{
+	return expand_expr_real(exp, target, mode, modifier, NULL, false);
+}
 #endif
 
 #if BUILDING_GCC_VERSION <= 4009
@@ -526,6 +624,8 @@ static inline const greturn *as_a_const_greturn(const_gimple stmt)
 
 #define section_name_prefix LTO_SECTION_NAME_PREFIX
 #define fatal_error(loc, gmsgid, ...) fatal_error((gmsgid), __VA_ARGS__)
+
+rtx emit_move_insn(rtx x, rtx y);
 
 typedef struct rtx_def rtx_insn;
 
@@ -643,6 +743,11 @@ static inline const greturn *as_a_const_greturn(const_gimple stmt)
 #define NODE_DECL(node) (node)->decl
 #define cgraph_node_name(node) (node)->name()
 #define NODE_IMPLICIT_ALIAS(node) (node)->cpp_implicit_alias
+
+static inline opt_pass *get_pass_for_id(int id)
+{
+	return g->get_passes()->get_pass_for_id(id);
+}
 #endif
 
 #if BUILDING_GCC_VERSION >= 5000 && BUILDING_GCC_VERSION < 6000
@@ -660,6 +765,8 @@ inline bool is_a_helper<const gassign *>::test(const_gimple gs)
 #define TODO_verify_flow TODO_verify_il
 #define TODO_verify_stmts TODO_verify_il
 #define TODO_verify_rtl_sharing TODO_verify_il
+
+//#define TREE_INT_CST_HIGH(NODE) ({ TREE_INT_CST_EXT_NUNITS(NODE) > 1 ? (unsigned HOST_WIDE_INT)TREE_INT_CST_ELT(NODE, 1) : 0; })
 
 #define INSN_DELETED_P(insn) (insn)->deleted()
 

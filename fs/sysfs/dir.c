@@ -33,6 +33,10 @@ void sysfs_warn_dup(struct kernfs_node *parent, const char *name)
 	kfree(buf);
 }
 
+#ifdef CONFIG_GRKERNSEC_SYSFS_RESTRICT
+extern int grsec_enable_sysfs_restrict;
+#endif
+
 /**
  * sysfs_create_dir_ns - create a directory for an object with a namespace tag
  * @kobj: object we're creating directory for
@@ -41,8 +45,15 @@ void sysfs_warn_dup(struct kernfs_node *parent, const char *name)
 int sysfs_create_dir_ns(struct kobject *kobj, const void *ns)
 {
 	struct kernfs_node *parent, *kn;
+	const char *name;
+	umode_t mode = S_IRWXU | S_IRUGO | S_IXUGO;
+#ifdef CONFIG_GRKERNSEC_SYSFS_RESTRICT
+	const char *parent_name;
+#endif
 
 	BUG_ON(!kobj);
+
+	name = kobject_name(kobj);
 
 	if (kobj->parent)
 		parent = kobj->parent->sd;
@@ -52,11 +63,24 @@ int sysfs_create_dir_ns(struct kobject *kobj, const void *ns)
 	if (!parent)
 		return -ENOENT;
 
-	kn = kernfs_create_dir_ns(parent, kobject_name(kobj),
-				  S_IRWXU | S_IRUGO | S_IXUGO, kobj, ns);
+#ifdef CONFIG_GRKERNSEC_SYSFS_RESTRICT
+	parent_name = parent->name;
+	mode = S_IRWXU;
+
+	if ((!strcmp(parent_name, "") && (!strcmp(name, "devices") || !strcmp(name, "fs"))) ||
+	    (!strcmp(parent_name, "devices") && !strcmp(name, "system")) ||
+	    (!strcmp(parent_name, "fs") && (!strcmp(name, "selinux") || !strcmp(name, "fuse") || !strcmp(name, "ecryptfs"))) ||
+	    (!strcmp(parent_name, "system") && !strcmp(name, "cpu")))
+		mode = S_IRWXU | S_IRUGO | S_IXUGO;
+	if (!grsec_enable_sysfs_restrict)
+		mode = S_IRWXU | S_IRUGO | S_IXUGO;
+#endif
+
+	kn = kernfs_create_dir_ns(parent, name,
+				  mode, kobj, ns);
 	if (IS_ERR(kn)) {
 		if (PTR_ERR(kn) == -EEXIST)
-			sysfs_warn_dup(parent, kobject_name(kobj));
+			sysfs_warn_dup(parent, name);
 		return PTR_ERR(kn);
 	}
 

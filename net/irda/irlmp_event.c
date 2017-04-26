@@ -165,7 +165,7 @@ void irlmp_do_lap_event(struct lap_cb *self, IRLMP_EVENT event,
 	(*lap_state[self->lap_state]) (self, event, skb);
 }
 
-void irlmp_discovery_timer_expired(void *data)
+void irlmp_discovery_timer_expired(unsigned long data)
 {
 	/* We always cleanup the log (active & passive discovery) */
 	irlmp_do_expiry();
@@ -176,7 +176,7 @@ void irlmp_discovery_timer_expired(void *data)
 	irlmp_start_discovery_timer(irlmp, sysctl_discovery_timeout * HZ);
 }
 
-void irlmp_watchdog_timer_expired(void *data)
+void irlmp_watchdog_timer_expired(unsigned long data)
 {
 	struct lsap_cb *self = (struct lsap_cb *) data;
 
@@ -186,7 +186,7 @@ void irlmp_watchdog_timer_expired(void *data)
 	irlmp_do_lsap_event(self, LM_WATCHDOG_TIMEOUT, NULL);
 }
 
-void irlmp_idle_timer_expired(void *data)
+void irlmp_idle_timer_expired(unsigned long data)
 {
 	struct lap_cb *self = (struct lap_cb *) data;
 

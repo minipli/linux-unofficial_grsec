@@ -156,7 +156,7 @@ static void device_id_check(const char *modname, const char *device_id,
 			    unsigned long size, unsigned long id_size,
 			    void *symval)
 {
-	int i;
+	unsigned int i;
 
 	if (size % id_size || size < id_size) {
 		fatal("%s: sizeof(struct %s_device_id)=%lu is not a modulo "
@@ -185,7 +185,7 @@ static void device_id_check(const char *modname, const char *device_id,
 /* USB is special because the bcdDevice can be matched against a numeric range */
 /* Looks like "usb:vNpNdNdcNdscNdpNicNiscNipNinN" */
 static void do_usb_entry(void *symval,
-			 unsigned int bcdDevice_initial, int bcdDevice_initial_digits,
+			 unsigned int bcdDevice_initial, unsigned int bcdDevice_initial_digits,
 			 unsigned char range_lo, unsigned char range_hi,
 			 unsigned char max, struct module *mod)
 {
@@ -295,7 +295,7 @@ static void do_usb_entry_multi(void *symval, struct module *mod)
 {
 	unsigned int devlo, devhi;
 	unsigned char chi, clo, max;
-	int ndigits;
+	unsigned int ndigits;
 
 	DEF_FIELD(symval, usb_device_id, match_flags);
 	DEF_FIELD(symval, usb_device_id, idVendor);
@@ -619,7 +619,7 @@ static void do_pnp_device_entry(void *symval, unsigned long size,
 	for (i = 0; i < count; i++) {
 		DEF_FIELD_ADDR(symval + i*id_size, pnp_device_id, id);
 		char acpi_id[sizeof(*id)];
-		int j;
+		unsigned int j;
 
 		buf_printf(&mod->dev_table_buf,
 			   "MODULE_ALIAS(\"pnp:d%s*\");\n", *id);
@@ -648,7 +648,7 @@ static void do_pnp_card_entries(void *symval, unsigned long size,
 
 		for (j = 0; j < PNP_MAX_DEVICES; j++) {
 			const char *id = (char *)(*devs)[j].id;
-			int i2, j2;
+			unsigned int i2, j2;
 			int dup = 0;
 
 			if (!id[0])
@@ -674,7 +674,7 @@ static void do_pnp_card_entries(void *symval, unsigned long size,
 			/* add an individual alias for every device entry */
 			if (!dup) {
 				char acpi_id[PNP_ID_LEN];
-				int k;
+				unsigned int k;
 
 				buf_printf(&mod->dev_table_buf,
 					   "MODULE_ALIAS(\"pnp:d%s*\");\n", id);
@@ -999,7 +999,7 @@ static void dmi_ascii_filter(char *d, const char *s)
 static int do_dmi_entry(const char *filename, void *symval,
 			char *alias)
 {
-	int i, j;
+	unsigned int i, j;
 	DEF_FIELD_ADDR(symval, dmi_system_id, matches);
 	sprintf(alias, "dmi*");
 

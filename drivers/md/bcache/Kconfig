@@ -20,6 +20,7 @@ config BCACHE_CLOSURES_DEBUG
 	bool "Debug closures"
 	depends on BCACHE
 	select DEBUG_FS
+	depends on !GRKERNSEC_KMEM
 	---help---
 	Keeps all active closures in a linked list and provides a debugfs
 	interface to list them, which makes it possible to see asynchronous

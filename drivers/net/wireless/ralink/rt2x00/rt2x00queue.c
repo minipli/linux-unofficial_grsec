@@ -224,9 +224,9 @@ static void rt2x00queue_create_tx_descriptor_seq(struct rt2x00_dev *rt2x00dev,
 	 * sequence counter given by mac80211.
 	 */
 	if (test_bit(ENTRY_TXD_FIRST_FRAGMENT, &txdesc->flags))
-		seqno = atomic_add_return(0x10, &intf->seqno);
+		seqno = atomic_add_return_unchecked(0x10, &intf->seqno);
 	else
-		seqno = atomic_read(&intf->seqno);
+		seqno = atomic_read_unchecked(&intf->seqno);
 
 	hdr->seq_ctrl &= cpu_to_le16(IEEE80211_SCTL_FRAG);
 	hdr->seq_ctrl |= cpu_to_le16(seqno);

@@ -5588,7 +5588,7 @@ static struct pci_device_id serial_pci_tbl[] = {
 };
 
 static pci_ers_result_t serial8250_io_error_detected(struct pci_dev *dev,
-						pci_channel_state_t state)
+						enum pci_channel_state state)
 {
 	struct serial_private *priv = pci_get_drvdata(dev);
 

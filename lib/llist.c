@@ -25,6 +25,7 @@
 #include <linux/kernel.h>
 #include <linux/export.h>
 #include <linux/llist.h>
+#include <linux/mm.h>
 
 
 /**
@@ -47,6 +48,22 @@ bool llist_add_batch(struct llist_node *new_first, struct llist_node *new_last,
 	return !first;
 }
 EXPORT_SYMBOL_GPL(llist_add_batch);
+
+bool pax_llist_add_batch(struct llist_node *new_first, struct llist_node *new_last,
+			 struct llist_head *head)
+{
+	struct llist_node *first;
+
+	do {
+		first = ACCESS_ONCE(head->first);
+		pax_open_kernel();
+		new_last->next = first;
+		pax_close_kernel();
+	} while (cmpxchg(&head->first, first, new_first) != first);
+
+	return !first;
+}
+EXPORT_SYMBOL_GPL(pax_llist_add_batch);
 
 /**
  * llist_del_first - delete the first entry of lock-less list

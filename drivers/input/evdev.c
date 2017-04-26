@@ -997,7 +997,7 @@ static int evdev_set_mask(struct evdev_client *client,
 	if (!cnt)
 		return 0;
 
-	mask = kcalloc(sizeof(unsigned long), BITS_TO_LONGS(cnt), GFP_KERNEL);
+	mask = kcalloc(BITS_TO_LONGS(cnt), sizeof(unsigned long), GFP_KERNEL);
 	if (!mask)
 		return -ENOMEM;
 

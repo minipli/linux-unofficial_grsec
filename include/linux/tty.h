@@ -225,7 +225,7 @@ struct tty_port {
 	const struct tty_port_operations *ops;	/* Port operations */
 	spinlock_t		lock;		/* Lock protecting tty field */
 	int			blocked_open;	/* Waiting to open */
-	int			count;		/* Usage count */
+	atomic_t		count;		/* Usage count */
 	wait_queue_head_t	open_wait;	/* Open waiters */
 	wait_queue_head_t	delta_msr_wait;	/* Modem status change */
 	unsigned long		flags;		/* User TTY flags ASYNC_ */
@@ -326,7 +326,7 @@ struct tty_struct {
 	/* If the tty has a pending do_SAK, queue it here - akpm */
 	struct work_struct SAK_work;
 	struct tty_port *port;
-};
+} __randomize_layout;
 
 /* Each of a tty's open files has private_data pointing to tty_file_private */
 struct tty_file_private {
@@ -646,7 +646,7 @@ extern int tty_port_open(struct tty_port *port,
 				struct tty_struct *tty, struct file *filp);
 static inline int tty_port_users(struct tty_port *port)
 {
-	return port->count + port->blocked_open;
+	return atomic_read(&port->count) + port->blocked_open;
 }
 
 extern int tty_register_ldisc(int disc, struct tty_ldisc_ops *new_ldisc);

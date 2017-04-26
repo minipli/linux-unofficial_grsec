@@ -2995,7 +2995,7 @@ int spi_bus_unlock(struct spi_master *master)
 EXPORT_SYMBOL_GPL(spi_bus_unlock);
 
 /* portable code must never pass more than 32 bytes */
-#define	SPI_BUFSIZ	max(32, SMP_CACHE_BYTES)
+#define	SPI_BUFSIZ	max(32UL, SMP_CACHE_BYTES)
 
 static u8	*buf;
 

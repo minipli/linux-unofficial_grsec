@@ -26,16 +26,79 @@ ifdef CONFIG_GCC_PLUGINS
   endif
 
   GCC_PLUGINS_CFLAGS := $(strip $(addprefix -fplugin=$(objtree)/scripts/gcc-plugins/, $(gcc-plugin-y)) $(gcc-plugin-cflags-y))
+  gcc-plugin-$(CONFIG_PAX_CONSTIFY_PLUGIN)		+= constify_plugin.so
+  gcc-plugin-cflags-$(CONFIG_PAX_CONSTIFY_PLUGIN)	+= -DCONSTIFY_PLUGIN
 
-  export PLUGINCC GCC_PLUGINS_CFLAGS GCC_PLUGIN GCC_PLUGIN_SUBDIR
-  export SANCOV_PLUGIN DISABLE_LATENT_ENTROPY_PLUGIN
+  gcc-plugin-$(CONFIG_PAX_MEMORY_STACKLEAK)		+= stackleak_plugin.so
+  gcc-plugin-cflags-$(CONFIG_PAX_MEMORY_STACKLEAK)	+= -DSTACKLEAK_PLUGIN -fplugin-arg-stackleak_plugin-track-lowest-sp=100
+
+  gcc-plugin-$(CONFIG_KALLOCSTAT_PLUGIN)		+= kallocstat_plugin.so
+
+  gcc-plugin-$(CONFIG_PAX_KERNEXEC_PLUGIN)		+= kernexec_plugin.so
+  gcc-plugin-cflags-$(CONFIG_PAX_KERNEXEC_PLUGIN)	+= -DKERNEXEC_PLUGIN
+  gcc-plugin-cflags-$(CONFIG_PAX_KERNEXEC_PLUGIN_METHOD_BTS)	+= -fplugin-arg-kernexec_plugin-method=bts
+  gcc-plugin-cflags-$(CONFIG_PAX_KERNEXEC_PLUGIN_METHOD_OR)	+= -fplugin-arg-kernexec_plugin-method=or
+  gcc-plugin-aflags-$(CONFIG_PAX_KERNEXEC_PLUGIN)	+= -DKERNEXEC_PLUGIN
+
+  ifdef CONFIG_CHECKER_PLUGIN
+    ifeq ($(call cc-ifversion, -ge, 0406, y), y)
+      gcc-plugin-$(CONFIG_CHECKER_PLUGIN)		+= checker_plugin.so
+      gcc-plugin-cflags-$(CONFIG_CHECKER_PLUGIN)	+= -DCHECKER_PLUGIN
+      gcc-plugin-cflags-$(CONFIG_CHECKER_PLUGIN_USER)	+= -DCHECKER_PLUGIN_USER -fplugin-arg-checker_plugin-user
+      gcc-plugin-cflags-$(CONFIG_CHECKER_PLUGIN_CONTEXT)+= -DCHECKER_PLUGIN_CONTEXT -fplugin-arg-checker_plugin-context
+    endif
+  endif
+
+  gcc-plugin-y						+= colorize_plugin.so
+
+  gcc-plugin-subdir-$(CONFIG_PAX_SIZE_OVERFLOW)		+= size_overflow_plugin
+  gcc-plugin-$(CONFIG_PAX_SIZE_OVERFLOW)		+= size_overflow_plugin/size_overflow_plugin.so
+  gcc-plugin-cflags-$(CONFIG_PAX_SIZE_OVERFLOW)		+= -DSIZE_OVERFLOW_PLUGIN
+  gcc-plugin-cflags-$(CONFIG_PAX_SIZE_OVERFLOW)		+= -fplugin-arg-size_overflow_plugin-check-fns
+  gcc-plugin-cflags-$(CONFIG_PAX_SIZE_OVERFLOW_EXTRA)	+= -fplugin-arg-size_overflow_plugin-check-fields
+  gcc-plugin-cflags-$(CONFIG_PAX_SIZE_OVERFLOW_EXTRA)	+= -fplugin-arg-size_overflow_plugin-check-fptrs
+  gcc-plugin-cflags-$(CONFIG_PAX_SIZE_OVERFLOW_EXTRA)	+= -fplugin-arg-size_overflow_plugin-check-vars
+
+  gcc-plugin-$(CONFIG_GRKERNSEC_RANDSTRUCT)		+= randomize_layout_plugin.so
+  gcc-plugin-cflags-$(CONFIG_GRKERNSEC_RANDSTRUCT)	+= -DRANDSTRUCT_PLUGIN
+  gcc-plugin-cflags-$(CONFIG_GRKERNSEC_RANDSTRUCT_PERFORMANCE) += -fplugin-arg-randomize_layout_plugin-performance-mode
+
+  gcc-plugin-$(CONFIG_PAX_MEMORY_STRUCTLEAK)		+= structleak_plugin.so
+  gcc-plugin-cflags-$(CONFIG_PAX_MEMORY_STRUCTLEAK)	+= -DSTRUCTLEAK_PLUGIN
 
   ifneq ($(PLUGINCC),)
     # SANCOV_PLUGIN can be only in CFLAGS_KCOV because avoid duplication.
     GCC_PLUGINS_CFLAGS := $(filter-out $(SANCOV_PLUGIN), $(GCC_PLUGINS_CFLAGS))
   endif
 
-  KBUILD_CFLAGS += $(GCC_PLUGINS_CFLAGS)
+  gcc-plugin-$(CONFIG_PAX_INITIFY)			+= initify_plugin.so
+  gcc-plugin-cflags-$(CONFIG_PAX_INITIFY)		+= -DINITIFY_PLUGIN -fplugin-arg-initify_plugin-search_init_exit_functions
+  gcc-plugin-cflags-$(CONFIG_PAX_INITIFY_VERBOSE)	+= -fplugin-arg-initify_plugin-verbose -fplugin-arg-initify_plugin-print_missing_attr
+  gcc-plugin-cflags-$(CONFIG_PAX_INITIFY_INIT_EXIT)	+= -fplugin-arg-initify_plugin-enable_init_to_exit_moves
+  ifdef CONFIG_PAX_INITIFY
+    INITIFY_DISABLE_VERIFY_NOCAPTURE_FUNCTIONS		+= -fplugin-arg-initify_plugin-disable_verify_nocapture_functions
+  endif
+
+  gcc-plugin-subdir-$(CONFIG_PAX_RAP)			+= rap_plugin
+  gcc-plugin-$(CONFIG_PAX_RAP)				+= rap_plugin/rap_plugin.so
+  gcc-plugin-cflags-$(CONFIG_PAX_RAP)			+= -DRAP_PLUGIN -fplugin-arg-rap_plugin-typecheck=call,ret
+  gcc-plugin-cflags-$(CONFIG_PAX_RAP)			+= -fplugin-arg-rap_plugin-hash=abs-finish
+  gcc-plugin-cflags-$(CONFIG_PAX_RAP)			+= -fplugin-arg-rap_plugin-hash=abs-ops
+  gcc-plugin-cflags-$(CONFIG_PAX_RAP)			+= -fplugin-arg-rap_plugin-hash=abs-attr
+#  gcc-plugin-cflags-$(CONFIG_PAX_RAP)			+= -fplugin-arg-rap_plugin-report=func,fptr,abs
+  gcc-plugin-cflags-$(CONFIG_PAX_RAP)			+= -DX86_RAP_CALL_VECTOR=0x82 -DX86_RAP_RET_VECTOR=0x83
+  gcc-plugin-cflags-$(CONFIG_PAX_RAP)			+= '-fplugin-arg-rap_plugin-callabort=int $$0x82'
+  gcc-plugin-cflags-$(CONFIG_PAX_RAP)			+= '-fplugin-arg-rap_plugin-retabort=int $$0x83'
+  gcc-plugin-aflags-$(CONFIG_PAX_RAP)			+= -DRAP_PLUGIN
+
+  GCC_PLUGINS_CFLAGS := $(strip $(addprefix -fplugin=$(objtree)/scripts/gcc-plugins/, $(gcc-plugin-y)) $(gcc-plugin-cflags-y))
+  GCC_PLUGINS_AFLAGS := $(gcc-plugin-aflags-y)
+
+  export SHELL_GCC_PLUGINS_CFLAGS := $(subst $$,$$$$,$(value GCC_PLUGINS_CFLAGS))
+  export PLUGINCC GCC_PLUGIN GCC_PLUGIN_SUBDIR GCC_PLUGINS_CFLAGS GCC_PLUGINS_AFLAGS
+  export SANCOV_PLUGIN DISABLE_LATENT_ENTROPY_PLUGIN
+  export INITIFY_DISABLE_VERIFY_NOCAPTURE_FUNCTIONS
+
   GCC_PLUGIN := $(gcc-plugin-y)
   GCC_PLUGIN_SUBDIR := $(gcc-plugin-subdir-y)
 endif
@@ -48,11 +111,12 @@ ifdef CONFIG_GCC_PLUGINS
   ifeq ($(PLUGINCC),)
     ifneq ($(GCC_PLUGINS_CFLAGS),)
       ifeq ($(call cc-ifversion, -ge, 0405, y), y)
-	$(Q)$(srctree)/scripts/gcc-plugin.sh --show-error "$(__PLUGINCC)" "$(HOSTCXX)" "$(CC)" || true
-	@echo "Cannot use CONFIG_GCC_PLUGINS: your gcc installation does not support plugins, perhaps the necessary headers are missing?" >&2 && exit 1
+	$(Q)$(shell $(CONFIG_SHELL) $(srctree)/scripts/gcc-plugin.sh --show-error "$(__PLUGINCC)" "$(HOSTCXX)" "$(CC)" || true)
+	@echo "Cannot use CONFIG_GCC_PLUGINS: your gcc installation does not support plugins, perhaps the necessary headers are missing?" >&2
       else
-	@echo "Cannot use CONFIG_GCC_PLUGINS: your gcc version does not support plugins, you should upgrade it to at least gcc 4.5" >&2 && exit 1
+	@echo "Cannot use CONFIG_GCC_PLUGINS: your gcc version does not support plugins, you should upgrade it to at least gcc 4.5" >&2
       endif
+	@echo "PAX_MEMORY_STACKLEAK and other features will be less secure" >&2 && exit 1
     endif
   endif
 endif

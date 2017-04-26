@@ -44,9 +44,9 @@
 
 static int
 qtd_fill(struct ehci_hcd *ehci, struct ehci_qtd *qtd, dma_addr_t buf,
-		  size_t len, int token, int maxpacket)
+		  size_t len, u32 token, int maxpacket)
 {
-	int	i, count;
+	u32	i, count;
 	u64	addr = buf;
 
 	/* one buffer entry per 4K ... first might be short or unaligned */

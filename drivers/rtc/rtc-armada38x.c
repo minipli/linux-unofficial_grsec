@@ -18,6 +18,7 @@
 #include <linux/of.h>
 #include <linux/platform_device.h>
 #include <linux/rtc.h>
+#include <asm/pgtable.h>
 
 #define RTC_STATUS	    0x0
 #define RTC_STATUS_ALARM1	    BIT(0)
@@ -246,8 +247,10 @@ static __init int armada38x_rtc_probe(struct platform_device *pdev)
 		 * If there is no interrupt available then we can't
 		 * use the alarm
 		 */
-		armada38x_rtc_ops.set_alarm = NULL;
-		armada38x_rtc_ops.alarm_irq_enable = NULL;
+		pax_open_kernel();
+		const_cast(armada38x_rtc_ops.set_alarm) = NULL;
+		const_cast(armada38x_rtc_ops.alarm_irq_enable) = NULL;
+		pax_close_kernel();
 	}
 	platform_set_drvdata(pdev, rtc);
 	if (rtc->irq != -1)

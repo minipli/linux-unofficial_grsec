@@ -67,7 +67,7 @@ struct bcm_qspi_soc_intc {
 	void (*bcm_qspi_int_set)(struct bcm_qspi_soc_intc *soc_intc, int type,
 				 bool en);
 	u32 (*bcm_qspi_get_int_status)(struct bcm_qspi_soc_intc *soc_intc);
-};
+} __no_const;
 
 /* Read controller register*/
 static inline u32 bcm_qspi_readl(bool be, void __iomem *addr)

@@ -79,12 +79,12 @@ enum {
 									\
 	extern struct bfa_module_s hal_mod_ ## __mod;			\
 	struct bfa_module_s hal_mod_ ## __mod = {			\
-		bfa_ ## __mod ## _meminfo,				\
-		bfa_ ## __mod ## _attach,				\
-		bfa_ ## __mod ## _detach,				\
-		bfa_ ## __mod ## _start,				\
-		bfa_ ## __mod ## _stop,					\
-		bfa_ ## __mod ## _iocdisable,				\
+		.meminfo = bfa_ ## __mod ## _meminfo,			\
+		.attach = bfa_ ## __mod ## _attach,			\
+		.detach = bfa_ ## __mod ## _detach,			\
+		.start = bfa_ ## __mod ## _start,			\
+		.stop = bfa_ ## __mod ## _stop,				\
+		.iocdisable = bfa_ ## __mod ## _iocdisable,		\
 	}
 
 #define BFA_CACHELINE_SZ	(256)

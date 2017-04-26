@@ -1082,7 +1082,6 @@ static const char *hptiop_info(struct Scsi_Host *host)
 static int hptiop_reset_hba(struct hptiop_hba *hba)
 {
 	if (atomic_xchg(&hba->resetting, 1) == 0) {
-		atomic_inc(&hba->reset_count);
 		hba->ops->post_msg(hba, IOPMU_INBOUND_MSG0_RESET);
 	}
 
@@ -1340,7 +1339,6 @@ static int hptiop_probe(struct pci_dev *pcidev, const struct pci_device_id *id)
 	hba->iopintf_v2 = 0;
 
 	atomic_set(&hba->resetting, 0);
-	atomic_set(&hba->reset_count, 0);
 
 	init_waitqueue_head(&hba->reset_wq);
 	init_waitqueue_head(&hba->ioctl_wq);

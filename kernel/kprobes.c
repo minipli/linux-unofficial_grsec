@@ -31,6 +31,9 @@
  *		<jkenisto@us.ibm.com> and Prasanna S Panchamukhi
  *		<prasanna@in.ibm.com> added function-return probes.
  */
+#ifdef CONFIG_GRKERNSEC_HIDESYM
+#define __INCLUDED_BY_HIDESYM 1
+#endif
 #include <linux/kprobes.h>
 #include <linux/hash.h>
 #include <linux/init.h>
@@ -122,12 +125,12 @@ enum kprobe_slot_state {
 
 static void *alloc_insn_page(void)
 {
-	return module_alloc(PAGE_SIZE);
+	return module_alloc_exec(PAGE_SIZE);
 }
 
 static void free_insn_page(void *page)
 {
-	module_memfree(page);
+	module_memfree_exec(page);
 }
 
 struct kprobe_insn_cache kprobe_insn_slots = {
@@ -2198,11 +2201,11 @@ static void report_probe(struct seq_file *pi, struct kprobe *p,
 		kprobe_type = "k";
 
 	if (sym)
-		seq_printf(pi, "%p  %s  %s+0x%x  %s ",
+		seq_printf(pi, "%pK  %s  %s+0x%x  %s ",
 			p->addr, kprobe_type, sym, offset,
 			(modname ? modname : " "));
 	else
-		seq_printf(pi, "%p  %s  %p ",
+		seq_printf(pi, "%pK  %s  %pK ",
 			p->addr, kprobe_type, p->addr);
 
 	if (!pp)
@@ -2291,7 +2294,7 @@ static int kprobe_blacklist_seq_show(struct seq_file *m, void *v)
 	struct kprobe_blacklist_entry *ent =
 		list_entry(v, struct kprobe_blacklist_entry, list);
 
-	seq_printf(m, "0x%p-0x%p\t%ps\n", (void *)ent->start_addr,
+	seq_printf(m, "0x%pK-0x%pK\t%ps\n", (void *)ent->start_addr,
 		   (void *)ent->end_addr, (void *)ent->start_addr);
 	return 0;
 }

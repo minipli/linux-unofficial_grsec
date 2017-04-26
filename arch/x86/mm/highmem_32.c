@@ -35,6 +35,8 @@ void *kmap_atomic_prot(struct page *page, pgprot_t prot)
 	unsigned long vaddr;
 	int idx, type;
 
+	BUG_ON(pgprot_val(prot) & _PAGE_USER);
+
 	preempt_disable();
 	pagefault_disable();
 
@@ -45,7 +47,11 @@ void *kmap_atomic_prot(struct page *page, pgprot_t prot)
 	idx = type + KM_TYPE_NR*smp_processor_id();
 	vaddr = __fix_to_virt(FIX_KMAP_BEGIN + idx);
 	BUG_ON(!pte_none(*(kmap_pte-idx)));
+
+	pax_open_kernel();
 	set_pte(kmap_pte-idx, mk_pte(page, prot));
+	pax_close_kernel();
+
 	arch_flush_lazy_mmu_mode();
 
 	return (void *)vaddr;

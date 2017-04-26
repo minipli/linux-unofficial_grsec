@@ -2,6 +2,7 @@
 #include <linux/errno.h>
 #include <asm/asm.h>
 #include <asm/msr.h>
+#include <asm/alternative-asm.h>
 
 #ifdef CONFIG_X86_64
 /*
@@ -34,7 +35,7 @@ ENTRY(\op\()_safe_regs)
 	movl    %edi, 28(%r10)
 	popq %rbp
 	popq %rbx
-	ret
+	pax_ret \op\()_safe_regs
 3:
 	movl    $-EIO, %r11d
 	jmp     2b
@@ -76,7 +77,7 @@ ENTRY(\op\()_safe_regs)
 	popl %esi
 	popl %ebp
 	popl %ebx
-	ret
+	pax_ret \op\()_safe_regs
 3:
 	movl    $-EIO, 4(%esp)
 	jmp     2b

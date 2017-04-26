@@ -39,9 +39,6 @@
 #define io_pgtable_to_data(x)						\
 	container_of((x), struct arm_lpae_io_pgtable, iop)
 
-#define io_pgtable_ops_to_data(x)					\
-	io_pgtable_to_data(io_pgtable_ops_to_pgtable(x))
-
 /*
  * For consistency with the architecture, we always consider
  * ARM_LPAE_MAX_LEVELS levels, with the walk starting at level n >=0
@@ -381,10 +378,10 @@ static arm_lpae_iopte arm_lpae_prot_to_pte(struct arm_lpae_io_pgtable *data,
 	return pte;
 }
 
-static int arm_lpae_map(struct io_pgtable_ops *ops, unsigned long iova,
+static int arm_lpae_map(struct io_pgtable *iop, unsigned long iova,
 			phys_addr_t paddr, size_t size, int iommu_prot)
 {
-	struct arm_lpae_io_pgtable *data = io_pgtable_ops_to_data(ops);
+	struct arm_lpae_io_pgtable *data = io_pgtable_to_data(iop);
 	arm_lpae_iopte *ptep = data->pgd;
 	int ret, lvl = ARM_LPAE_START_LVL(data);
 	arm_lpae_iopte prot;
@@ -530,11 +527,11 @@ static int __arm_lpae_unmap(struct arm_lpae_io_pgtable *data,
 	return __arm_lpae_unmap(data, iova, size, lvl + 1, ptep);
 }
 
-static int arm_lpae_unmap(struct io_pgtable_ops *ops, unsigned long iova,
+static int arm_lpae_unmap(struct io_pgtable *iop, unsigned long iova,
 			  size_t size)
 {
 	size_t unmapped;
-	struct arm_lpae_io_pgtable *data = io_pgtable_ops_to_data(ops);
+	struct arm_lpae_io_pgtable *data = io_pgtable_to_data(iop);
 	arm_lpae_iopte *ptep = data->pgd;
 	int lvl = ARM_LPAE_START_LVL(data);
 
@@ -545,10 +542,10 @@ static int arm_lpae_unmap(struct io_pgtable_ops *ops, unsigned long iova,
 	return unmapped;
 }
 
-static phys_addr_t arm_lpae_iova_to_phys(struct io_pgtable_ops *ops,
+static phys_addr_t arm_lpae_iova_to_phys(struct io_pgtable *iop,
 					 unsigned long iova)
 {
-	struct arm_lpae_io_pgtable *data = io_pgtable_ops_to_data(ops);
+	struct arm_lpae_io_pgtable *data = io_pgtable_to_data(iop);
 	arm_lpae_iopte pte, *ptep = data->pgd;
 	int lvl = ARM_LPAE_START_LVL(data);
 
@@ -615,6 +612,12 @@ static void arm_lpae_restrict_pgsizes(struct io_pgtable_cfg *cfg)
 	}
 }
 
+static struct io_pgtable_ops arm_lpae_io_pgtable_ops = {
+	.map		= arm_lpae_map,
+	.unmap		= arm_lpae_unmap,
+	.iova_to_phys	= arm_lpae_iova_to_phys,
+};
+
 static struct arm_lpae_io_pgtable *
 arm_lpae_alloc_pgtable(struct io_pgtable_cfg *cfg)
 {
@@ -651,11 +654,7 @@ arm_lpae_alloc_pgtable(struct io_pgtable_cfg *cfg)
 	pgd_bits = va_bits - (data->bits_per_level * (data->levels - 1));
 	data->pgd_size = 1UL << (pgd_bits + ilog2(sizeof(arm_lpae_iopte)));
 
-	data->iop.ops = (struct io_pgtable_ops) {
-		.map		= arm_lpae_map,
-		.unmap		= arm_lpae_unmap,
-		.iova_to_phys	= arm_lpae_iova_to_phys,
-	};
+	data->iop.ops = &arm_lpae_io_pgtable_ops;
 
 	return data;
 }
@@ -916,15 +915,15 @@ static void dummy_tlb_sync(void *cookie)
 	WARN_ON(cookie != cfg_cookie);
 }
 
-static struct iommu_gather_ops dummy_tlb_ops __initdata = {
+static const struct iommu_gather_ops dummy_tlb_ops __initconst = {
 	.tlb_flush_all	= dummy_tlb_flush_all,
 	.tlb_add_flush	= dummy_tlb_add_flush,
 	.tlb_sync	= dummy_tlb_sync,
 };
 
-static void __init arm_lpae_dump_ops(struct io_pgtable_ops *ops)
+static void __init arm_lpae_dump_ops(struct io_pgtable *iop)
 {
-	struct arm_lpae_io_pgtable *data = io_pgtable_ops_to_data(ops);
+	struct arm_lpae_io_pgtable *data = io_pgtable_to_data(iop);
 	struct io_pgtable_cfg *cfg = &data->iop.cfg;
 
 	pr_err("cfg: pgsize_bitmap 0x%lx, ias %u-bit\n",
@@ -934,9 +933,9 @@ static void __init arm_lpae_dump_ops(struct io_pgtable_ops *ops)
 		data->bits_per_level, data->pgd);
 }
 
-#define __FAIL(ops, i)	({						\
+#define __FAIL(iop, i)	({						\
 		WARN(1, "selftest: test failed for fmt idx %d\n", (i));	\
-		arm_lpae_dump_ops(ops);					\
+		arm_lpae_dump_ops(iop);					\
 		selftest_running = false;				\
 		-EFAULT;						\
 })
@@ -951,30 +950,32 @@ static int __init arm_lpae_run_tests(struct io_pgtable_cfg *cfg)
 	int i, j;
 	unsigned long iova;
 	size_t size;
-	struct io_pgtable_ops *ops;
+	struct io_pgtable *iop;
+	const struct io_pgtable_ops *ops;
 
 	selftest_running = true;
 
 	for (i = 0; i < ARRAY_SIZE(fmts); ++i) {
 		cfg_cookie = cfg;
-		ops = alloc_io_pgtable_ops(fmts[i], cfg, cfg);
-		if (!ops) {
+		iop = alloc_io_pgtable(fmts[i], cfg, cfg);
+		if (!iop) {
 			pr_err("selftest: failed to allocate io pgtable ops\n");
 			return -ENOMEM;
 		}
+		ops = iop->ops;
 
 		/*
 		 * Initial sanity checks.
 		 * Empty page tables shouldn't provide any translations.
 		 */
-		if (ops->iova_to_phys(ops, 42))
-			return __FAIL(ops, i);
+		if (ops->iova_to_phys(iop, 42))
+			return __FAIL(iop, i);
 
-		if (ops->iova_to_phys(ops, SZ_1G + 42))
-			return __FAIL(ops, i);
+		if (ops->iova_to_phys(iop, SZ_1G + 42))
+			return __FAIL(iop, i);
 
-		if (ops->iova_to_phys(ops, SZ_2G + 42))
-			return __FAIL(ops, i);
+		if (ops->iova_to_phys(iop, SZ_2G + 42))
+			return __FAIL(iop, i);
 
 		/*
 		 * Distinct mappings of different granule sizes.
@@ -984,19 +985,19 @@ static int __init arm_lpae_run_tests(struct io_pgtable_cfg *cfg)
 		while (j != BITS_PER_LONG) {
 			size = 1UL << j;
 
-			if (ops->map(ops, iova, iova, size, IOMMU_READ |
+			if (ops->map(iop, iova, iova, size, IOMMU_READ |
 							    IOMMU_WRITE |
 							    IOMMU_NOEXEC |
 							    IOMMU_CACHE))
-				return __FAIL(ops, i);
+				return __FAIL(iop, i);
 
 			/* Overlapping mappings */
-			if (!ops->map(ops, iova, iova + size, size,
+			if (!ops->map(iop, iova, iova + size, size,
 				      IOMMU_READ | IOMMU_NOEXEC))
-				return __FAIL(ops, i);
+				return __FAIL(iop, i);
 
-			if (ops->iova_to_phys(ops, iova + 42) != (iova + 42))
-				return __FAIL(ops, i);
+			if (ops->iova_to_phys(iop, iova + 42) != (iova + 42))
+				return __FAIL(iop, i);
 
 			iova += SZ_1G;
 			j++;
@@ -1005,15 +1006,15 @@ static int __init arm_lpae_run_tests(struct io_pgtable_cfg *cfg)
 
 		/* Partial unmap */
 		size = 1UL << __ffs(cfg->pgsize_bitmap);
-		if (ops->unmap(ops, SZ_1G + size, size) != size)
-			return __FAIL(ops, i);
+		if (ops->unmap(iop, SZ_1G + size, size) != size)
+			return __FAIL(iop, i);
 
 		/* Remap of partial unmap */
-		if (ops->map(ops, SZ_1G + size, size, size, IOMMU_READ))
-			return __FAIL(ops, i);
+		if (ops->map(iop, SZ_1G + size, size, size, IOMMU_READ))
+			return __FAIL(iop, i);
 
-		if (ops->iova_to_phys(ops, SZ_1G + size + 42) != (size + 42))
-			return __FAIL(ops, i);
+		if (ops->iova_to_phys(iop, SZ_1G + size + 42) != (size + 42))
+			return __FAIL(iop, i);
 
 		/* Full unmap */
 		iova = 0;
@@ -1021,25 +1022,25 @@ static int __init arm_lpae_run_tests(struct io_pgtable_cfg *cfg)
 		while (j != BITS_PER_LONG) {
 			size = 1UL << j;
 
-			if (ops->unmap(ops, iova, size) != size)
-				return __FAIL(ops, i);
+			if (ops->unmap(iop, iova, size) != size)
+				return __FAIL(iop, i);
 
-			if (ops->iova_to_phys(ops, iova + 42))
-				return __FAIL(ops, i);
+			if (ops->iova_to_phys(iop, iova + 42))
+				return __FAIL(iop, i);
 
 			/* Remap full block */
-			if (ops->map(ops, iova, iova, size, IOMMU_WRITE))
-				return __FAIL(ops, i);
+			if (ops->map(iop, iova, iova, size, IOMMU_WRITE))
+				return __FAIL(iop, i);
 
-			if (ops->iova_to_phys(ops, iova + 42) != (iova + 42))
-				return __FAIL(ops, i);
+			if (ops->iova_to_phys(iop, iova + 42) != (iova + 42))
+				return __FAIL(iop, i);
 
 			iova += SZ_1G;
 			j++;
 			j = find_next_bit(&cfg->pgsize_bitmap, BITS_PER_LONG, j);
 		}
 
-		free_io_pgtable_ops(ops);
+		free_io_pgtable(iop);
 	}
 
 	selftest_running = false;

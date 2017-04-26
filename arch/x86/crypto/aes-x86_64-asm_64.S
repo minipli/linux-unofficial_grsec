@@ -8,6 +8,8 @@
  * including this sentence is retained in full.
  */
 
+#include <asm/alternative-asm.h>
+
 .extern crypto_ft_tab
 .extern crypto_it_tab
 .extern crypto_fl_tab
@@ -77,7 +79,7 @@
 	movl	r6 ## E,4(r9);		\
 	movl	r7 ## E,8(r9);		\
 	movl	r8 ## E,12(r9);		\
-	ret;				\
+	pax_ret FUNC;			\
 	ENDPROC(FUNC);
 
 #define round(TAB,OFFSET,r1,r2,r3,r4,r5,r6,r7,r8,ra,rb,rc,rd) \

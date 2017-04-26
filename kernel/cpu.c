@@ -74,16 +74,8 @@ static DEFINE_PER_CPU(struct cpuhp_cpu_state, cpuhp_state);
  */
 struct cpuhp_step {
 	const char		*name;
-	union {
-		int		(*single)(unsigned int cpu);
-		int		(*multi)(unsigned int cpu,
-					 struct hlist_node *node);
-	} startup;
-	union {
-		int		(*single)(unsigned int cpu);
-		int		(*multi)(unsigned int cpu,
-					 struct hlist_node *node);
-	} teardown;
+	union cpuhp_step_startup startup;
+	union cpuhp_step_teardown teardown;
 	struct hlist_head	list;
 	bool			skip_onerr;
 	bool			cant_stop;
@@ -644,7 +636,7 @@ static int cpuhp_kick_ap_work(unsigned int cpu)
 	return st->result;
 }
 
-static struct smp_hotplug_thread cpuhp_threads = {
+static struct smp_hotplug_thread cpuhp_threads __read_only = {
 	.store			= &cpuhp_state.thread,
 	.create			= &cpuhp_create,
 	.thread_should_run	= cpuhp_should_run,
@@ -1434,8 +1426,8 @@ static int cpuhp_cb_check(enum cpuhp_state state)
 
 static void cpuhp_store_callbacks(enum cpuhp_state state,
 				  const char *name,
-				  int (*startup)(unsigned int cpu),
-				  int (*teardown)(unsigned int cpu),
+				  union cpuhp_step_startup startup,
+				  union cpuhp_step_teardown teardown,
 				  bool multi_instance)
 {
 	/* (Un)Install the callbacks for further cpu hotplug operations */
@@ -1443,17 +1435,17 @@ static void cpuhp_store_callbacks(enum cpuhp_state state,
 
 	mutex_lock(&cpuhp_state_mutex);
 	sp = cpuhp_get_step(state);
-	sp->startup.single = startup;
-	sp->teardown.single = teardown;
+	sp->startup = startup;
+	sp->teardown = teardown;
 	sp->name = name;
 	sp->multi_instance = multi_instance;
 	INIT_HLIST_HEAD(&sp->list);
 	mutex_unlock(&cpuhp_state_mutex);
 }
 
-static void *cpuhp_get_teardown_cb(enum cpuhp_state state)
+static union cpuhp_step_teardown cpuhp_get_teardown_cb(enum cpuhp_state state)
 {
-	return cpuhp_get_step(state)->teardown.single;
+	return cpuhp_get_step(state)->teardown;
 }
 
 /*
@@ -1590,8 +1582,8 @@ EXPORT_SYMBOL_GPL(__cpuhp_state_add_instance);
  */
 int __cpuhp_setup_state(enum cpuhp_state state,
 			const char *name, bool invoke,
-			int (*startup)(unsigned int cpu),
-			int (*teardown)(unsigned int cpu),
+			union cpuhp_step_startup startup,
+			union cpuhp_step_teardown teardown,
 			bool multi_instance)
 {
 	int cpu, ret = 0;
@@ -1613,7 +1605,7 @@ int __cpuhp_setup_state(enum cpuhp_state state,
 
 	cpuhp_store_callbacks(state, name, startup, teardown, multi_instance);
 
-	if (!invoke || !startup)
+	if (!invoke || (multi_instance ? !startup.multi : !startup.single))
 		goto out;
 
 	/*
@@ -1629,9 +1621,12 @@ int __cpuhp_setup_state(enum cpuhp_state state,
 
 		ret = cpuhp_issue_call(cpu, state, true, NULL);
 		if (ret) {
-			if (teardown)
+			union cpuhp_step_startup startup = { .single = NULL };
+			union cpuhp_step_teardown teardown = { .single = NULL };
+
+			if (multi_instance ? !!teardown.multi : !!teardown.single)
 				cpuhp_rollback_install(cpu, state, NULL);
-			cpuhp_store_callbacks(state, NULL, NULL, NULL, false);
+			cpuhp_store_callbacks(state, NULL, startup, teardown, false);
 			goto out;
 		}
 	}
@@ -1655,7 +1650,7 @@ int __cpuhp_state_remove_instance(enum cpuhp_state state,
 		return -EINVAL;
 
 	get_online_cpus();
-	if (!invoke || !cpuhp_get_teardown_cb(state))
+	if (!invoke || !cpuhp_get_teardown_cb(state).single)
 		goto remove;
 	/*
 	 * Call the teardown callback for each present cpu depending
@@ -1692,6 +1687,8 @@ void __cpuhp_remove_state(enum cpuhp_state state, bool invoke)
 {
 	struct cpuhp_step *sp = cpuhp_get_step(state);
 	int cpu;
+	union cpuhp_step_startup startup = { .single = NULL };
+	union cpuhp_step_teardown teardown = { .single = NULL };
 
 	BUG_ON(cpuhp_cb_check(state));
 
@@ -1704,7 +1701,7 @@ void __cpuhp_remove_state(enum cpuhp_state state, bool invoke)
 		goto remove;
 	}
 
-	if (!invoke || !cpuhp_get_teardown_cb(state))
+	if (!invoke || !cpuhp_get_teardown_cb(state).single)
 		goto remove;
 
 	/*
@@ -1720,7 +1717,7 @@ void __cpuhp_remove_state(enum cpuhp_state state, bool invoke)
 			cpuhp_issue_call(cpu, state, false, NULL);
 	}
 remove:
-	cpuhp_store_callbacks(state, NULL, NULL, NULL, false);
+	cpuhp_store_callbacks(state, NULL, startup, teardown, false);
 	put_online_cpus();
 }
 EXPORT_SYMBOL(__cpuhp_remove_state);

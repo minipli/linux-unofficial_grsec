@@ -135,7 +135,7 @@ extern void		    audit_log_n_hex(struct audit_buffer *ab,
 					  size_t len);
 extern void		    audit_log_n_string(struct audit_buffer *ab,
 					       const char *buf,
-					       size_t n);
+					       size_t n) __nocapture(2);
 extern void		    audit_log_n_untrustedstring(struct audit_buffer *ab,
 							const char *string,
 							size_t n);
@@ -333,7 +333,7 @@ static inline void audit_ptrace(struct task_struct *t)
 extern unsigned int audit_serial(void);
 extern int auditsc_get_stamp(struct audit_context *ctx,
 			      struct timespec *t, unsigned int *serial);
-extern int audit_set_loginuid(kuid_t loginuid);
+extern int __intentional_overflow(-1) audit_set_loginuid(kuid_t loginuid);
 
 static inline kuid_t audit_get_loginuid(struct task_struct *tsk)
 {
@@ -552,7 +552,8 @@ static inline bool audit_loginuid_set(struct task_struct *tsk)
 	return uid_valid(audit_get_loginuid(tsk));
 }
 
-static inline void audit_log_string(struct audit_buffer *ab, const char *buf)
+static inline __nocapture(2)
+void audit_log_string(struct audit_buffer *ab, const char *buf)
 {
 	audit_log_n_string(ab, buf, strlen(buf));
 }

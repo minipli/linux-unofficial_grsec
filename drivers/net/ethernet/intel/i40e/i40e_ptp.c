@@ -417,7 +417,7 @@ void i40e_ptp_set_increment(struct i40e_pf *pf)
 	wr32(hw, I40E_PRTTSYN_INC_H, incval >> 32);
 
 	/* Update the base adjustement value. */
-	ACCESS_ONCE(pf->ptp_base_adj) = incval;
+	ACCESS_ONCE_RW(pf->ptp_base_adj) = incval;
 	smp_mb(); /* Force the above update. */
 }
 

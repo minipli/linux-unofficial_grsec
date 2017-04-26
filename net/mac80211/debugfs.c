@@ -170,7 +170,7 @@ static const struct file_operations reset_ops = {
 };
 #endif
 
-static const char *hw_flag_names[] = {
+static const char * const hw_flag_names[] = {
 #define FLAG(F)	[IEEE80211_HW_##F] = #F
 	FLAG(HAS_RATE_CONTROL),
 	FLAG(RX_INCLUDES_FCS),

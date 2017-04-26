@@ -208,6 +208,8 @@ struct bpf_prog *bpf_patch_insn_single(struct bpf_prog *prog, u32 off,
 }
 
 #ifdef CONFIG_BPF_JIT
+extern long __rap_hash_call___bpf_prog_run;
+
 struct bpf_binary_header *
 bpf_jit_binary_alloc(unsigned int proglen, u8 **image_ptr,
 		     unsigned int alignment,
@@ -221,27 +223,45 @@ bpf_jit_binary_alloc(unsigned int proglen, u8 **image_ptr,
 	 * random section of illegal instructions.
 	 */
 	size = round_up(proglen + sizeof(*hdr) + 128, PAGE_SIZE);
-	hdr = module_alloc(size);
+	hdr = module_alloc_exec(size);
 	if (hdr == NULL)
 		return NULL;
 
 	/* Fill space with illegal/arch-dep instructions. */
 	bpf_fill_ill_insns(hdr, size);
 
+	pax_open_kernel();
 	hdr->pages = size / PAGE_SIZE;
+	pax_close_kernel();
+
 	hole = min_t(unsigned int, size - (proglen + sizeof(*hdr)),
 		     PAGE_SIZE - sizeof(*hdr));
+
+#ifdef CONFIG_PAX_RAP
+	hole -= 8;
+#endif
+
 	start = (get_random_int() % hole) & ~(alignment - 1);
+
+#ifdef CONFIG_PAX_RAP
+	start += 8;
+#endif
 
 	/* Leave a random number of instructions before BPF code. */
 	*image_ptr = &hdr->image[start];
+
+#ifdef CONFIG_PAX_RAP
+	pax_open_kernel();
+	*(long *)(*image_ptr - 8) = (long)&__rap_hash_call___bpf_prog_run;
+	pax_close_kernel();
+#endif
 
 	return hdr;
 }
 
 void bpf_jit_binary_free(struct bpf_binary_header *hdr)
 {
-	module_memfree(hdr);
+	module_memfree_exec(hdr);
 }
 
 int bpf_jit_harden __read_mostly;
@@ -465,7 +485,7 @@ EXPORT_SYMBOL_GPL(__bpf_call_base);
  *
  * Decode and execute eBPF instructions.
  */
-static unsigned int __bpf_prog_run(void *ctx, const struct bpf_insn *insn)
+unsigned int __bpf_prog_run(const struct sk_buff *ctx, const struct bpf_insn *insn)
 {
 	u64 stack[MAX_BPF_STACK / sizeof(u64)];
 	u64 regs[MAX_BPF_REG], tmp;
@@ -970,7 +990,7 @@ static int bpf_check_tail_call(const struct bpf_prog *fp)
  */
 struct bpf_prog *bpf_prog_select_runtime(struct bpf_prog *fp, int *err)
 {
-	fp->bpf_func = (void *) __bpf_prog_run;
+	fp->bpf_func = __bpf_prog_run;
 
 	/* eBPF JITs can rewrite the program in case constant
 	 * blinding is active. However, in case of error during

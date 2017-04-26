@@ -1757,7 +1757,7 @@ err_out:
 }
 
 static pci_ers_result_t netxen_io_error_detected(struct pci_dev *pdev,
-						pci_channel_state_t state)
+						enum pci_channel_state state)
 {
 	struct netxen_adapter *adapter = pci_get_drvdata(pdev);
 

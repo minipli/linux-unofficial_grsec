@@ -61,7 +61,7 @@ struct dib8000_ops {
 	int (*pid_filter_ctrl)(struct dvb_frontend *fe, u8 onoff);
 	int (*pid_filter)(struct dvb_frontend *fe, u8 id, u16 pid, u8 onoff);
 	struct dvb_frontend *(*init)(struct i2c_adapter *i2c_adap, u8 i2c_addr, struct dib8000_config *cfg);
-};
+} __no_const;
 
 #if IS_REACHABLE(CONFIG_DVB_DIB8000)
 void *dib8000_attach(struct dib8000_ops *ops);

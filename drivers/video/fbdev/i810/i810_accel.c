@@ -73,6 +73,7 @@ static inline int wait_for_space(struct fb_info *info, u32 space)
 		}
 	}
 	printk("ringbuffer lockup!!!\n");
+	printk("head:%u tail:%u iring.size:%u space:%u\n", head, tail, par->iring.size, space);
 	i810_report_error(mmio); 
 	par->dev_flags |= LOCKUP;
 	info->pixmap.scan_align = 1;

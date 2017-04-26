@@ -104,8 +104,8 @@ struct ip_set_ext {
 };
 
 struct ip_set_counter {
-	atomic64_t bytes;
-	atomic64_t packets;
+	atomic64_unchecked_t bytes;
+	atomic64_unchecked_t packets;
 };
 
 struct ip_set_comment_rcu {
@@ -297,25 +297,25 @@ ip_set_put_flags(struct sk_buff *skb, struct ip_set *set)
 static inline void
 ip_set_add_bytes(u64 bytes, struct ip_set_counter *counter)
 {
-	atomic64_add((long long)bytes, &(counter)->bytes);
+	atomic64_add_unchecked((long long)bytes, &(counter)->bytes);
 }
 
 static inline void
 ip_set_add_packets(u64 packets, struct ip_set_counter *counter)
 {
-	atomic64_add((long long)packets, &(counter)->packets);
+	atomic64_add_unchecked((long long)packets, &(counter)->packets);
 }
 
 static inline u64
 ip_set_get_bytes(const struct ip_set_counter *counter)
 {
-	return (u64)atomic64_read(&(counter)->bytes);
+	return (u64)atomic64_read_unchecked(&(counter)->bytes);
 }
 
 static inline u64
 ip_set_get_packets(const struct ip_set_counter *counter)
 {
-	return (u64)atomic64_read(&(counter)->packets);
+	return (u64)atomic64_read_unchecked(&(counter)->packets);
 }
 
 static inline void
@@ -387,9 +387,9 @@ ip_set_init_counter(struct ip_set_counter *counter,
 		    const struct ip_set_ext *ext)
 {
 	if (ext->bytes != ULLONG_MAX)
-		atomic64_set(&(counter)->bytes, (long long)(ext->bytes));
+		atomic64_set_unchecked(&(counter)->bytes, (long long)(ext->bytes));
 	if (ext->packets != ULLONG_MAX)
-		atomic64_set(&(counter)->packets, (long long)(ext->packets));
+		atomic64_set_unchecked(&(counter)->packets, (long long)(ext->packets));
 }
 
 /* Netlink CB args */

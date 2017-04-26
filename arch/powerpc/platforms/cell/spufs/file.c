@@ -263,9 +263,9 @@ spufs_mem_mmap_fault(struct vm_area_struct *vma, struct vm_fault *vmf)
 	return VM_FAULT_NOPAGE;
 }
 
-static int spufs_mem_mmap_access(struct vm_area_struct *vma,
+static ssize_t spufs_mem_mmap_access(struct vm_area_struct *vma,
 				unsigned long address,
-				void *buf, int len, int write)
+				void *buf, size_t len, int write)
 {
 	struct spu_context *ctx = vma->vm_file->private_data;
 	unsigned long offset = address - vma->vm_start;

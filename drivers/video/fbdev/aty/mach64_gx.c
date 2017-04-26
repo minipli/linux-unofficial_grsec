@@ -894,9 +894,18 @@ static int aty_set_dac_unsupported(const struct fb_info *info,
 	return 0;
 }
 
-static int dummy(void)
+static int aty_var_to_pll(const struct fb_info * info, u32 vclk_per, u32 bpp, union aty_pll * pll)
 {
 	return 0;
+}
+
+static u32 aty_pll_to_var(const struct fb_info * info, const union aty_pll * pll)
+{
+	return 0;
+}
+
+static void aty_set_pll(const struct fb_info * info, const union aty_pll * pll)
+{
 }
 
 const struct aty_dac_ops aty_dac_unsupported = {
@@ -904,7 +913,7 @@ const struct aty_dac_ops aty_dac_unsupported = {
 };
 
 const struct aty_pll_ops aty_pll_unsupported = {
-	.var_to_pll	= (void *) dummy,
-	.pll_to_var	= (void *) dummy,
-	.set_pll	= (void *) dummy,
+	.var_to_pll	= aty_var_to_pll,
+	.pll_to_var	= aty_pll_to_var,
+	.set_pll	= aty_set_pll,
 };

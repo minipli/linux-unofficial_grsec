@@ -87,7 +87,7 @@ typedef void (*arp_failure_handler_func)(struct t3cdev * dev,
  */
 struct l2t_skb_cb {
 	arp_failure_handler_func arp_failure_handler;
-};
+} __no_const;
 
 #define L2T_SKB_CB(skb) ((struct l2t_skb_cb *)(skb)->cb)
 

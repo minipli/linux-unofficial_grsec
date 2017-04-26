@@ -48,7 +48,7 @@
 
 struct ttm_mem_shrink {
 	int (*do_shrink) (struct ttm_mem_shrink *);
-};
+} __no_const;
 
 /**
  * struct ttm_mem_global - Global memory accounting structure.

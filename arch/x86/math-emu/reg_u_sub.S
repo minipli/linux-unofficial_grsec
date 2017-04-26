@@ -231,31 +231,31 @@ L_round:
 #ifdef PARANOID
 L_bugged_1:
 	pushl	EX_INTERNAL|0x206
-	call	EXCEPTION
+	pax_direct_call EXCEPTION
 	pop	%ebx
 	jmp	L_error_exit
 
 L_bugged_2:
 	pushl	EX_INTERNAL|0x209
-	call	EXCEPTION
+	pax_direct_call EXCEPTION
 	pop	%ebx
 	jmp	L_error_exit
 
 L_bugged_3:
 	pushl	EX_INTERNAL|0x210
-	call	EXCEPTION
+	pax_direct_call EXCEPTION
 	pop	%ebx
 	jmp	L_error_exit
 
 L_bugged_4:
 	pushl	EX_INTERNAL|0x211
-	call	EXCEPTION
+	pax_direct_call EXCEPTION
 	pop	%ebx
 	jmp	L_error_exit
 
 L_bugged:
 	pushl	EX_INTERNAL|0x212
-	call	EXCEPTION
+	pax_direct_call EXCEPTION
 	pop	%ebx
 	jmp	L_error_exit
 
@@ -269,4 +269,4 @@ L_exit:
 	popl	%edi
 	popl	%esi
 	leave
-	ret
+	pax_ret FPU_u_sub

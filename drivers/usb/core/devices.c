@@ -119,7 +119,7 @@ static const char format_endpt[] =
  * time it gets called.
  */
 static struct device_connect_event {
-	atomic_t count;
+	atomic_unchecked_t count;
 	wait_queue_head_t wait;
 } device_event = {
 	.count = ATOMIC_INIT(1),
@@ -157,7 +157,7 @@ static const struct class_info clas_info[] = {
 
 void usbfs_conn_disc_event(void)
 {
-	atomic_add(2, &device_event.count);
+	atomic_add_unchecked(2, &device_event.count);
 	wake_up(&device_event.wait);
 }
 
@@ -648,7 +648,7 @@ static unsigned int usb_device_poll(struct file *file,
 
 	poll_wait(file, &device_event.wait, wait);
 
-	event_count = atomic_read(&device_event.count);
+	event_count = atomic_read_unchecked(&device_event.count);
 	if (file->f_version != event_count) {
 		file->f_version = event_count;
 		return POLLIN | POLLRDNORM;

@@ -103,6 +103,10 @@ void __f_setown(struct file *filp, struct pid *pid, enum pid_type type,
 		int force)
 {
 	security_file_set_fowner(filp);
+	if (gr_handle_chroot_fowner(pid, type))
+		return;
+	if (gr_check_protected_task_fowner(pid, type))
+		return;
 	f_modown(filp, pid, type, force);
 }
 EXPORT_SYMBOL(__f_setown);

@@ -36,7 +36,7 @@
 		BUILD_BUG_ON_NOT_POWER_OF_2(_factor);			\
 		BUILD_BUG_ON_NOT_POWER_OF_2(_weight);			\
 									\
-		ACCESS_ONCE(e->internal) = internal ?			\
+		ACCESS_ONCE_RW(e->internal) = internal ?		\
 			(((internal << weight) - internal) +		\
 				(val << factor)) >> weight :		\
 			(val << factor);				\

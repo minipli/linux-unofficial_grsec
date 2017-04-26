@@ -61,8 +61,8 @@ static inline __le32 sctp_compute_cksum(const struct sk_buff *skb,
 					unsigned int offset)
 {
 	struct sctphdr *sh = sctp_hdr(skb);
-        __le32 ret, old = sh->checksum;
-	const struct skb_checksum_ops ops = {
+	__le32 ret, old = sh->checksum;
+	static const struct skb_checksum_ops ops = {
 		.update  = sctp_csum_update,
 		.combine = sctp_csum_combine,
 	};

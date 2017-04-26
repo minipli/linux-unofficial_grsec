@@ -61,7 +61,7 @@ MODULE_PARM_DESC(nohwcrypt, "Disable hardware encryption.");
 	rt2x00usb_regbusy_read((__dev), PHY_CSR4, PHY_CSR4_BUSY, (__reg))
 
 static void rt73usb_bbp_write(struct rt2x00_dev *rt2x00dev,
-			      const unsigned int word, const u8 value)
+			      const unsigned int word, u8 value)
 {
 	u32 reg;
 
@@ -116,7 +116,7 @@ static void rt73usb_bbp_read(struct rt2x00_dev *rt2x00dev,
 }
 
 static void rt73usb_rf_write(struct rt2x00_dev *rt2x00dev,
-			     const unsigned int word, const u32 value)
+			     const unsigned int word, u32 value)
 {
 	u32 reg;
 

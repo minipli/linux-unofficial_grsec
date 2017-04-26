@@ -437,7 +437,7 @@ struct ioc4_soft {
 		} is_intr_info[MAX_IOC4_INTR_ENTS];
 
 		/* Number of entries active in the above array */
-		atomic_t is_num_intrs;
+		atomic_unchecked_t is_num_intrs;
 	} is_intr_type[IOC4_NUM_INTR_TYPES];
 
 	/* is_ir_lock must be held while
@@ -974,7 +974,7 @@ intr_connect(struct ioc4_soft *soft, int type,
 	BUG_ON(!((type == IOC4_SIO_INTR_TYPE)
 	       || (type == IOC4_OTHER_INTR_TYPE)));
 
-	i = atomic_inc_return(&soft-> is_intr_type[type].is_num_intrs) - 1;
+	i = atomic_inc_return_unchecked(&soft-> is_intr_type[type].is_num_intrs) - 1;
 	BUG_ON(!(i < MAX_IOC4_INTR_ENTS || (printk("i %d\n", i), 0)));
 
 	/* Save off the lower level interrupt handler */
@@ -1001,7 +1001,7 @@ static irqreturn_t ioc4_intr(int irq, void *arg)
 
 	soft = arg;
 	for (intr_type = 0; intr_type < IOC4_NUM_INTR_TYPES; intr_type++) {
-		num_intrs = (int)atomic_read(
+		num_intrs = (int)atomic_read_unchecked(
 				&soft->is_intr_type[intr_type].is_num_intrs);
 
 		this_mir = this_ir = pending_intrs(soft, intr_type);

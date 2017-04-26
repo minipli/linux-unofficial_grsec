@@ -259,7 +259,7 @@ int seq_buf_putmem_hex(struct seq_buf *s, const void *mem,
  */
 int seq_buf_path(struct seq_buf *s, const struct path *path, const char *esc)
 {
-	char *buf;
+	unsigned char *buf;
 	size_t size = seq_buf_get_buf(s, &buf);
 	int res = -1;
 
@@ -268,7 +268,7 @@ int seq_buf_path(struct seq_buf *s, const struct path *path, const char *esc)
 	if (size) {
 		char *p = d_path(path, buf, size);
 		if (!IS_ERR(p)) {
-			char *end = mangle_path(buf, p, esc);
+			unsigned char *end = mangle_path(buf, p, esc);
 			if (end)
 				res = end - buf;
 		}

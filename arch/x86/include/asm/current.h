@@ -16,6 +16,11 @@ static __always_inline struct task_struct *get_current(void)
 
 #define current get_current()
 
+#else
+
+#define GET_CURRENT(reg) \
+	_ASM_MOV PER_CPU_VAR(current_task),reg ;
+
 #endif /* __ASSEMBLY__ */
 
 #endif /* _ASM_X86_CURRENT_H */

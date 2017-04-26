@@ -829,8 +829,16 @@ SYSCALL_DEFINE3(bpf, int, cmd, union bpf_attr __user *, uattr, unsigned int, siz
 	union bpf_attr attr = {};
 	int err;
 
-	if (!capable(CAP_SYS_ADMIN) && sysctl_unprivileged_bpf_disabled)
+	/* the syscall is limited to root temporarily. This restriction will be
+	 * lifted by upstream when a half-assed security audit is clean. Note
+	 * that eBPF+tracing must have this restriction, since it may pass
+	 * kernel data to user space
+	 */
+	if (!capable(CAP_SYS_ADMIN))
 		return -EPERM;
+#ifdef CONFIG_GRKERNSEC
+	return -EPERM;
+#endif
 
 	if (!access_ok(VERIFY_READ, uattr, 1))
 		return -EFAULT;

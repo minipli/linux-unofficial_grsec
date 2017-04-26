@@ -65,12 +65,12 @@ static int csio_ddp_descs = 128;
 static int csio_do_abrt_cls(struct csio_hw *,
 				      struct csio_ioreq *, bool);
 
-static void csio_scsis_uninit(struct csio_ioreq *, enum csio_scsi_ev);
-static void csio_scsis_io_active(struct csio_ioreq *, enum csio_scsi_ev);
-static void csio_scsis_tm_active(struct csio_ioreq *, enum csio_scsi_ev);
-static void csio_scsis_aborting(struct csio_ioreq *, enum csio_scsi_ev);
-static void csio_scsis_closing(struct csio_ioreq *, enum csio_scsi_ev);
-static void csio_scsis_shost_cmpl_await(struct csio_ioreq *, enum csio_scsi_ev);
+static void csio_scsis_uninit(struct csio_sm *, uint32_t);
+static void csio_scsis_io_active(struct csio_sm *, uint32_t);
+static void csio_scsis_tm_active(struct csio_sm *, uint32_t);
+static void csio_scsis_aborting(struct csio_sm *, uint32_t);
+static void csio_scsis_closing(struct csio_sm *, uint32_t);
+static void csio_scsis_shost_cmpl_await(struct csio_sm *, uint32_t);
 
 /*
  * csio_scsi_match_io - Match an ioreq with the given SCSI level data.
@@ -700,8 +700,10 @@ csio_scsi_abrt_cls(struct csio_ioreq *req, bool abort)
 /* START: SCSI SM                                                            */
 /*****************************************************************************/
 static void
-csio_scsis_uninit(struct csio_ioreq *req, enum csio_scsi_ev evt)
+csio_scsis_uninit(struct csio_sm *_req, uint32_t _evt)
 {
+	struct csio_ioreq *req = container_of(_req, struct csio_ioreq, sm);
+	enum csio_scsi_ev evt = _evt;
 	struct csio_hw *hw = req->lnode->hwp;
 	struct csio_scsim *scsim = csio_hw_to_scsim(hw);
 
@@ -770,8 +772,10 @@ csio_scsis_uninit(struct csio_ioreq *req, enum csio_scsi_ev evt)
 }
 
 static void
-csio_scsis_io_active(struct csio_ioreq *req, enum csio_scsi_ev evt)
+csio_scsis_io_active(struct csio_sm *_req, uint32_t _evt)
 {
+	struct csio_ioreq *req = container_of(_req, struct csio_ioreq, sm);
+	enum csio_scsi_ev evt = _evt;
 	struct csio_hw *hw = req->lnode->hwp;
 	struct csio_scsim *scm = csio_hw_to_scsim(hw);
 	struct csio_rnode *rn;
@@ -842,8 +846,10 @@ csio_scsis_io_active(struct csio_ioreq *req, enum csio_scsi_ev evt)
 }
 
 static void
-csio_scsis_tm_active(struct csio_ioreq *req, enum csio_scsi_ev evt)
+csio_scsis_tm_active(struct csio_sm *_req, uint32_t _evt)
 {
+	struct csio_ioreq *req = container_of(_req, struct csio_ioreq, sm);
+	enum csio_scsi_ev evt = _evt;
 	struct csio_hw *hw = req->lnode->hwp;
 	struct csio_scsim *scm = csio_hw_to_scsim(hw);
 
@@ -885,8 +891,10 @@ csio_scsis_tm_active(struct csio_ioreq *req, enum csio_scsi_ev evt)
 }
 
 static void
-csio_scsis_aborting(struct csio_ioreq *req, enum csio_scsi_ev evt)
+csio_scsis_aborting(struct csio_sm *_req, uint32_t _evt)
 {
+	struct csio_ioreq *req = container_of(_req, struct csio_ioreq, sm);
+	enum csio_scsi_ev evt = _evt;
 	struct csio_hw *hw = req->lnode->hwp;
 	struct csio_scsim *scm = csio_hw_to_scsim(hw);
 
@@ -982,8 +990,10 @@ csio_scsis_aborting(struct csio_ioreq *req, enum csio_scsi_ev evt)
 }
 
 static void
-csio_scsis_closing(struct csio_ioreq *req, enum csio_scsi_ev evt)
+csio_scsis_closing(struct csio_sm *_req, uint32_t _evt)
 {
+	struct csio_ioreq *req = container_of(_req, struct csio_ioreq, sm);
+	enum csio_scsi_ev evt = _evt;
 	struct csio_hw *hw = req->lnode->hwp;
 	struct csio_scsim *scm = csio_hw_to_scsim(hw);
 
@@ -1046,8 +1056,11 @@ csio_scsis_closing(struct csio_ioreq *req, enum csio_scsi_ev evt)
 }
 
 static void
-csio_scsis_shost_cmpl_await(struct csio_ioreq *req, enum csio_scsi_ev evt)
+csio_scsis_shost_cmpl_await(struct csio_sm *_req, uint32_t _evt)
 {
+	struct csio_ioreq *req = container_of(_req, struct csio_ioreq, sm);
+	enum csio_scsi_ev evt = _evt;
+
 	switch (evt) {
 	case CSIO_SCSIE_ABORT:
 	case CSIO_SCSIE_CLOSE:

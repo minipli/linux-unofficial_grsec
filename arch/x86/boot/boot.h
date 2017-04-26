@@ -84,7 +84,7 @@ static inline void io_delay(void)
 static inline u16 ds(void)
 {
 	u16 seg;
-	asm("movw %%ds,%0" : "=rm" (seg));
+	asm volatile("movw %%ds,%0" : "=rm" (seg));
 	return seg;
 }
 

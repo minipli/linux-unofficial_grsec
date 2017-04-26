@@ -1921,7 +1921,7 @@ void ext4_mb_simple_scan_group(struct ext4_allocation_context *ac,
 		BUG_ON(ac->ac_b_ex.fe_len != ac->ac_g_ex.fe_len);
 
 		if (EXT4_SB(sb)->s_mb_stats)
-			atomic_inc(&EXT4_SB(sb)->s_bal_2orders);
+			atomic_inc_unchecked(&EXT4_SB(sb)->s_bal_2orders);
 
 		break;
 	}
@@ -2244,7 +2244,7 @@ repeat:
 			ac->ac_status = AC_STATUS_CONTINUE;
 			ac->ac_flags |= EXT4_MB_HINT_FIRST;
 			cr = 3;
-			atomic_inc(&sbi->s_mb_lost_chunks);
+			atomic_inc_unchecked(&sbi->s_mb_lost_chunks);
 			goto repeat;
 		}
 	}
@@ -2743,25 +2743,25 @@ int ext4_mb_release(struct super_block *sb)
 	if (sbi->s_mb_stats) {
 		ext4_msg(sb, KERN_INFO,
 		       "mballoc: %u blocks %u reqs (%u success)",
-				atomic_read(&sbi->s_bal_allocated),
-				atomic_read(&sbi->s_bal_reqs),
-				atomic_read(&sbi->s_bal_success));
+				atomic_read_unchecked(&sbi->s_bal_allocated),
+				atomic_read_unchecked(&sbi->s_bal_reqs),
+				atomic_read_unchecked(&sbi->s_bal_success));
 		ext4_msg(sb, KERN_INFO,
 		      "mballoc: %u extents scanned, %u goal hits, "
 				"%u 2^N hits, %u breaks, %u lost",
-				atomic_read(&sbi->s_bal_ex_scanned),
-				atomic_read(&sbi->s_bal_goals),
-				atomic_read(&sbi->s_bal_2orders),
-				atomic_read(&sbi->s_bal_breaks),
-				atomic_read(&sbi->s_mb_lost_chunks));
+				atomic_read_unchecked(&sbi->s_bal_ex_scanned),
+				atomic_read_unchecked(&sbi->s_bal_goals),
+				atomic_read_unchecked(&sbi->s_bal_2orders),
+				atomic_read_unchecked(&sbi->s_bal_breaks),
+				atomic_read_unchecked(&sbi->s_mb_lost_chunks));
 		ext4_msg(sb, KERN_INFO,
 		       "mballoc: %lu generated and it took %Lu",
 				sbi->s_mb_buddies_generated,
 				sbi->s_mb_generation_time);
 		ext4_msg(sb, KERN_INFO,
 		       "mballoc: %u preallocated, %u discarded",
-				atomic_read(&sbi->s_mb_preallocated),
-				atomic_read(&sbi->s_mb_discarded));
+				atomic_read_unchecked(&sbi->s_mb_preallocated),
+				atomic_read_unchecked(&sbi->s_mb_discarded));
 	}
 
 	free_percpu(sbi->s_locality_groups);
@@ -3229,16 +3229,16 @@ static void ext4_mb_collect_stats(struct ext4_allocation_context *ac)
 	struct ext4_sb_info *sbi = EXT4_SB(ac->ac_sb);
 
 	if (sbi->s_mb_stats && ac->ac_g_ex.fe_len > 1) {
-		atomic_inc(&sbi->s_bal_reqs);
-		atomic_add(ac->ac_b_ex.fe_len, &sbi->s_bal_allocated);
+		atomic_inc_unchecked(&sbi->s_bal_reqs);
+		atomic_add_unchecked(ac->ac_b_ex.fe_len, &sbi->s_bal_allocated);
 		if (ac->ac_b_ex.fe_len >= ac->ac_o_ex.fe_len)
-			atomic_inc(&sbi->s_bal_success);
-		atomic_add(ac->ac_found, &sbi->s_bal_ex_scanned);
+			atomic_inc_unchecked(&sbi->s_bal_success);
+		atomic_add_unchecked(ac->ac_found, &sbi->s_bal_ex_scanned);
 		if (ac->ac_g_ex.fe_start == ac->ac_b_ex.fe_start &&
 				ac->ac_g_ex.fe_group == ac->ac_b_ex.fe_group)
-			atomic_inc(&sbi->s_bal_goals);
+			atomic_inc_unchecked(&sbi->s_bal_goals);
 		if (ac->ac_found > sbi->s_mb_max_to_scan)
-			atomic_inc(&sbi->s_bal_breaks);
+			atomic_inc_unchecked(&sbi->s_bal_breaks);
 	}
 
 	if (ac->ac_op == EXT4_MB_HISTORY_ALLOC)
@@ -3665,7 +3665,7 @@ ext4_mb_new_inode_pa(struct ext4_allocation_context *ac)
 	trace_ext4_mb_new_inode_pa(ac, pa);
 
 	ext4_mb_use_inode_pa(ac, pa);
-	atomic_add(pa->pa_free, &sbi->s_mb_preallocated);
+	atomic_add_unchecked(pa->pa_free, &sbi->s_mb_preallocated);
 
 	ei = EXT4_I(ac->ac_inode);
 	grp = ext4_get_group_info(sb, ac->ac_b_ex.fe_group);
@@ -3725,7 +3725,7 @@ ext4_mb_new_group_pa(struct ext4_allocation_context *ac)
 	trace_ext4_mb_new_group_pa(ac, pa);
 
 	ext4_mb_use_group_pa(ac, pa);
-	atomic_add(pa->pa_free, &EXT4_SB(sb)->s_mb_preallocated);
+	atomic_add_unchecked(pa->pa_free, &EXT4_SB(sb)->s_mb_preallocated);
 
 	grp = ext4_get_group_info(sb, ac->ac_b_ex.fe_group);
 	lg = ac->ac_lg;
@@ -3814,7 +3814,7 @@ ext4_mb_release_inode_pa(struct ext4_buddy *e4b, struct buffer_head *bitmap_bh,
 		 * from the bitmap and continue.
 		 */
 	}
-	atomic_add(free, &sbi->s_mb_discarded);
+	atomic_add_unchecked(free, &sbi->s_mb_discarded);
 
 	return err;
 }
@@ -3832,7 +3832,7 @@ ext4_mb_release_group_pa(struct ext4_buddy *e4b,
 	ext4_get_group_no_and_offset(sb, pa->pa_pstart, &group, &bit);
 	BUG_ON(group != e4b->bd_group && pa->pa_len != 0);
 	mb_free_blocks(pa->pa_inode, e4b, bit, pa->pa_len);
-	atomic_add(pa->pa_len, &EXT4_SB(sb)->s_mb_discarded);
+	atomic_add_unchecked(pa->pa_len, &EXT4_SB(sb)->s_mb_discarded);
 	trace_ext4_mballoc_discard(sb, NULL, group, bit, pa->pa_len);
 
 	return 0;

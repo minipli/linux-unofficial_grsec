@@ -107,6 +107,7 @@ static int rtc_ioctl(struct device *dev, unsigned int cmd, unsigned long arg)
 
 	switch (cmd) {
 	case RTC_PLL_GET:
+		memset(&pll, 0, sizeof(pll));
 		if (!mach_get_rtc_pll || mach_get_rtc_pll(&pll))
 			return -EINVAL;
 		return copy_to_user(argp, &pll, sizeof pll) ? -EFAULT : 0;

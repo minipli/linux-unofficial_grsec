@@ -214,7 +214,7 @@ struct extcon_dev {
 	/* /sys/class/extcon/.../mutually_exclusive/... */
 	struct attribute_group attr_g_muex;
 	struct attribute **attrs_muex;
-	struct device_attribute *d_attrs_muex;
+	device_attribute_no_const *d_attrs_muex;
 };
 
 #if IS_ENABLED(CONFIG_EXTCON)

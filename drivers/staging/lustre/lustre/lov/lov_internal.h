@@ -107,9 +107,9 @@ struct lov_request_set {
 	 */
 	struct obd_device		*set_obd;
 	int				set_count;
-	atomic_t			set_completes;
-	atomic_t			set_success;
-	atomic_t			set_finish_checked;
+	atomic_unchecked_t		set_completes;
+	atomic_unchecked_t		set_success;
+	atomic_unchecked_t		set_finish_checked;
 	struct llog_cookie		*set_cookies;
 	int				set_cookie_sent;
 	struct list_head			set_list;

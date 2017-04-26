@@ -901,7 +901,7 @@ int ieee80211_init_rate_ctrl_alg(struct ieee80211_local *local,
 
 	ASSERT_RTNL();
 
-	if (local->open_count)
+	if (local_read(&local->open_count))
 		return -EBUSY;
 
 	if (ieee80211_hw_check(&local->hw, HAS_RATE_CONTROL)) {

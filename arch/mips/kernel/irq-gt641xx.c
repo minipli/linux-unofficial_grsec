@@ -110,7 +110,7 @@ void gt641xx_irq_dispatch(void)
 		}
 	}
 
-	atomic_inc(&irq_err_count);
+	atomic_inc_unchecked(&irq_err_count);
 }
 
 void __init gt641xx_irq_init(void)

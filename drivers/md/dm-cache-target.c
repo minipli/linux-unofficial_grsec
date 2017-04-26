@@ -118,7 +118,7 @@ static void iot_io_end(struct io_tracker *iot, sector_t len)
  */
 struct dm_hook_info {
 	bio_end_io_t *bi_end_io;
-};
+} __no_const;
 
 static void dm_hook_bio(struct dm_hook_info *h, struct bio *bio,
 			bio_end_io_t *bi_end_io, void *bi_private)
@@ -182,16 +182,16 @@ struct cache_features {
 };
 
 struct cache_stats {
-	atomic_t read_hit;
-	atomic_t read_miss;
-	atomic_t write_hit;
-	atomic_t write_miss;
-	atomic_t demotion;
-	atomic_t promotion;
-	atomic_t copies_avoided;
-	atomic_t cache_cell_clash;
-	atomic_t commit_count;
-	atomic_t discard_count;
+	atomic_unchecked_t read_hit;
+	atomic_unchecked_t read_miss;
+	atomic_unchecked_t write_hit;
+	atomic_unchecked_t write_miss;
+	atomic_unchecked_t demotion;
+	atomic_unchecked_t promotion;
+	atomic_unchecked_t copies_avoided;
+	atomic_unchecked_t cache_cell_clash;
+	atomic_unchecked_t commit_count;
+	atomic_unchecked_t discard_count;
 };
 
 /*
@@ -270,8 +270,8 @@ struct cache {
 	atomic_t nr_io_migrations;
 
 	wait_queue_head_t quiescing_wait;
-	atomic_t quiescing;
-	atomic_t quiescing_ack;
+	atomic_unchecked_t quiescing;
+	atomic_unchecked_t quiescing_ack;
 
 	/*
 	 * cache_size entries, dirty if set
@@ -395,8 +395,10 @@ static struct dm_bio_prison_cell *alloc_prison_cell(struct cache *cache)
 	return dm_bio_prison_alloc_cell(cache->prison, GFP_NOWAIT);
 }
 
-static void free_prison_cell(struct cache *cache, struct dm_bio_prison_cell *cell)
+static void free_prison_cell(void *_cache, struct dm_bio_prison_cell *cell)
 {
+	struct cache *cache = _cache;
+
 	dm_bio_prison_free_cell(cache->prison, cell);
 }
 
@@ -493,8 +495,10 @@ static struct dm_bio_prison_cell *prealloc_get_cell(struct prealloc *p)
  * You can't have more than two cells in a prealloc struct.  BUG() will be
  * called if you try and overfill.
  */
-static void prealloc_put_cell(struct prealloc *p, struct dm_bio_prison_cell *cell)
+static void prealloc_put_cell(void *_p, struct dm_bio_prison_cell *cell)
 {
+	struct prealloc *p = _p;
+
 	if (!p->cell2)
 		p->cell2 = cell;
 
@@ -637,7 +641,7 @@ static void set_discard(struct cache *cache, dm_dblock_t b)
 	unsigned long flags;
 
 	BUG_ON(from_dblock(b) >= from_dblock(cache->discard_nr_blocks));
-	atomic_inc(&cache->stats.discard_count);
+	atomic_inc_unchecked(&cache->stats.discard_count);
 
 	spin_lock_irqsave(&cache->lock, flags);
 	set_bit(from_dblock(b), cache->discard_bitset);
@@ -685,10 +689,10 @@ static void load_stats(struct cache *cache)
 	struct dm_cache_statistics stats;
 
 	dm_cache_metadata_get_stats(cache->cmd, &stats);
-	atomic_set(&cache->stats.read_hit, stats.read_hits);
-	atomic_set(&cache->stats.read_miss, stats.read_misses);
-	atomic_set(&cache->stats.write_hit, stats.write_hits);
-	atomic_set(&cache->stats.write_miss, stats.write_misses);
+	atomic_set_unchecked(&cache->stats.read_hit, stats.read_hits);
+	atomic_set_unchecked(&cache->stats.read_miss, stats.read_misses);
+	atomic_set_unchecked(&cache->stats.write_hit, stats.write_hits);
+	atomic_set_unchecked(&cache->stats.write_miss, stats.write_misses);
 }
 
 static void save_stats(struct cache *cache)
@@ -698,10 +702,10 @@ static void save_stats(struct cache *cache)
 	if (get_cache_mode(cache) >= CM_READ_ONLY)
 		return;
 
-	stats.read_hits = atomic_read(&cache->stats.read_hit);
-	stats.read_misses = atomic_read(&cache->stats.read_miss);
-	stats.write_hits = atomic_read(&cache->stats.write_hit);
-	stats.write_misses = atomic_read(&cache->stats.write_miss);
+	stats.read_hits = atomic_read_unchecked(&cache->stats.read_hit);
+	stats.read_misses = atomic_read_unchecked(&cache->stats.read_miss);
+	stats.write_hits = atomic_read_unchecked(&cache->stats.write_hit);
+	stats.write_misses = atomic_read_unchecked(&cache->stats.write_miss);
 
 	dm_cache_metadata_set_stats(cache->cmd, &stats);
 }
@@ -1326,7 +1330,7 @@ static bool bio_writes_complete_block(struct cache *cache, struct bio *bio)
 
 static void avoid_copy(struct dm_cache_migration *mg)
 {
-	atomic_inc(&mg->cache->stats.copies_avoided);
+	atomic_inc_unchecked(&mg->cache->stats.copies_avoided);
 	migration_success_pre_commit(mg);
 }
 
@@ -1636,7 +1640,7 @@ static void process_discard_bio(struct cache *cache, struct prealloc *structs,
 
 	cell_prealloc = prealloc_get_cell(structs);
 	r = bio_detain_range(cache, dblock_to_oblock(cache, b), dblock_to_oblock(cache, e), bio, cell_prealloc,
-			     (cell_free_fn) prealloc_put_cell,
+			     prealloc_put_cell,
 			     structs, &new_ocell);
 	if (r > 0)
 		return;
@@ -1653,13 +1657,13 @@ static bool spare_migration_bandwidth(struct cache *cache)
 
 static void inc_hit_counter(struct cache *cache, struct bio *bio)
 {
-	atomic_inc(bio_data_dir(bio) == READ ?
+	atomic_inc_unchecked(bio_data_dir(bio) == READ ?
 		   &cache->stats.read_hit : &cache->stats.write_hit);
 }
 
 static void inc_miss_counter(struct cache *cache, struct bio *bio)
 {
-	atomic_inc(bio_data_dir(bio) == READ ?
+	atomic_inc_unchecked(bio_data_dir(bio) == READ ?
 		   &cache->stats.read_miss : &cache->stats.write_miss);
 }
 
@@ -1790,7 +1794,7 @@ static int cell_locker(struct policy_locker *locker, dm_oblock_t b)
 	struct dm_bio_prison_cell *cell_prealloc = prealloc_get_cell(l->structs);
 
 	return bio_detain(l->cache, b, NULL, cell_prealloc,
-			  (cell_free_fn) prealloc_put_cell,
+			  prealloc_put_cell,
 			  l->structs, &l->cell);
 }
 
@@ -1832,7 +1836,7 @@ static void process_cell(struct cache *cache, struct prealloc *structs,
 			 */
 
 			if (bio_data_dir(bio) == WRITE) {
-				atomic_inc(&cache->stats.demotion);
+				atomic_inc_unchecked(&cache->stats.demotion);
 				invalidate(cache, structs, block, lookup_result.cblock, new_ocell);
 				release_cell = false;
 
@@ -1865,14 +1869,14 @@ static void process_cell(struct cache *cache, struct prealloc *structs,
 		break;
 
 	case POLICY_NEW:
-		atomic_inc(&cache->stats.promotion);
+		atomic_inc_unchecked(&cache->stats.promotion);
 		promote(cache, structs, block, lookup_result.cblock, new_ocell);
 		release_cell = false;
 		break;
 
 	case POLICY_REPLACE:
-		atomic_inc(&cache->stats.demotion);
-		atomic_inc(&cache->stats.promotion);
+		atomic_inc_unchecked(&cache->stats.demotion);
+		atomic_inc_unchecked(&cache->stats.promotion);
 		demote_then_promote(cache, structs, lookup_result.old_oblock,
 				    block, lookup_result.cblock,
 				    ool.cell, new_ocell);
@@ -1902,7 +1906,7 @@ static void process_bio(struct cache *cache, struct prealloc *structs,
 	 */
 	cell_prealloc = prealloc_get_cell(structs);
 	r = bio_detain(cache, block, bio, cell_prealloc,
-		       (cell_free_fn) prealloc_put_cell,
+		       prealloc_put_cell,
 		       structs, &new_ocell);
 	if (r > 0)
 		return;
@@ -1926,7 +1930,7 @@ static int commit(struct cache *cache, bool clean_shutdown)
 	if (get_cache_mode(cache) >= CM_READ_ONLY)
 		return -EINVAL;
 
-	atomic_inc(&cache->stats.commit_count);
+	atomic_inc_unchecked(&cache->stats.commit_count);
 	r = dm_cache_commit(cache->cmd, clean_shutdown);
 	if (r)
 		metadata_operation_failed(cache, "dm_cache_commit", r);
@@ -2157,32 +2161,32 @@ static void process_invalidation_requests(struct cache *cache)
  *--------------------------------------------------------------*/
 static bool is_quiescing(struct cache *cache)
 {
-	return atomic_read(&cache->quiescing);
+	return atomic_read_unchecked(&cache->quiescing);
 }
 
 static void ack_quiescing(struct cache *cache)
 {
 	if (is_quiescing(cache)) {
-		atomic_inc(&cache->quiescing_ack);
+		atomic_inc_unchecked(&cache->quiescing_ack);
 		wake_up(&cache->quiescing_wait);
 	}
 }
 
 static void wait_for_quiescing_ack(struct cache *cache)
 {
-	wait_event(cache->quiescing_wait, atomic_read(&cache->quiescing_ack));
+	wait_event(cache->quiescing_wait, atomic_read_unchecked(&cache->quiescing_ack));
 }
 
 static void start_quiescing(struct cache *cache)
 {
-	atomic_inc(&cache->quiescing);
+	atomic_inc_unchecked(&cache->quiescing);
 	wait_for_quiescing_ack(cache);
 }
 
 static void stop_quiescing(struct cache *cache)
 {
-	atomic_set(&cache->quiescing, 0);
-	atomic_set(&cache->quiescing_ack, 0);
+	atomic_set_unchecked(&cache->quiescing, 0);
+	atomic_set_unchecked(&cache->quiescing_ack, 0);
 }
 
 static void wait_for_migrations(struct cache *cache)
@@ -2869,8 +2873,8 @@ static int cache_create(struct cache_args *ca, struct cache **result)
 	init_waitqueue_head(&cache->migration_wait);
 
 	init_waitqueue_head(&cache->quiescing_wait);
-	atomic_set(&cache->quiescing, 0);
-	atomic_set(&cache->quiescing_ack, 0);
+	atomic_set_unchecked(&cache->quiescing, 0);
+	atomic_set_unchecked(&cache->quiescing_ack, 0);
 
 	r = -ENOMEM;
 	atomic_set(&cache->nr_dirty, 0);
@@ -2937,12 +2941,12 @@ static int cache_create(struct cache_args *ca, struct cache **result)
 
 	load_stats(cache);
 
-	atomic_set(&cache->stats.demotion, 0);
-	atomic_set(&cache->stats.promotion, 0);
-	atomic_set(&cache->stats.copies_avoided, 0);
-	atomic_set(&cache->stats.cache_cell_clash, 0);
-	atomic_set(&cache->stats.commit_count, 0);
-	atomic_set(&cache->stats.discard_count, 0);
+	atomic_set_unchecked(&cache->stats.demotion, 0);
+	atomic_set_unchecked(&cache->stats.promotion, 0);
+	atomic_set_unchecked(&cache->stats.copies_avoided, 0);
+	atomic_set_unchecked(&cache->stats.cache_cell_clash, 0);
+	atomic_set_unchecked(&cache->stats.commit_count, 0);
+	atomic_set_unchecked(&cache->stats.discard_count, 0);
 
 	spin_lock_init(&cache->invalidation_lock);
 	INIT_LIST_HEAD(&cache->invalidation_requests);
@@ -3059,7 +3063,7 @@ static int cache_map(struct dm_target *ti, struct bio *bio)
 	}
 
 	r = bio_detain(cache, block, bio, cell,
-		       (cell_free_fn) free_prison_cell,
+		       free_prison_cell,
 		       cache, &cell);
 	if (r) {
 		if (r < 0)
@@ -3553,12 +3557,12 @@ static void cache_status(struct dm_target *ti, status_type_t type,
 		       (unsigned long long)cache->sectors_per_block,
 		       (unsigned long long) from_cblock(residency),
 		       (unsigned long long) from_cblock(cache->cache_size),
-		       (unsigned) atomic_read(&cache->stats.read_hit),
-		       (unsigned) atomic_read(&cache->stats.read_miss),
-		       (unsigned) atomic_read(&cache->stats.write_hit),
-		       (unsigned) atomic_read(&cache->stats.write_miss),
-		       (unsigned) atomic_read(&cache->stats.demotion),
-		       (unsigned) atomic_read(&cache->stats.promotion),
+		       (unsigned) atomic_read_unchecked(&cache->stats.read_hit),
+		       (unsigned) atomic_read_unchecked(&cache->stats.read_miss),
+		       (unsigned) atomic_read_unchecked(&cache->stats.write_hit),
+		       (unsigned) atomic_read_unchecked(&cache->stats.write_miss),
+		       (unsigned) atomic_read_unchecked(&cache->stats.demotion),
+		       (unsigned) atomic_read_unchecked(&cache->stats.promotion),
 		       (unsigned long) atomic_read(&cache->nr_dirty));
 
 		if (writethrough_mode(&cache->features))

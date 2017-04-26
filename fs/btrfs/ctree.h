@@ -346,8 +346,8 @@ struct btrfs_dev_replace {
 	u64 replace_state;	/* see #define above */
 	u64 time_started;	/* seconds since 1-Jan-1970 */
 	u64 time_stopped;	/* seconds since 1-Jan-1970 */
-	atomic64_t num_write_errors;
-	atomic64_t num_uncorrectable_read_errors;
+	atomic64_unchecked_t num_write_errors;
+	atomic64_unchecked_t num_uncorrectable_read_errors;
 
 	u64 cursor_left;
 	u64 committed_cursor_left;
@@ -853,7 +853,7 @@ struct btrfs_fs_info {
 
 	/* this protects tree_mod_seq_list */
 	spinlock_t tree_mod_seq_lock;
-	atomic64_t tree_mod_seq;
+	atomic64_unchecked_t tree_mod_seq;
 	struct list_head tree_mod_seq_list;
 
 	/* this protects tree_mod_log */
@@ -1148,7 +1148,7 @@ struct btrfs_root {
 	struct list_head log_ctxs[2];
 	atomic_t log_writers;
 	atomic_t log_commit[2];
-	atomic_t log_batch;
+	atomic_unchecked_t log_batch;
 	int log_transid;
 	/* No matter the commit succeeds or not*/
 	int log_transid_committed;

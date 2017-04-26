@@ -96,13 +96,13 @@ struct md_rdev {
 					 * only maintained for arrays that
 					 * support hot removal
 					 */
-	atomic_t	read_errors;	/* number of consecutive read errors that
+	atomic_unchecked_t	read_errors;	/* number of consecutive read errors that
 					 * we have tried to ignore.
 					 */
 	time64_t	last_read_error;	/* monotonic time since our
 						 * last read error
 						 */
-	atomic_t	corrected_errors; /* number of corrected read errors,
+	atomic_unchecked_t	corrected_errors; /* number of corrected read errors,
 					   * for reporting to userspace and storing
 					   * in superblock.
 					   */
@@ -289,7 +289,7 @@ struct mddev {
 
 	sector_t			resync_max_sectors; /* may be set by personality */
 
-	atomic64_t			resync_mismatches; /* count of sectors where
+	atomic64_unchecked_t		resync_mismatches; /* count of sectors where
 							    * parity/replica mismatch found
 							    */
 
@@ -468,7 +468,7 @@ extern void mddev_unlock(struct mddev *mddev);
 
 static inline void md_sync_acct(struct block_device *bdev, unsigned long nr_sectors)
 {
-	atomic_add(nr_sectors, &bdev->bd_contains->bd_disk->sync_io);
+	atomic_add_unchecked(nr_sectors, &bdev->bd_contains->bd_disk->sync_io);
 }
 
 struct md_personality

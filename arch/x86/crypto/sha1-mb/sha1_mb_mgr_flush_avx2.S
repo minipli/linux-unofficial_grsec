@@ -53,6 +53,7 @@
  */
 #include <linux/linkage.h>
 #include <asm/frame.h>
+#include <asm/alternative-asm.h>
 #include "sha1_mb_mgr_datastruct.S"
 
 
@@ -103,7 +104,7 @@ offset = \_offset
 
 # JOB* sha1_mb_mgr_flush_avx2(MB_MGR *state)
 # arg 1 : rcx : state
-ENTRY(sha1_mb_mgr_flush_avx2)
+RAP_ENTRY(sha1_mb_mgr_flush_avx2)
 	FRAME_BEGIN
 	push	%rbx
 
@@ -183,7 +184,7 @@ LABEL skip_ %I
 
 	# "state" and "args" are the same address, arg1
 	# len is arg2
-	call	sha1_x8_avx2
+	pax_direct_call sha1_x8_avx2
 	# state and idx are intact
 
 
@@ -215,7 +216,7 @@ len_is_0:
 return:
 	pop	%rbx
 	FRAME_END
-	ret
+	pax_ret sha1_mb_mgr_flush_avx2
 
 return_null:
 	xor     job_rax, job_rax
@@ -226,7 +227,7 @@ ENDPROC(sha1_mb_mgr_flush_avx2)
 #################################################################
 
 .align 16
-ENTRY(sha1_mb_mgr_get_comp_job_avx2)
+RAP_ENTRY(sha1_mb_mgr_get_comp_job_avx2)
 	push    %rbx
 
 	## if bit 32+3 is set, then all lanes are empty
@@ -273,12 +274,12 @@ ENTRY(sha1_mb_mgr_get_comp_job_avx2)
 
 	pop     %rbx
 
-	ret
+	pax_ret sha1_mb_mgr_get_comp_job_avx2
 
 .return_null:
 	xor     job_rax, job_rax
 	pop     %rbx
-	ret
+	pax_ret sha1_mb_mgr_get_comp_job_avx2
 ENDPROC(sha1_mb_mgr_get_comp_job_avx2)
 
 .data

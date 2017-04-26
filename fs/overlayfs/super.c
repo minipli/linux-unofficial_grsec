@@ -148,8 +148,8 @@ struct dentry *ovl_dentry_real(struct dentry *dentry)
 static void ovl_inode_init(struct inode *inode, struct inode *realinode,
 			   bool is_upper)
 {
-	WRITE_ONCE(inode->i_private, (unsigned long) realinode |
-		   (is_upper ? OVL_ISUPPER_MASK : 0));
+	WRITE_ONCE(inode->i_private, (void *)((unsigned long) realinode |
+		   (is_upper ? OVL_ISUPPER_MASK : 0)));
 }
 
 struct vfsmount *ovl_entry_mnt_real(struct ovl_entry *oe, struct inode *inode,
@@ -182,7 +182,7 @@ void ovl_path_lower(struct dentry *dentry, struct path *path)
 {
 	struct ovl_entry *oe = dentry->d_fsdata;
 
-	*path = oe->numlower ? oe->lowerstack[0] : (struct path) { NULL, NULL };
+	*path = oe->numlower ? oe->lowerstack[0] : (struct path) { .dentry = NULL, .mnt = NULL };
 }
 
 int ovl_want_write(struct dentry *dentry)
@@ -234,7 +234,7 @@ void ovl_inode_update(struct inode *inode, struct inode *upperinode)
 	WARN_ON(!upperinode);
 	WARN_ON(!inode_unhashed(inode));
 	WRITE_ONCE(inode->i_private,
-		   (unsigned long) upperinode | OVL_ISUPPER_MASK);
+		   (void *)((unsigned long) upperinode | OVL_ISUPPER_MASK));
 	if (!S_ISDIR(upperinode->i_mode))
 		__insert_inode_hash(inode, (unsigned long) upperinode);
 }
@@ -1133,8 +1133,8 @@ static const struct xattr_handler *ovl_xattr_handlers[] = {
 
 static int ovl_fill_super(struct super_block *sb, void *data, int silent)
 {
-	struct path upperpath = { NULL, NULL };
-	struct path workpath = { NULL, NULL };
+	struct path upperpath = { .dentry = NULL, .mnt = NULL };
+	struct path workpath = { .dentry = NULL, .mnt = NULL };
 	struct dentry *root_dentry;
 	struct inode *realinode;
 	struct ovl_entry *oe;

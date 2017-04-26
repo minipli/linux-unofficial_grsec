@@ -457,9 +457,9 @@ dsp_tone_hw_message(struct dsp *dsp, u8 *sample, int len)
  * timer expires *
  *****************/
 void
-dsp_tone_timeout(void *arg)
+dsp_tone_timeout(unsigned long arg)
 {
-	struct dsp *dsp = arg;
+	struct dsp *dsp = (struct dsp *)arg;
 	struct dsp_tone *tone = &dsp->tone;
 	struct pattern *pat = (struct pattern *)tone->pattern;
 	int index = tone->index;

@@ -894,7 +894,7 @@ static struct attribute *alloc_hsa_lifespan(char *name, u8 port_num)
 static void setup_hw_stats(struct ib_device *device, struct ib_port *port,
 			   u8 port_num)
 {
-	struct attribute_group *hsag;
+	attribute_group_no_const *hsag;
 	struct rdma_hw_stats *stats;
 	int i, ret;
 

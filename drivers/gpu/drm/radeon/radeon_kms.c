@@ -830,7 +830,7 @@ u32 radeon_get_vblank_counter_kms(struct drm_device *dev, unsigned int pipe)
  * Enable the interrupt on the requested crtc (all asics).
  * Returns 0 on success, -EINVAL on failure.
  */
-int radeon_enable_vblank_kms(struct drm_device *dev, int crtc)
+int radeon_enable_vblank_kms(struct drm_device *dev, unsigned int crtc)
 {
 	struct radeon_device *rdev = dev->dev_private;
 	unsigned long irqflags;
@@ -856,7 +856,7 @@ int radeon_enable_vblank_kms(struct drm_device *dev, int crtc)
  *
  * Disable the interrupt on the requested crtc (all asics).
  */
-void radeon_disable_vblank_kms(struct drm_device *dev, int crtc)
+void radeon_disable_vblank_kms(struct drm_device *dev, unsigned int crtc)
 {
 	struct radeon_device *rdev = dev->dev_private;
 	unsigned long irqflags;
@@ -885,7 +885,7 @@ void radeon_disable_vblank_kms(struct drm_device *dev, int crtc)
  * scanout position.  (all asics).
  * Returns postive status flags on success, negative error on failure.
  */
-int radeon_get_vblank_timestamp_kms(struct drm_device *dev, int crtc,
+int radeon_get_vblank_timestamp_kms(struct drm_device *dev, unsigned int crtc,
 				    int *max_error,
 				    struct timeval *vblank_time,
 				    unsigned flags)
@@ -954,4 +954,4 @@ const struct drm_ioctl_desc radeon_ioctls_kms[] = {
 	DRM_IOCTL_DEF_DRV(RADEON_GEM_OP, radeon_gem_op_ioctl, DRM_AUTH|DRM_RENDER_ALLOW),
 	DRM_IOCTL_DEF_DRV(RADEON_GEM_USERPTR, radeon_gem_userptr_ioctl, DRM_AUTH|DRM_RENDER_ALLOW),
 };
-int radeon_max_kms_ioctl = ARRAY_SIZE(radeon_ioctls_kms);
+const int radeon_max_kms_ioctl = ARRAY_SIZE(radeon_ioctls_kms);

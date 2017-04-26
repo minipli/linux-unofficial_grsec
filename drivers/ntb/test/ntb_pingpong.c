@@ -99,7 +99,7 @@ struct pp_ctx {
 	unsigned long			db_delay;
 	struct dentry			*debugfs_node_dir;
 	struct dentry			*debugfs_count;
-	atomic_t			count;
+	atomic_unchecked_t		count;
 };
 
 static struct dentry *pp_debugfs_dir;
@@ -177,7 +177,7 @@ static void pp_db_event(void *ctx, int vec)
 		dev_dbg(&pp->ntb->dev,
 			"Pong vec %d bits %#llx\n",
 			vec, db_bits);
-		atomic_inc(&pp->count);
+		atomic_inc_unchecked(&pp->count);
 	}
 	spin_unlock_irqrestore(&pp->db_lock, irqflags);
 }
@@ -194,7 +194,7 @@ static int pp_debugfs_setup(struct pp_ctx *pp)
 	if (!pp->debugfs_node_dir)
 		return -ENODEV;
 
-	pp->debugfs_count = debugfs_create_atomic_t("count", S_IRUSR | S_IWUSR,
+	pp->debugfs_count = debugfs_create_atomic_unchecked_t("count", S_IRUSR | S_IWUSR,
 						    pp->debugfs_node_dir,
 						    &pp->count);
 	if (!pp->debugfs_count)
@@ -238,7 +238,7 @@ static int pp_probe(struct ntb_client *client,
 
 	pp->ntb = ntb;
 	pp->db_bits = 0;
-	atomic_set(&pp->count, 0);
+	atomic_set_unchecked(&pp->count, 0);
 	spin_lock_init(&pp->db_lock);
 	setup_timer(&pp->db_timer, pp_ping, (unsigned long)pp);
 	pp->db_delay = msecs_to_jiffies(delay_ms);

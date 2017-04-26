@@ -1543,7 +1543,7 @@ struct ipr_ioa_cfg {
 
 	struct ipr_hrr_queue hrrq[IPR_MAX_HRRQ_NUM];
 	u32 hrrq_num;
-	atomic_t  hrrq_index;
+	atomic_unchecked_t  hrrq_index;
 	u16 identify_hrrq_index;
 
 	struct ipr_bus_attributes bus_attr[IPR_MAX_NUM_BUSES];

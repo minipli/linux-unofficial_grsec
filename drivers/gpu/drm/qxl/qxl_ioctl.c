@@ -183,7 +183,7 @@ static int qxl_process_single_command(struct qxl_device *qdev,
 
 	/* TODO copy slow path code from i915 */
 	fb_cmd = qxl_bo_kmap_atomic_page(qdev, cmd_bo, (release->release_offset & PAGE_SIZE));
-	unwritten = __copy_from_user_inatomic_nocache(fb_cmd + sizeof(union qxl_release_info) + (release->release_offset & ~PAGE_SIZE), (void *)(unsigned long)cmd->command, cmd->command_size);
+	unwritten = __copy_from_user_inatomic_nocache(fb_cmd + sizeof(union qxl_release_info) + (release->release_offset & ~PAGE_SIZE), (void __force_user *)(unsigned long)cmd->command, cmd->command_size);
 
 	{
 		struct qxl_drawable *draw = fb_cmd;
@@ -203,7 +203,7 @@ static int qxl_process_single_command(struct qxl_device *qdev,
 		struct drm_qxl_reloc reloc;
 
 		if (copy_from_user(&reloc,
-				       &((struct drm_qxl_reloc *)(uintptr_t)cmd->relocs)[i],
+				       &((struct drm_qxl_reloc __force_user *)(uintptr_t)cmd->relocs)[i],
 				       sizeof(reloc))) {
 			ret = -EFAULT;
 			goto out_free_bos;
@@ -282,10 +282,10 @@ static int qxl_execbuffer_ioctl(struct drm_device *dev, void *data,
 
 	for (cmd_num = 0; cmd_num < execbuffer->commands_num; ++cmd_num) {
 
-		struct drm_qxl_command *commands =
-			(struct drm_qxl_command *)(uintptr_t)execbuffer->commands;
+		struct drm_qxl_command __user *commands =
+			(struct drm_qxl_command __user *)(uintptr_t)execbuffer->commands;
 
-		if (copy_from_user(&user_cmd, &commands[cmd_num],
+		if (copy_from_user(&user_cmd, (struct drm_qxl_command __force_user *)&commands[cmd_num],
 				       sizeof(user_cmd)))
 			return -EFAULT;
 
@@ -439,4 +439,4 @@ const struct drm_ioctl_desc qxl_ioctls[] = {
 			  DRM_AUTH),
 };
 
-int qxl_max_ioctls = ARRAY_SIZE(qxl_ioctls);
+const int qxl_max_ioctls = ARRAY_SIZE(qxl_ioctls);

@@ -312,14 +312,18 @@ void mb862xxfb_init_accel(struct fb_info *info, int xres)
 	struct mb862xxfb_par *par = info->par;
 
 	if (info->var.bits_per_pixel == 32) {
-		info->fbops->fb_fillrect = cfb_fillrect;
-		info->fbops->fb_copyarea = cfb_copyarea;
-		info->fbops->fb_imageblit = cfb_imageblit;
+		pax_open_kernel();
+		const_cast(info->fbops->fb_fillrect) = cfb_fillrect;
+		const_cast(info->fbops->fb_copyarea) = cfb_copyarea;
+		const_cast(info->fbops->fb_imageblit) = cfb_imageblit;
+		pax_close_kernel();
 	} else {
 		outreg(disp, GC_L0EM, 3);
-		info->fbops->fb_fillrect = mb86290fb_fillrect;
-		info->fbops->fb_copyarea = mb86290fb_copyarea;
-		info->fbops->fb_imageblit = mb86290fb_imageblit;
+		pax_open_kernel();
+		const_cast(info->fbops->fb_fillrect) = mb86290fb_fillrect;
+		const_cast(info->fbops->fb_copyarea) = mb86290fb_copyarea;
+		const_cast(info->fbops->fb_imageblit) = mb86290fb_imageblit;
+		pax_close_kernel();
 	}
 	outreg(draw, GDC_REG_DRAW_BASE, 0);
 	outreg(draw, GDC_REG_MODE_MISC, 0x8000);

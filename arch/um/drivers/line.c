@@ -377,7 +377,7 @@ int setup_one_line(struct line *lines, int n, char *init,
 	struct tty_driver *driver = line->driver->driver;
 	int err = -EINVAL;
 
-	if (line->port.count) {
+	if (atomic_read(&line->port.count)) {
 		*error_out = "Device is already open";
 		goto out;
 	}

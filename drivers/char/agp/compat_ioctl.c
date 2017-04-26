@@ -108,7 +108,7 @@ static int compat_agpioc_reserve_wrap(struct agp_file_private *priv, void __user
 			return -ENOMEM;
 		}
 
-		if (copy_from_user(usegment, (void __user *) ureserve.seg_list,
+		if (copy_from_user(usegment, (void __force_user *) ureserve.seg_list,
 				   sizeof(*usegment) * ureserve.seg_count)) {
 			kfree(usegment);
 			kfree(ksegment);

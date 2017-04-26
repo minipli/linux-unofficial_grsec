@@ -60,7 +60,7 @@ void bch_count_io_errors(struct cache *ca, int error, const char *m)
 	 */
 
 	if (ca->set->error_decay) {
-		unsigned count = atomic_inc_return(&ca->io_count);
+		unsigned count = atomic_inc_return_unchecked(&ca->io_count);
 
 		while (count > ca->set->error_decay) {
 			unsigned errors;
@@ -72,16 +72,16 @@ void bch_count_io_errors(struct cache *ca, int error, const char *m)
 			 * succesfully do so, we rescale the errors once:
 			 */
 
-			count = atomic_cmpxchg(&ca->io_count, old, new);
+			count = atomic_cmpxchg_unchecked(&ca->io_count, old, new);
 
 			if (count == old) {
 				count = new;
 
-				errors = atomic_read(&ca->io_errors);
+				errors = atomic_read_unchecked(&ca->io_errors);
 				do {
 					old = errors;
 					new = ((uint64_t) errors * 127) / 128;
-					errors = atomic_cmpxchg(&ca->io_errors,
+					errors = atomic_cmpxchg_unchecked(&ca->io_errors,
 								old, new);
 				} while (old != errors);
 			}
@@ -90,7 +90,7 @@ void bch_count_io_errors(struct cache *ca, int error, const char *m)
 
 	if (error) {
 		char buf[BDEVNAME_SIZE];
-		unsigned errors = atomic_add_return(1 << IO_ERROR_SHIFT,
+		unsigned errors = atomic_add_return_unchecked(1 << IO_ERROR_SHIFT,
 						    &ca->io_errors);
 		errors >>= IO_ERROR_SHIFT;
 

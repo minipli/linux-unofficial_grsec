@@ -188,7 +188,7 @@ struct sock_common {
 	struct in6_addr		skc_v6_rcv_saddr;
 #endif
 
-	atomic64_t		skc_cookie;
+	atomic64_unchecked_t	skc_cookie;
 
 	/* following fields are padding to force
 	 * offset(struct sock, sk_refcnt) == 128 on 64bit arches
@@ -366,7 +366,7 @@ struct sock {
 	unsigned int		sk_napi_id;
 	unsigned int		sk_ll_usec;
 #endif
-	atomic_t		sk_drops;
+	atomic_unchecked_t	sk_drops;
 	int			sk_rcvbuf;
 
 	struct sk_filter __rcu	*sk_filter;
@@ -1049,6 +1049,8 @@ struct proto {
 	struct kmem_cache	*slab;
 	unsigned int		obj_size;
 	int			slab_flags;
+	size_t			useroffset;	/* USERCOPY region offset */
+	size_t			usersize;	/* USERCOPY region size */
 
 	struct percpu_counter	*orphan_count;
 
@@ -1070,7 +1072,7 @@ struct proto {
 	atomic_t		socks;
 #endif
 	int			(*diag_destroy)(struct sock *sk, int err);
-};
+} __randomize_layout;
 
 int proto_register(struct proto *prot, int alloc_slab);
 void proto_unregister(struct proto *prot);
@@ -1167,7 +1169,7 @@ static inline long sk_prot_mem_limits(const struct sock *sk, int index)
 	return sk->sk_prot->sysctl_mem[index];
 }
 
-static inline long
+static inline long __intentional_overflow(-1)
 sk_memory_allocated(const struct sock *sk)
 {
 	return atomic_long_read(sk->sk_prot->memory_allocated);
@@ -1778,7 +1780,7 @@ static inline bool sk_check_csum_caps(struct sock *sk)
 }
 
 static inline int skb_do_copy_data_nocache(struct sock *sk, struct sk_buff *skb,
-					   struct iov_iter *from, char *to,
+					   struct iov_iter *from, unsigned char *to,
 					   int copy, int offset)
 {
 	if (skb->ip_summed == CHECKSUM_NONE) {
@@ -2032,7 +2034,7 @@ static inline void sk_stream_moderate_sndbuf(struct sock *sk)
 	}
 }
 
-struct sk_buff *sk_stream_alloc_skb(struct sock *sk, int size, gfp_t gfp,
+struct sk_buff * __intentional_overflow(0) sk_stream_alloc_skb(struct sock *sk, int size, gfp_t gfp,
 				    bool force_schedule);
 
 /**
@@ -2108,14 +2110,14 @@ struct sock_skb_cb {
 static inline void
 sock_skb_set_dropcount(const struct sock *sk, struct sk_buff *skb)
 {
-	SOCK_SKB_CB(skb)->dropcount = atomic_read(&sk->sk_drops);
+	SOCK_SKB_CB(skb)->dropcount = atomic_read_unchecked(&sk->sk_drops);
 }
 
 static inline void sk_drops_add(struct sock *sk, const struct sk_buff *skb)
 {
 	int segs = max_t(u16, 1, skb_shinfo(skb)->gso_segs);
 
-	atomic_add(segs, &sk->sk_drops);
+	atomic_add_unchecked(segs, &sk->sk_drops);
 }
 
 void __sock_recv_timestamp(struct msghdr *msg, struct sock *sk,

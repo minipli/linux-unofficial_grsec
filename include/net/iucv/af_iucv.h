@@ -149,7 +149,7 @@ struct iucv_skb_cb {
 struct iucv_sock_list {
 	struct hlist_head head;
 	rwlock_t	  lock;
-	atomic_t	  autobind_name;
+	atomic_unchecked_t autobind_name;
 };
 
 unsigned int iucv_sock_poll(struct file *file, struct socket *sock,

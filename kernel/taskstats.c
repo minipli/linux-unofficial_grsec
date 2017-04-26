@@ -28,8 +28,11 @@
 #include <linux/fs.h>
 #include <linux/file.h>
 #include <linux/pid_namespace.h>
+#include <linux/grsecurity.h>
 #include <net/genetlink.h>
 #include <linux/atomic.h>
+
+extern int gr_is_taskstats_denied(int pid);
 
 /*
  * Maximum length of a cpumask that can be specified in
@@ -544,6 +547,9 @@ err:
 
 static int taskstats_user_cmd(struct sk_buff *skb, struct genl_info *info)
 {
+	if (gr_is_taskstats_denied(current->pid))
+		return -EACCES;
+
 	if (info->attrs[TASKSTATS_CMD_ATTR_REGISTER_CPUMASK])
 		return cmd_attr_register_cpumask(info);
 	else if (info->attrs[TASKSTATS_CMD_ATTR_DEREGISTER_CPUMASK])

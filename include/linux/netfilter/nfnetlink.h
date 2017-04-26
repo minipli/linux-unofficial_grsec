@@ -19,7 +19,7 @@ struct nfnl_callback {
 			  const struct nlattr * const cda[]);
 	const struct nla_policy *policy;	/* netlink attribute policy */
 	const u_int16_t attr_count;		/* number of nlattr's */
-};
+} __do_const;
 
 struct nfnetlink_subsystem {
 	const char *name;

@@ -457,7 +457,7 @@ struct mlx4_ib_demux_ctx {
 	struct list_head	mcg_mgid0_list;
 	struct workqueue_struct	*mcg_wq;
 	struct mlx4_ib_demux_pv_ctx **tun;
-	atomic_t tid;
+	atomic_unchecked_t tid;
 	int    flushing; /* flushing the work queue */
 };
 

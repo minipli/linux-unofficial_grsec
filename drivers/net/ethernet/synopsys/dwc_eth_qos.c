@@ -2176,7 +2176,7 @@ static void dwceqos_tx_rollback(struct net_local *lp, struct dwceqos_tx *tx)
 	lp->gso_size = tx->prev_gso_size;
 }
 
-static int dwceqos_start_xmit(struct sk_buff *skb, struct net_device *ndev)
+static netdev_tx_t dwceqos_start_xmit(struct sk_buff *skb, struct net_device *ndev)
 {
 	struct net_local *lp = netdev_priv(ndev);
 	struct dwceqos_tx trans;

@@ -23,6 +23,9 @@
 #include <asm/pgtable-hwdef.h>
 #include <asm/pgtable-prot.h>
 
+#define ktla_ktva(addr)		(addr)
+#define ktva_ktla(addr)		(addr)
+
 /*
  * VMALLOC range.
  *
@@ -727,6 +730,9 @@ static inline void update_mmu_cache(struct vm_area_struct *vma,
 
 #define kc_vaddr_to_offset(v)	((v) & ~VA_START)
 #define kc_offset_to_vaddr(o)	((o) | VA_START)
+
+#define ktla_ktva(addr)		(addr)
+#define ktva_ktla(addr)		(addr)
 
 #endif /* !__ASSEMBLY__ */
 

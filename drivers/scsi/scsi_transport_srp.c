@@ -35,7 +35,7 @@
 #include "scsi_priv.h"
 
 struct srp_host_attrs {
-	atomic_t next_port_id;
+	atomic_unchecked_t next_port_id;
 };
 #define to_srp_host_attrs(host)	((struct srp_host_attrs *)(host)->shost_data)
 
@@ -105,7 +105,7 @@ static int srp_host_setup(struct transport_container *tc, struct device *dev,
 	struct Scsi_Host *shost = dev_to_shost(dev);
 	struct srp_host_attrs *srp_host = to_srp_host_attrs(shost);
 
-	atomic_set(&srp_host->next_port_id, 0);
+	atomic_set_unchecked(&srp_host->next_port_id, 0);
 	return 0;
 }
 
@@ -226,7 +226,7 @@ static ssize_t show_reconnect_delay(struct device *dev,
 
 static ssize_t store_reconnect_delay(struct device *dev,
 				     struct device_attribute *attr,
-				     const char *buf, const size_t count)
+				     const char *buf, size_t count)
 {
 	struct srp_rport *rport = transport_class_to_srp_rport(dev);
 	int res, delay;
@@ -752,7 +752,7 @@ struct srp_rport *srp_rport_add(struct Scsi_Host *shost,
 			  rport_fast_io_fail_timedout);
 	INIT_DELAYED_WORK(&rport->dev_loss_work, rport_dev_loss_timedout);
 
-	id = atomic_inc_return(&to_srp_host_attrs(shost)->next_port_id);
+	id = atomic_inc_return_unchecked(&to_srp_host_attrs(shost)->next_port_id);
 	dev_set_name(&rport->dev, "port-%d:%d", shost->host_no, id);
 
 	transport_setup_device(&rport->dev);

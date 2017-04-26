@@ -54,7 +54,7 @@ static void __init imr_self_test_result(int res, const char *fmt, ...)
  */
 static void __init imr_self_test(void)
 {
-	phys_addr_t base  = virt_to_phys(&_text);
+	phys_addr_t base  = virt_to_phys((void *)ktla_ktva((unsigned long)_text));
 	size_t size = virt_to_phys(&__end_rodata) - base;
 	const char *fmt_over = "overlapped IMR @ (0x%08lx - 0x%08lx)\n";
 	int ret;

@@ -134,7 +134,7 @@ struct aa_namespace {
 	struct aa_ns_acct acct;
 	struct aa_profile *unconfined;
 	struct list_head sub_ns;
-	atomic_t uniq_null;
+	atomic_unchecked_t uniq_null;
 	long uniq_id;
 
 	struct dentry *dents[AAFS_NS_SIZEOF];

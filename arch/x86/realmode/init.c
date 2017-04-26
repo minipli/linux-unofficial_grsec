@@ -85,7 +85,13 @@ static void __init setup_real_mode(void)
 		__va(real_mode_header->trampoline_header);
 
 #ifdef CONFIG_X86_32
-	trampoline_header->start = __pa_symbol(startup_32_smp);
+	trampoline_header->start = __pa_symbol(ktla_ktva((unsigned long)startup_32_smp));
+
+#ifdef CONFIG_PAX_KERNEXEC
+	trampoline_header->start -= LOAD_PHYSICAL_ADDR;
+#endif
+
+	trampoline_header->boot_cs = __BOOT_CS;
 	trampoline_header->gdt_limit = __BOOT_DS + 7;
 	trampoline_header->gdt_base = __pa_symbol(boot_gdt);
 #else
@@ -101,7 +107,7 @@ static void __init setup_real_mode(void)
 	*trampoline_cr4_features = mmu_cr4_features;
 
 	trampoline_pgd = (u64 *) __va(real_mode_header->trampoline_pgd);
-	trampoline_pgd[0] = trampoline_pgd_entry.pgd;
+	trampoline_pgd[0] = trampoline_pgd_entry.pgd & ~_PAGE_NX;
 	trampoline_pgd[511] = init_level4_pgt[511].pgd;
 #endif
 }

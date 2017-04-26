@@ -772,7 +772,7 @@ static void mthca_setup_cmd_doorbells(struct mthca_dev *dev, u64 base)
 	mthca_dbg(dev, "Mapped doorbell page for posting FW commands\n");
 }
 
-int mthca_QUERY_FW(struct mthca_dev *dev)
+int __intentional_overflow(-1) mthca_QUERY_FW(struct mthca_dev *dev)
 {
 	struct mthca_mailbox *mailbox;
 	u32 *outbox;
@@ -1612,7 +1612,7 @@ int mthca_HW2SW_MPT(struct mthca_dev *dev, struct mthca_mailbox *mailbox,
 			     CMD_TIME_CLASS_B);
 }
 
-int mthca_WRITE_MTT(struct mthca_dev *dev, struct mthca_mailbox *mailbox,
+int __intentional_overflow(-1) mthca_WRITE_MTT(struct mthca_dev *dev, struct mthca_mailbox *mailbox,
 		    int num_mtt)
 {
 	return mthca_cmd(dev, mailbox->dma, num_mtt, 0, CMD_WRITE_MTT,
@@ -1634,7 +1634,7 @@ int mthca_MAP_EQ(struct mthca_dev *dev, u64 event_mask, int unmap,
 			 0, CMD_MAP_EQ, CMD_TIME_CLASS_B);
 }
 
-int mthca_SW2HW_EQ(struct mthca_dev *dev, struct mthca_mailbox *mailbox,
+int __intentional_overflow(-1) mthca_SW2HW_EQ(struct mthca_dev *dev, struct mthca_mailbox *mailbox,
 		   int eq_num)
 {
 	return mthca_cmd(dev, mailbox->dma, eq_num, 0, CMD_SW2HW_EQ,
@@ -1857,7 +1857,7 @@ int mthca_CONF_SPECIAL_QP(struct mthca_dev *dev, int type, u32 qpn)
 			 CMD_TIME_CLASS_B);
 }
 
-int mthca_MAD_IFC(struct mthca_dev *dev, int ignore_mkey, int ignore_bkey,
+int __intentional_overflow(-1) mthca_MAD_IFC(struct mthca_dev *dev, int ignore_mkey, int ignore_bkey,
 		  int port, const struct ib_wc *in_wc, const struct ib_grh *in_grh,
 		  const void *in_mad, void *response_mad)
 {

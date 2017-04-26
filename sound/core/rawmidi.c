@@ -871,9 +871,10 @@ static int snd_rawmidi_control_ioctl(struct snd_card *card,
  *
  * Return: The size of read data, or a negative error code on failure.
  */
-int snd_rawmidi_receive(struct snd_rawmidi_substream *substream,
-			const unsigned char *buffer, int count)
+int snd_rawmidi_receive(void *_substream, const void *_buffer, int count)
 {
+	struct snd_rawmidi_substream *substream = _substream;
+	const unsigned char *buffer = _buffer;
 	unsigned long flags;
 	int result = 0, count1;
 	struct snd_rawmidi_runtime *runtime = substream->runtime;

@@ -638,7 +638,7 @@ static int gb_gpio_probe(struct gbphy_device *gbphy_dev,
 	struct gb_connection *connection;
 	struct gb_gpio_controller *ggc;
 	struct gpio_chip *gpio;
-	struct irq_chip *irqc;
+	irq_chip_no_const *irqc;
 	int ret;
 
 	ggc = kzalloc(sizeof(*ggc), GFP_KERNEL);

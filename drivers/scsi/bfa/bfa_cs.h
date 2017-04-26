@@ -184,8 +184,6 @@ bfa_q_is_on_q_func(struct list_head *q, struct list_head *qe)
  * @ BFA state machine interfaces
  */
 
-typedef void (*bfa_sm_t)(void *sm, int event);
-
 /*
  * oc - object class eg. bfa_ioc
  * st - state, eg. reset
@@ -195,20 +193,75 @@ typedef void (*bfa_sm_t)(void *sm, int event);
 #define bfa_sm_state_decl(oc, st, otype, etype)		\
 	static void oc ## _sm_ ## st(otype * fsm, etype event)
 
-#define bfa_sm_set_state(_sm, _state)	((_sm)->sm = (bfa_sm_t)(_state))
+#define bfa_sm_set_state(_sm, _state)	((_sm)->sm = (_state))
 #define bfa_sm_send_event(_sm, _event)	((_sm)->sm((_sm), (_event)))
 #define bfa_sm_get_state(_sm)		((_sm)->sm)
-#define bfa_sm_cmp_state(_sm, _state)	((_sm)->sm == (bfa_sm_t)(_state))
+#define bfa_sm_cmp_state(_sm, _state)	((_sm)->sm == (_state))
 
 /*
  * For converting from state machine function to state encoding.
  */
-struct bfa_sm_table_s {
-	bfa_sm_t	sm;	/*  state machine function	*/
+struct bfa_iocpf_s;
+enum iocpf_event;
+typedef void (*bfa_fsm_iocpf_t)(struct bfa_iocpf_s *, enum iocpf_event);
+
+struct iocpf_sm_table_s {
+	bfa_fsm_iocpf_t sm;	/*  state machine function	*/
 	int		state;	/*  state machine encoding	*/
 	char		*name;	/*  state name for display	*/
 };
-#define BFA_SM(_sm)	((bfa_sm_t)(_sm))
+
+struct bfa_ioc_s;
+enum ioc_event;
+typedef void (*bfa_fsm_ioc_t)(struct bfa_ioc_s *, enum ioc_event);
+
+struct ioc_sm_table_s {
+	bfa_fsm_ioc_t sm;	/*  state machine function	*/
+	int		state;	/*  state machine encoding	*/
+	char		*name;	/*  state name for display	*/
+};
+
+struct bfa_fcs_rport_s;
+enum rport_event;
+typedef void(*bfa_fcs_rport_t)(struct bfa_fcs_rport_s *, enum rport_event);
+
+struct rport_sm_table_s {
+	bfa_fcs_rport_t sm;	/*  state machine function	*/
+	int		state;	/*  state machine encoding	*/
+	char		*name;	/*  state name for display	*/
+};
+
+struct bfa_fcs_vport_s;
+enum bfa_fcs_vport_event;
+typedef void(*bfa_fcs_vport_t)(struct bfa_fcs_vport_s *, enum bfa_fcs_vport_event);
+
+struct vport_sm_table_s {
+	bfa_fcs_vport_t sm;	/*  state machine function	*/
+	int		state;	/*  state machine encoding	*/
+	char		*name;	/*  state name for display	*/
+};
+
+struct bfa_fcs_itnim_s;
+enum bfa_fcs_itnim_event;
+typedef void(*bfa_fcs_itnim_t)(struct bfa_fcs_itnim_s *, enum bfa_fcs_itnim_event);
+
+struct itnim_sm_table_s {
+	bfa_fcs_itnim_t sm;	/*  state machine function	*/
+	int		state;	/*  state machine encoding	*/
+	char		*name;	/*  state name for display	*/
+};
+
+struct bfa_fcport_s;
+enum bfa_fcport_sm_event;
+typedef void(*bfa_fcport_t)(struct bfa_fcport_s *, enum bfa_fcport_sm_event);
+
+struct fcport_sm_table_s {
+	bfa_fcport_t sm;	/*  state machine function	*/
+	int		state;	/*  state machine encoding	*/
+	char		*name;	/*  state name for display	*/
+};
+
+#define BFA_SM(_sm)	(_sm)
 
 /*
  * State machine with entry actions.
@@ -226,17 +279,66 @@ typedef void (*bfa_fsm_t)(void *fsm, int event);
 	static void oc ## _sm_ ## st ## _entry(otype * fsm)
 
 #define bfa_fsm_set_state(_fsm, _state) do {	\
-	(_fsm)->fsm = (bfa_fsm_t)(_state);      \
+	(_fsm)->fsm = (_state);      \
 	_state ## _entry(_fsm);      \
 } while (0)
 
 #define bfa_fsm_send_event(_fsm, _event)	((_fsm)->fsm((_fsm), (_event)))
 #define bfa_fsm_get_state(_fsm)			((_fsm)->fsm)
-#define bfa_fsm_cmp_state(_fsm, _state)		\
-	((_fsm)->fsm == (bfa_fsm_t)(_state))
+#define bfa_fsm_cmp_state(_fsm, _state)		((_fsm)->fsm == (_state))
 
 static inline int
-bfa_sm_to_state(struct bfa_sm_table_s *smt, bfa_sm_t sm)
+iocpf_sm_to_state(struct iocpf_sm_table_s *smt, bfa_fsm_iocpf_t sm)
+{
+	int	i = 0;
+
+	while (smt[i].sm && smt[i].sm != sm)
+		i++;
+	return smt[i].state;
+}
+
+static inline int
+ioc_sm_to_state(struct ioc_sm_table_s *smt, bfa_fsm_ioc_t sm)
+{
+	int	i = 0;
+
+	while (smt[i].sm && smt[i].sm != sm)
+		i++;
+	return smt[i].state;
+}
+
+static inline int
+rport_sm_to_state(struct rport_sm_table_s *smt, bfa_fcs_rport_t sm)
+{
+	int	i = 0;
+
+	while (smt[i].sm && smt[i].sm != sm)
+		i++;
+	return smt[i].state;
+}
+
+static inline int
+vport_sm_to_state(struct vport_sm_table_s *smt, bfa_fcs_vport_t sm)
+{
+	int	i = 0;
+
+	while (smt[i].sm && smt[i].sm != sm)
+		i++;
+	return smt[i].state;
+}
+
+static inline int
+itnim_sm_to_state(struct itnim_sm_table_s *smt, bfa_fcs_itnim_t sm)
+{
+	int	i = 0;
+
+	while (smt[i].sm && smt[i].sm != sm)
+		i++;
+	return smt[i].state;
+}
+
+static inline int
+fcport_sm_to_state(struct fcport_sm_table_s *smt, bfa_fcport_t sm)
 {
 	int	i = 0;
 

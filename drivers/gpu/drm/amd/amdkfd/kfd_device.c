@@ -298,7 +298,7 @@ bool kgd2kfd_device_init(struct kfd_dev *kfd,
 		goto device_queue_manager_error;
 	}
 
-	if (kfd->dqm->ops.start(kfd->dqm) != 0) {
+	if (kfd->dqm->ops->start(kfd->dqm) != 0) {
 		dev_err(kfd_device,
 			"Error starting queuen manager for device (%x:%x)\n",
 			kfd->pdev->vendor, kfd->pdev->device);
@@ -354,7 +354,7 @@ void kgd2kfd_suspend(struct kfd_dev *kfd)
 	BUG_ON(kfd == NULL);
 
 	if (kfd->init_complete) {
-		kfd->dqm->ops.stop(kfd->dqm);
+		kfd->dqm->ops->stop(kfd->dqm);
 		amd_iommu_set_invalidate_ctx_cb(kfd->pdev, NULL);
 		amd_iommu_set_invalid_ppr_cb(kfd->pdev, NULL);
 		amd_iommu_free_device(kfd->pdev);
@@ -377,7 +377,7 @@ int kgd2kfd_resume(struct kfd_dev *kfd)
 		amd_iommu_set_invalidate_ctx_cb(kfd->pdev,
 						iommu_pasid_shutdown_callback);
 		amd_iommu_set_invalid_ppr_cb(kfd->pdev, iommu_invalid_ppr_cb);
-		kfd->dqm->ops.start(kfd->dqm);
+		kfd->dqm->ops->start(kfd->dqm);
 	}
 
 	return 0;

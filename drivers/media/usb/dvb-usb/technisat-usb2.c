@@ -143,8 +143,10 @@ static int technisat_usb2_i2c_access(struct usb_device *udev,
 		/* handle tuner-i2c-nak */
 		if (!(b[0] == I2C_STATUS_NAK &&
 				device_addr == 0x60
-				/* && device_is_technisat_usb2 */))
+				/* && device_is_technisat_usb2 */)) {
+			ret = -ENODEV;
 			goto err;
+		}
 	}
 
 	deb_i2c("status: %d, ", b[0]);

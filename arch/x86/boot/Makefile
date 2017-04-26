@@ -11,6 +11,7 @@
 
 KASAN_SANITIZE			:= n
 OBJECT_FILES_NON_STANDARD	:= y
+GCC_PLUGINS			:= n
 
 # Kernel does not boot with kcov instrumentation here.
 # One of the problems observed was insertion of __sanitizer_cov_trace_pc()

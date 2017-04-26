@@ -202,7 +202,7 @@ static void xgbe_xgmii_mode(struct xgbe_prv_data *pdata)
 	xgbe_an_enable_kr_training(pdata);
 
 	/* Set MAC to 10G speed */
-	pdata->hw_if.set_xgmii_speed(pdata);
+	pdata->hw_if->set_xgmii_speed(pdata);
 
 	/* Set PCS to KR/10G speed */
 	reg = XMDIO_READ(pdata, MDIO_MMD_PCS, MDIO_CTRL2);
@@ -250,7 +250,7 @@ static void xgbe_gmii_2500_mode(struct xgbe_prv_data *pdata)
 	xgbe_an_disable_kr_training(pdata);
 
 	/* Set MAC to 2.5G speed */
-	pdata->hw_if.set_gmii_2500_speed(pdata);
+	pdata->hw_if->set_gmii_2500_speed(pdata);
 
 	/* Set PCS to KX/1G speed */
 	reg = XMDIO_READ(pdata, MDIO_MMD_PCS, MDIO_CTRL2);
@@ -298,7 +298,7 @@ static void xgbe_gmii_mode(struct xgbe_prv_data *pdata)
 	xgbe_an_disable_kr_training(pdata);
 
 	/* Set MAC to 1G speed */
-	pdata->hw_if.set_gmii_speed(pdata);
+	pdata->hw_if->set_gmii_speed(pdata);
 
 	/* Set PCS to KX/1G speed */
 	reg = XMDIO_READ(pdata, MDIO_MMD_PCS, MDIO_CTRL2);
@@ -877,13 +877,13 @@ static void xgbe_phy_adjust_link(struct xgbe_prv_data *pdata)
 
 		if (pdata->tx_pause != pdata->phy.tx_pause) {
 			new_state = 1;
-			pdata->hw_if.config_tx_flow_control(pdata);
+			pdata->hw_if->config_tx_flow_control(pdata);
 			pdata->tx_pause = pdata->phy.tx_pause;
 		}
 
 		if (pdata->rx_pause != pdata->phy.rx_pause) {
 			new_state = 1;
-			pdata->hw_if.config_rx_flow_control(pdata);
+			pdata->hw_if->config_rx_flow_control(pdata);
 			pdata->rx_pause = pdata->phy.rx_pause;
 		}
 
@@ -1348,14 +1348,13 @@ static void xgbe_phy_init(struct xgbe_prv_data *pdata)
 		xgbe_dump_phy_registers(pdata);
 }
 
-void xgbe_init_function_ptrs_phy(struct xgbe_phy_if *phy_if)
-{
-	phy_if->phy_init        = xgbe_phy_init;
+const struct xgbe_phy_if default_xgbe_phy_if = {
+	.phy_init        = xgbe_phy_init,
 
-	phy_if->phy_reset       = xgbe_phy_reset;
-	phy_if->phy_start       = xgbe_phy_start;
-	phy_if->phy_stop        = xgbe_phy_stop;
+	.phy_reset       = xgbe_phy_reset,
+	.phy_start       = xgbe_phy_start,
+	.phy_stop        = xgbe_phy_stop,
 
-	phy_if->phy_status      = xgbe_phy_status;
-	phy_if->phy_config_aneg = xgbe_phy_config_aneg;
-}
+	.phy_status      = xgbe_phy_status,
+	.phy_config_aneg = xgbe_phy_config_aneg,
+};

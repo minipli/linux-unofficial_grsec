@@ -19,8 +19,8 @@ struct kern_ipc_perm
 	kuid_t		cuid;
 	kgid_t		cgid;
 	umode_t		mode; 
-	unsigned long	seq;
+	unsigned long	seq __intentional_overflow(-1);
 	void		*security;
-};
+} __randomize_layout;
 
 #endif /* _LINUX_IPC_H */

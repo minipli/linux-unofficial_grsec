@@ -458,7 +458,7 @@ static ssize_t arcfb_write(struct fb_info *info, const char __user *buf,
 		return -ENOSPC;
 
 	err = 0;
-	if ((count + p) > fbmemlength) {
+	if (count > (fbmemlength - p)) {
 		count = fbmemlength - p;
 		err = -ENOSPC;
 	}

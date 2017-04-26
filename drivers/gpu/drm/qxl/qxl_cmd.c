@@ -285,27 +285,27 @@ static int wait_for_io_cmd_user(struct qxl_device *qdev, uint8_t val, long port,
 	int ret;
 
 	mutex_lock(&qdev->async_io_mutex);
-	irq_num = atomic_read(&qdev->irq_received_io_cmd);
+	irq_num = atomic_read_unchecked(&qdev->irq_received_io_cmd);
 	if (qdev->last_sent_io_cmd > irq_num) {
 		if (intr)
 			ret = wait_event_interruptible_timeout(qdev->io_cmd_event,
-							       atomic_read(&qdev->irq_received_io_cmd) > irq_num, 5*HZ);
+							       atomic_read_unchecked(&qdev->irq_received_io_cmd) > irq_num, 5*HZ);
 		else
 			ret = wait_event_timeout(qdev->io_cmd_event,
-						 atomic_read(&qdev->irq_received_io_cmd) > irq_num, 5*HZ);
+						 atomic_read_unchecked(&qdev->irq_received_io_cmd) > irq_num, 5*HZ);
 		/* 0 is timeout, just bail the "hw" has gone away */
 		if (ret <= 0)
 			goto out;
-		irq_num = atomic_read(&qdev->irq_received_io_cmd);
+		irq_num = atomic_read_unchecked(&qdev->irq_received_io_cmd);
 	}
 	outb(val, addr);
 	qdev->last_sent_io_cmd = irq_num + 1;
 	if (intr)
 		ret = wait_event_interruptible_timeout(qdev->io_cmd_event,
-						       atomic_read(&qdev->irq_received_io_cmd) > irq_num, 5*HZ);
+						       atomic_read_unchecked(&qdev->irq_received_io_cmd) > irq_num, 5*HZ);
 	else
 		ret = wait_event_timeout(qdev->io_cmd_event,
-					 atomic_read(&qdev->irq_received_io_cmd) > irq_num, 5*HZ);
+					 atomic_read_unchecked(&qdev->irq_received_io_cmd) > irq_num, 5*HZ);
 out:
 	if (ret > 0)
 		ret = 0;

@@ -111,7 +111,7 @@ void c4iw_log_wr_stats(struct t4_wq *wq, struct t4_cqe *cqe)
 	if (!wq->rdev->wr_log)
 		return;
 
-	idx = (atomic_inc_return(&wq->rdev->wr_log_idx) - 1) &
+	idx = (atomic_inc_return_unchecked(&wq->rdev->wr_log_idx) - 1) &
 		(wq->rdev->wr_log_size - 1);
 	le.poll_sge_ts = cxgb4_read_sge_timestamp(wq->rdev->lldi.ports[0]);
 	getnstimeofday(&le.poll_host_ts);
@@ -143,7 +143,7 @@ static int wr_log_show(struct seq_file *seq, void *v)
 
 #define ts2ns(ts) div64_u64((ts) * dev->rdev.lldi.cclk_ps, 1000)
 
-	idx = atomic_read(&dev->rdev.wr_log_idx) &
+	idx = atomic_read_unchecked(&dev->rdev.wr_log_idx) &
 		(dev->rdev.wr_log_size - 1);
 	end = idx - 1;
 	if (end < 0)
@@ -842,7 +842,7 @@ static int c4iw_rdev_open(struct c4iw_rdev *rdev)
 				       sizeof(*rdev->wr_log), GFP_KERNEL);
 		if (rdev->wr_log) {
 			rdev->wr_log_size = 1 << c4iw_wr_log_size_order;
-			atomic_set(&rdev->wr_log_idx, 0);
+			atomic_set_unchecked(&rdev->wr_log_idx, 0);
 		} else {
 			pr_err(MOD "error allocating wr_log. Logging disabled\n");
 		}

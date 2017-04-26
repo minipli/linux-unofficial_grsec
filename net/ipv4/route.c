@@ -232,7 +232,7 @@ static const struct seq_operations rt_cache_seq_ops = {
 
 static int rt_cache_seq_open(struct inode *inode, struct file *file)
 {
-	return seq_open(file, &rt_cache_seq_ops);
+	return seq_open_restrict(file, &rt_cache_seq_ops);
 }
 
 static const struct file_operations rt_cache_seq_fops = {
@@ -323,7 +323,7 @@ static const struct seq_operations rt_cpu_seq_ops = {
 
 static int rt_cpu_seq_open(struct inode *inode, struct file *file)
 {
-	return seq_open(file, &rt_cpu_seq_ops);
+	return seq_open_restrict(file, &rt_cpu_seq_ops);
 }
 
 static const struct file_operations rt_cpu_seq_fops = {
@@ -361,7 +361,7 @@ static int rt_acct_proc_show(struct seq_file *m, void *v)
 
 static int rt_acct_proc_open(struct inode *inode, struct file *file)
 {
-	return single_open(file, rt_acct_proc_show, NULL);
+	return single_open_restrict(file, rt_acct_proc_show, NULL);
 }
 
 static const struct file_operations rt_acct_proc_fops = {
@@ -413,7 +413,7 @@ static void __net_exit ip_rt_do_proc_exit(struct net *net)
 #endif
 }
 
-static struct pernet_operations ip_rt_proc_ops __net_initdata =  {
+static struct pernet_operations ip_rt_proc_ops __net_initconst =  {
 	.init = ip_rt_do_proc_init,
 	.exit = ip_rt_do_proc_exit,
 };
@@ -463,7 +463,7 @@ static struct neighbour *ipv4_neigh_lookup(const struct dst_entry *dst,
 
 #define IP_IDENTS_SZ 2048u
 
-static atomic_t *ip_idents __read_mostly;
+static atomic_t ip_idents[IP_IDENTS_SZ] __read_mostly;
 static u32 *ip_tstamps __read_mostly;
 
 /* In order to protect privacy, we add a perturbation to identifiers
@@ -2778,34 +2778,34 @@ static struct ctl_table ipv4_route_flush_table[] = {
 		.maxlen		= sizeof(int),
 		.mode		= 0200,
 		.proc_handler	= ipv4_sysctl_rtcache_flush,
+		.extra1		= &init_net,
 	},
 	{ },
 };
 
 static __net_init int sysctl_route_net_init(struct net *net)
 {
-	struct ctl_table *tbl;
+	ctl_table_no_const *tbl = NULL;
 
-	tbl = ipv4_route_flush_table;
 	if (!net_eq(net, &init_net)) {
-		tbl = kmemdup(tbl, sizeof(ipv4_route_flush_table), GFP_KERNEL);
+		tbl = kmemdup(ipv4_route_flush_table, sizeof(ipv4_route_flush_table), GFP_KERNEL);
 		if (!tbl)
 			goto err_dup;
 
 		/* Don't export sysctls to unprivileged users */
 		if (net->user_ns != &init_user_ns)
 			tbl[0].procname = NULL;
-	}
-	tbl[0].extra1 = net;
+		tbl[0].extra1 = net;
+		net->ipv4.route_hdr = register_net_sysctl(net, "net/ipv4/route", tbl);
+	} else
+		net->ipv4.route_hdr = register_net_sysctl(net, "net/ipv4/route", ipv4_route_flush_table);
 
-	net->ipv4.route_hdr = register_net_sysctl(net, "net/ipv4/route", tbl);
 	if (!net->ipv4.route_hdr)
 		goto err_reg;
 	return 0;
 
 err_reg:
-	if (tbl != ipv4_route_flush_table)
-		kfree(tbl);
+	kfree(tbl);
 err_dup:
 	return -ENOMEM;
 }
@@ -2820,7 +2820,7 @@ static __net_exit void sysctl_route_net_exit(struct net *net)
 	kfree(tbl);
 }
 
-static __net_initdata struct pernet_operations sysctl_route_ops = {
+static __net_initconst struct pernet_operations sysctl_route_ops = {
 	.init = sysctl_route_net_init,
 	.exit = sysctl_route_net_exit,
 };
@@ -2828,14 +2828,14 @@ static __net_initdata struct pernet_operations sysctl_route_ops = {
 
 static __net_init int rt_genid_init(struct net *net)
 {
-	atomic_set(&net->ipv4.rt_genid, 0);
-	atomic_set(&net->fnhe_genid, 0);
+	atomic_set_unchecked(&net->ipv4.rt_genid, 0);
+	atomic_set_unchecked(&net->fnhe_genid, 0);
 	get_random_bytes(&net->ipv4.dev_addr_genid,
 			 sizeof(net->ipv4.dev_addr_genid));
 	return 0;
 }
 
-static __net_initdata struct pernet_operations rt_genid_ops = {
+static __net_initconst struct pernet_operations rt_genid_ops = {
 	.init = rt_genid_init,
 };
 
@@ -2859,7 +2859,7 @@ static void __net_exit ipv4_inetpeer_exit(struct net *net)
 	kfree(bp);
 }
 
-static __net_initdata struct pernet_operations ipv4_inetpeer_ops = {
+static __net_initconst struct pernet_operations ipv4_inetpeer_ops = {
 	.init	=	ipv4_inetpeer_init,
 	.exit	=	ipv4_inetpeer_exit,
 };
@@ -2873,11 +2873,7 @@ int __init ip_rt_init(void)
 	int rc = 0;
 	int cpu;
 
-	ip_idents = kmalloc(IP_IDENTS_SZ * sizeof(*ip_idents), GFP_KERNEL);
-	if (!ip_idents)
-		panic("IP: failed to allocate ip_idents\n");
-
-	prandom_bytes(ip_idents, IP_IDENTS_SZ * sizeof(*ip_idents));
+	prandom_bytes(ip_idents, sizeof(ip_idents));
 
 	ip_tstamps = kcalloc(IP_IDENTS_SZ, sizeof(*ip_tstamps), GFP_KERNEL);
 	if (!ip_tstamps)

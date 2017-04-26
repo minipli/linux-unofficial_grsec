@@ -195,7 +195,7 @@ static void _rtl92e_dm_deinit_fsync(struct net_device *dev);
 static	void _rtl92e_dm_check_txrateandretrycount(struct net_device *dev);
 static  void _rtl92e_dm_check_ac_dc_power(struct net_device *dev);
 static void _rtl92e_dm_check_fsync(struct net_device *dev);
-static void _rtl92e_dm_check_rf_ctrl_gpio(void *data);
+static void _rtl92e_dm_check_rf_ctrl_gpio(struct work_struct *data);
 static void _rtl92e_dm_fsync_timer_callback(unsigned long data);
 
 /*---------------------Define local function prototype-----------------------*/
@@ -229,7 +229,7 @@ void rtl92e_dm_init(struct net_device *dev)
 		_rtl92e_dm_init_wa_broadcom_iot(dev);
 
 	INIT_DELAYED_WORK_RSL(&priv->gpio_change_rf_wq,
-			      (void *)_rtl92e_dm_check_rf_ctrl_gpio, dev);
+			      _rtl92e_dm_check_rf_ctrl_gpio, dev);
 }
 
 void rtl92e_dm_deinit(struct net_device *dev)
@@ -932,7 +932,7 @@ static void _rtl92e_dm_tx_power_tracking_cb_thermal(struct net_device *dev)
 	priv->txpower_count = 0;
 }
 
-void rtl92e_dm_txpower_tracking_wq(void *data)
+void rtl92e_dm_txpower_tracking_wq(struct work_struct *data)
 {
 	struct r8192_priv *priv = container_of_dwork_rsl(data,
 				  struct r8192_priv, txpower_tracking_wq);
@@ -1814,7 +1814,7 @@ static void _rtl92e_dm_init_wa_broadcom_iot(struct net_device *dev)
 	pHTInfo->WAIotTH = WAIotTHVal;
 }
 
-static void _rtl92e_dm_check_rf_ctrl_gpio(void *data)
+static void _rtl92e_dm_check_rf_ctrl_gpio(struct work_struct *data)
 {
 	struct r8192_priv *priv = container_of_dwork_rsl(data,
 				  struct r8192_priv, gpio_change_rf_wq);
@@ -1868,7 +1868,7 @@ static void _rtl92e_dm_check_rf_ctrl_gpio(void *data)
 	}
 }
 
-void rtl92e_dm_rf_pathcheck_wq(void *data)
+void rtl92e_dm_rf_pathcheck_wq(struct work_struct *data)
 {
 	struct r8192_priv *priv = container_of_dwork_rsl(data,
 				  struct r8192_priv,

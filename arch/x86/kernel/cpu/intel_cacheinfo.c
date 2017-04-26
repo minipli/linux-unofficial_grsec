@@ -519,25 +519,23 @@ cache_private_attrs_is_visible(struct kobject *kobj,
 	return 0;
 }
 
+static struct attribute *amd_l3_attrs[4];
+
 static struct attribute_group cache_private_group = {
 	.is_visible = cache_private_attrs_is_visible,
+	.attrs = amd_l3_attrs,
 };
 
 static void init_amd_l3_attrs(void)
 {
 	int n = 1;
-	static struct attribute **amd_l3_attrs;
-
-	if (amd_l3_attrs) /* already initialized */
-		return;
 
 	if (amd_nb_has_feature(AMD_NB_L3_INDEX_DISABLE))
 		n += 2;
 	if (amd_nb_has_feature(AMD_NB_L3_PARTITIONING))
 		n += 1;
 
-	amd_l3_attrs = kcalloc(n, sizeof(*amd_l3_attrs), GFP_KERNEL);
-	if (!amd_l3_attrs)
+	if (n > 1 && amd_l3_attrs[0]) /* already initialized */
 		return;
 
 	n = 0;
@@ -547,8 +545,6 @@ static void init_amd_l3_attrs(void)
 	}
 	if (amd_nb_has_feature(AMD_NB_L3_PARTITIONING))
 		amd_l3_attrs[n++] = &dev_attr_subcaches.attr;
-
-	cache_private_group.attrs = amd_l3_attrs;
 }
 
 const struct attribute_group *
@@ -559,7 +555,7 @@ cache_get_priv_group(struct cacheinfo *this_leaf)
 	if (this_leaf->level < 3 || !nb)
 		return NULL;
 
-	if (nb && nb->l3_cache.indices)
+	if (nb->l3_cache.indices)
 		init_amd_l3_attrs();
 
 	return &cache_private_group;

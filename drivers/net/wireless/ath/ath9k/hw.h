@@ -672,7 +672,7 @@ struct ath_hw_private_ops {
 #ifdef CONFIG_ATH9K_BTCOEX_SUPPORT
 	bool (*is_aic_enabled)(struct ath_hw *ah);
 #endif /* CONFIG_ATH9K_BTCOEX_SUPPORT */
-};
+} __no_const;
 
 /**
  * struct ath_spec_scan - parameters for Atheros spectral scan
@@ -748,7 +748,7 @@ struct ath_hw_ops {
 #ifdef CONFIG_ATH9K_BTCOEX_SUPPORT
 	void (*set_bt_ant_diversity)(struct ath_hw *hw, bool enable);
 #endif
-};
+} __no_const;
 
 struct ath_nf_limits {
 	s16 max;

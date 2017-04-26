@@ -53,10 +53,10 @@ struct dlfb_data {
 	u32 pseudo_palette[256];
 	int blank_mode; /*one of FB_BLANK_ */
 	/* blit-only rendering path metrics, exposed through sysfs */
-	atomic_t bytes_rendered; /* raw pixel-bytes driver asked to render */
-	atomic_t bytes_identical; /* saved effort with backbuffer comparison */
-	atomic_t bytes_sent; /* to usb, after compression including overhead */
-	atomic_t cpu_kcycles_used; /* transpired during pixel processing */
+	atomic_unchecked_t bytes_rendered; /* raw pixel-bytes driver asked to render */
+	atomic_unchecked_t bytes_identical; /* saved effort with backbuffer comparison */
+	atomic_unchecked_t bytes_sent; /* to usb, after compression including overhead */
+	atomic_unchecked_t cpu_kcycles_used; /* transpired during pixel processing */
 };
 
 #define NR_USB_REQUEST_I2C_SUB_IO 0x02

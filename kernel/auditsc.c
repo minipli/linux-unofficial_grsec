@@ -1954,7 +1954,7 @@ int auditsc_get_stamp(struct audit_context *ctx,
 }
 
 /* global counter which is incremented every time something logs in */
-static atomic_t session_id = ATOMIC_INIT(0);
+static atomic_unchecked_t session_id = ATOMIC_INIT(0);
 
 static int audit_set_loginuid_perm(kuid_t loginuid)
 {
@@ -2026,7 +2026,7 @@ int audit_set_loginuid(kuid_t loginuid)
 
 	/* are we setting or clearing? */
 	if (uid_valid(loginuid))
-		sessionid = (unsigned int)atomic_inc_return(&session_id);
+		sessionid = (unsigned int)atomic_inc_return_unchecked(&session_id);
 
 	task->sessionid = sessionid;
 	task->loginuid = loginuid;

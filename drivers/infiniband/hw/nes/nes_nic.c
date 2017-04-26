@@ -461,7 +461,7 @@ static bool nes_nic_send(struct sk_buff *skb, struct net_device *netdev)
 /**
  * nes_netdev_start_xmit
  */
-static int nes_netdev_start_xmit(struct sk_buff *skb, struct net_device *netdev)
+static netdev_tx_t nes_netdev_start_xmit(struct sk_buff *skb, struct net_device *netdev)
 {
 	struct nes_vnic *nesvnic = netdev_priv(netdev);
 	struct nes_device *nesdev = nesvnic->nesdev;
@@ -1264,36 +1264,36 @@ static void nes_netdev_get_ethtool_stats(struct net_device *netdev,
 	target_stat_values[++index] = mh_detected;
 	target_stat_values[++index] = mh_pauses_sent;
 	target_stat_values[++index] = nesvnic->endnode_ipv4_tcp_retransmits;
-	target_stat_values[++index] = atomic_read(&cm_connects);
-	target_stat_values[++index] = atomic_read(&cm_accepts);
-	target_stat_values[++index] = atomic_read(&cm_disconnects);
-	target_stat_values[++index] = atomic_read(&cm_connecteds);
-	target_stat_values[++index] = atomic_read(&cm_connect_reqs);
-	target_stat_values[++index] = atomic_read(&cm_rejects);
-	target_stat_values[++index] = atomic_read(&mod_qp_timouts);
-	target_stat_values[++index] = atomic_read(&qps_created);
-	target_stat_values[++index] = atomic_read(&sw_qps_destroyed);
-	target_stat_values[++index] = atomic_read(&qps_destroyed);
-	target_stat_values[++index] = atomic_read(&cm_closes);
+	target_stat_values[++index] = atomic_read_unchecked(&cm_connects);
+	target_stat_values[++index] = atomic_read_unchecked(&cm_accepts);
+	target_stat_values[++index] = atomic_read_unchecked(&cm_disconnects);
+	target_stat_values[++index] = atomic_read_unchecked(&cm_connecteds);
+	target_stat_values[++index] = atomic_read_unchecked(&cm_connect_reqs);
+	target_stat_values[++index] = atomic_read_unchecked(&cm_rejects);
+	target_stat_values[++index] = atomic_read_unchecked(&mod_qp_timouts);
+	target_stat_values[++index] = atomic_read_unchecked(&qps_created);
+	target_stat_values[++index] = atomic_read_unchecked(&sw_qps_destroyed);
+	target_stat_values[++index] = atomic_read_unchecked(&qps_destroyed);
+	target_stat_values[++index] = atomic_read_unchecked(&cm_closes);
 	target_stat_values[++index] = cm_packets_sent;
 	target_stat_values[++index] = cm_packets_bounced;
 	target_stat_values[++index] = cm_packets_created;
 	target_stat_values[++index] = cm_packets_received;
 	target_stat_values[++index] = cm_packets_dropped;
 	target_stat_values[++index] = cm_packets_retrans;
-	target_stat_values[++index] = atomic_read(&cm_listens_created);
-	target_stat_values[++index] = atomic_read(&cm_listens_destroyed);
+	target_stat_values[++index] = atomic_read_unchecked(&cm_listens_created);
+	target_stat_values[++index] = atomic_read_unchecked(&cm_listens_destroyed);
 	target_stat_values[++index] = cm_backlog_drops;
-	target_stat_values[++index] = atomic_read(&cm_loopbacks);
-	target_stat_values[++index] = atomic_read(&cm_nodes_created);
-	target_stat_values[++index] = atomic_read(&cm_nodes_destroyed);
-	target_stat_values[++index] = atomic_read(&cm_accel_dropped_pkts);
-	target_stat_values[++index] = atomic_read(&cm_resets_recvd);
+	target_stat_values[++index] = atomic_read_unchecked(&cm_loopbacks);
+	target_stat_values[++index] = atomic_read_unchecked(&cm_nodes_created);
+	target_stat_values[++index] = atomic_read_unchecked(&cm_nodes_destroyed);
+	target_stat_values[++index] = atomic_read_unchecked(&cm_accel_dropped_pkts);
+	target_stat_values[++index] = atomic_read_unchecked(&cm_resets_recvd);
 	target_stat_values[++index] = nesadapter->free_4kpbl;
 	target_stat_values[++index] = nesadapter->free_256pbl;
 	target_stat_values[++index] = int_mod_timer_init;
-	target_stat_values[++index] = atomic_read(&pau_qps_created);
-	target_stat_values[++index] = atomic_read(&pau_qps_destroyed);
+	target_stat_values[++index] = atomic_read_unchecked(&pau_qps_created);
+	target_stat_values[++index] = atomic_read_unchecked(&pau_qps_destroyed);
 }
 
 /**

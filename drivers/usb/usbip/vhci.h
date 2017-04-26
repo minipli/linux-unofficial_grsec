@@ -96,7 +96,7 @@ struct vhci_hcd {
 	unsigned resuming:1;
 	unsigned long re_timeout;
 
-	atomic_t seqnum;
+	atomic_unchecked_t seqnum;
 
 	/*
 	 * NOTE:
@@ -108,7 +108,7 @@ struct vhci_hcd {
 
 extern int vhci_num_controllers;
 extern struct platform_device **vhci_pdevs;
-extern struct attribute_group vhci_attr_group;
+extern attribute_group_no_const vhci_attr_group;
 
 /* vhci_hcd.c */
 void rh_port_connect(struct vhci_device *vdev, enum usb_device_speed speed);

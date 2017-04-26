@@ -37,7 +37,7 @@
 extern struct i2c_adapter *nforce2_smbus;
 
 static struct i2c_adapter *s4985_adapter;
-static struct i2c_algorithm *s4985_algo;
+static i2c_algorithm_no_const *s4985_algo;
 
 /* Wrapper access functions for multiplexed SMBus */
 static DEFINE_MUTEX(nforce2_lock);

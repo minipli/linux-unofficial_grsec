@@ -242,7 +242,7 @@ static int create_compute_queue_nocpsch(struct device_queue_manager *dqm,
 
 	BUG_ON(!dqm || !q || !qpd);
 
-	mqd = dqm->ops.get_mqd_manager(dqm, KFD_MQD_TYPE_COMPUTE);
+	mqd = dqm->ops->get_mqd_manager(dqm, KFD_MQD_TYPE_COMPUTE);
 	if (mqd == NULL)
 		return -ENOMEM;
 
@@ -288,14 +288,14 @@ static int destroy_queue_nocpsch(struct device_queue_manager *dqm,
 	mutex_lock(&dqm->lock);
 
 	if (q->properties.type == KFD_QUEUE_TYPE_COMPUTE) {
-		mqd = dqm->ops.get_mqd_manager(dqm, KFD_MQD_TYPE_COMPUTE);
+		mqd = dqm->ops->get_mqd_manager(dqm, KFD_MQD_TYPE_COMPUTE);
 		if (mqd == NULL) {
 			retval = -ENOMEM;
 			goto out;
 		}
 		deallocate_hqd(dqm, q);
 	} else if (q->properties.type == KFD_QUEUE_TYPE_SDMA) {
-		mqd = dqm->ops.get_mqd_manager(dqm, KFD_MQD_TYPE_SDMA);
+		mqd = dqm->ops->get_mqd_manager(dqm, KFD_MQD_TYPE_SDMA);
 		if (mqd == NULL) {
 			retval = -ENOMEM;
 			goto out;
@@ -347,7 +347,7 @@ static int update_queue(struct device_queue_manager *dqm, struct queue *q)
 	BUG_ON(!dqm || !q || !q->mqd);
 
 	mutex_lock(&dqm->lock);
-	mqd = dqm->ops.get_mqd_manager(dqm,
+	mqd = dqm->ops->get_mqd_manager(dqm,
 			get_mqd_type_from_queue_type(q->properties.type));
 	if (mqd == NULL) {
 		mutex_unlock(&dqm->lock);
@@ -414,7 +414,7 @@ static int register_process_nocpsch(struct device_queue_manager *dqm,
 	mutex_lock(&dqm->lock);
 	list_add(&n->list, &dqm->queues);
 
-	retval = dqm->ops_asic_specific.register_process(dqm, qpd);
+	retval = dqm->ops_asic_specific->register_process(dqm, qpd);
 
 	dqm->processes_count++;
 
@@ -502,7 +502,7 @@ int init_pipelines(struct device_queue_manager *dqm,
 
 	memset(hpdptr, 0, CIK_HPD_EOP_BYTES * pipes_num);
 
-	mqd = dqm->ops.get_mqd_manager(dqm, KFD_MQD_TYPE_COMPUTE);
+	mqd = dqm->ops->get_mqd_manager(dqm, KFD_MQD_TYPE_COMPUTE);
 	if (mqd == NULL) {
 		kfd_gtt_sa_free(dqm->dev, dqm->pipeline_mem);
 		return -ENOMEM;
@@ -635,7 +635,7 @@ static int create_sdma_queue_nocpsch(struct device_queue_manager *dqm,
 	struct mqd_manager *mqd;
 	int retval;
 
-	mqd = dqm->ops.get_mqd_manager(dqm, KFD_MQD_TYPE_SDMA);
+	mqd = dqm->ops->get_mqd_manager(dqm, KFD_MQD_TYPE_SDMA);
 	if (!mqd)
 		return -ENOMEM;
 
@@ -650,7 +650,7 @@ static int create_sdma_queue_nocpsch(struct device_queue_manager *dqm,
 	pr_debug("     sdma queue id: %d\n", q->properties.sdma_queue_id);
 	pr_debug("     sdma engine id: %d\n", q->properties.sdma_engine_id);
 
-	dqm->ops_asic_specific.init_sdma_vm(dqm, q, qpd);
+	dqm->ops_asic_specific->init_sdma_vm(dqm, q, qpd);
 	retval = mqd->init_mqd(mqd, &q->mqd, &q->mqd_mem_obj,
 				&q->gart_mqd_addr, &q->properties);
 	if (retval != 0) {
@@ -712,7 +712,7 @@ static int initialize_cpsch(struct device_queue_manager *dqm)
 	dqm->queue_count = dqm->processes_count = 0;
 	dqm->sdma_queue_count = 0;
 	dqm->active_runlist = false;
-	retval = dqm->ops_asic_specific.initialize(dqm);
+	retval = dqm->ops_asic_specific->initialize(dqm);
 	if (retval != 0)
 		goto fail_init_pipelines;
 
@@ -879,7 +879,7 @@ static int create_queue_cpsch(struct device_queue_manager *dqm, struct queue *q,
 	if (q->properties.type == KFD_QUEUE_TYPE_SDMA)
 		select_sdma_engine_id(q);
 
-	mqd = dqm->ops.get_mqd_manager(dqm,
+	mqd = dqm->ops->get_mqd_manager(dqm,
 			get_mqd_type_from_queue_type(q->properties.type));
 
 	if (mqd == NULL) {
@@ -887,7 +887,7 @@ static int create_queue_cpsch(struct device_queue_manager *dqm, struct queue *q,
 		return -ENOMEM;
 	}
 
-	dqm->ops_asic_specific.init_sdma_vm(dqm, q, qpd);
+	dqm->ops_asic_specific->init_sdma_vm(dqm, q, qpd);
 	retval = mqd->init_mqd(mqd, &q->mqd, &q->mqd_mem_obj,
 				&q->gart_mqd_addr, &q->properties);
 	if (retval != 0)
@@ -1060,7 +1060,7 @@ static int destroy_queue_cpsch(struct device_queue_manager *dqm,
 
 	}
 
-	mqd = dqm->ops.get_mqd_manager(dqm,
+	mqd = dqm->ops->get_mqd_manager(dqm,
 			get_mqd_type_from_queue_type(q->properties.type));
 	if (!mqd) {
 		retval = -ENOMEM;
@@ -1149,7 +1149,7 @@ static bool set_cache_memory_policy(struct device_queue_manager *dqm,
 		qpd->sh_mem_ape1_limit = limit >> 16;
 	}
 
-	retval = dqm->ops_asic_specific.set_cache_memory_policy(
+	retval = dqm->ops_asic_specific->set_cache_memory_policy(
 			dqm,
 			qpd,
 			default_policy,
@@ -1172,6 +1172,36 @@ out:
 	return false;
 }
 
+static const struct device_queue_manager_ops cp_dqm_ops = {
+	.create_queue = create_queue_cpsch,
+	.initialize = initialize_cpsch,
+	.start = start_cpsch,
+	.stop = stop_cpsch,
+	.destroy_queue = destroy_queue_cpsch,
+	.update_queue = update_queue,
+	.get_mqd_manager = get_mqd_manager_nocpsch,
+	.register_process = register_process_nocpsch,
+	.unregister_process = unregister_process_nocpsch,
+	.uninitialize = uninitialize_nocpsch,
+	.create_kernel_queue = create_kernel_queue_cpsch,
+	.destroy_kernel_queue = destroy_kernel_queue_cpsch,
+	.set_cache_memory_policy = set_cache_memory_policy,
+};
+
+static const struct device_queue_manager_ops no_cp_dqm_ops = {
+	.start = start_nocpsch,
+	.stop = stop_nocpsch,
+	.create_queue = create_queue_nocpsch,
+	.destroy_queue = destroy_queue_nocpsch,
+	.update_queue = update_queue,
+	.get_mqd_manager = get_mqd_manager_nocpsch,
+	.register_process = register_process_nocpsch,
+	.unregister_process = unregister_process_nocpsch,
+	.initialize = initialize_nocpsch,
+	.uninitialize = uninitialize_nocpsch,
+	.set_cache_memory_policy = set_cache_memory_policy,
+};
+
 struct device_queue_manager *device_queue_manager_init(struct kfd_dev *dev)
 {
 	struct device_queue_manager *dqm;
@@ -1189,33 +1219,11 @@ struct device_queue_manager *device_queue_manager_init(struct kfd_dev *dev)
 	case KFD_SCHED_POLICY_HWS:
 	case KFD_SCHED_POLICY_HWS_NO_OVERSUBSCRIPTION:
 		/* initialize dqm for cp scheduling */
-		dqm->ops.create_queue = create_queue_cpsch;
-		dqm->ops.initialize = initialize_cpsch;
-		dqm->ops.start = start_cpsch;
-		dqm->ops.stop = stop_cpsch;
-		dqm->ops.destroy_queue = destroy_queue_cpsch;
-		dqm->ops.update_queue = update_queue;
-		dqm->ops.get_mqd_manager = get_mqd_manager_nocpsch;
-		dqm->ops.register_process = register_process_nocpsch;
-		dqm->ops.unregister_process = unregister_process_nocpsch;
-		dqm->ops.uninitialize = uninitialize_nocpsch;
-		dqm->ops.create_kernel_queue = create_kernel_queue_cpsch;
-		dqm->ops.destroy_kernel_queue = destroy_kernel_queue_cpsch;
-		dqm->ops.set_cache_memory_policy = set_cache_memory_policy;
+		dqm->ops = &cp_dqm_ops;
 		break;
 	case KFD_SCHED_POLICY_NO_HWS:
 		/* initialize dqm for no cp scheduling */
-		dqm->ops.start = start_nocpsch;
-		dqm->ops.stop = stop_nocpsch;
-		dqm->ops.create_queue = create_queue_nocpsch;
-		dqm->ops.destroy_queue = destroy_queue_nocpsch;
-		dqm->ops.update_queue = update_queue;
-		dqm->ops.get_mqd_manager = get_mqd_manager_nocpsch;
-		dqm->ops.register_process = register_process_nocpsch;
-		dqm->ops.unregister_process = unregister_process_nocpsch;
-		dqm->ops.initialize = initialize_nocpsch;
-		dqm->ops.uninitialize = uninitialize_nocpsch;
-		dqm->ops.set_cache_memory_policy = set_cache_memory_policy;
+		dqm->ops = &no_cp_dqm_ops;
 		break;
 	default:
 		BUG();
@@ -1224,15 +1232,15 @@ struct device_queue_manager *device_queue_manager_init(struct kfd_dev *dev)
 
 	switch (dev->device_info->asic_family) {
 	case CHIP_CARRIZO:
-		device_queue_manager_init_vi(&dqm->ops_asic_specific);
+		device_queue_manager_init_vi(dqm);
 		break;
 
 	case CHIP_KAVERI:
-		device_queue_manager_init_cik(&dqm->ops_asic_specific);
+		device_queue_manager_init_cik(dqm);
 		break;
 	}
 
-	if (dqm->ops.initialize(dqm) != 0) {
+	if (dqm->ops->initialize(dqm) != 0) {
 		kfree(dqm);
 		return NULL;
 	}
@@ -1244,6 +1252,6 @@ void device_queue_manager_uninit(struct device_queue_manager *dqm)
 {
 	BUG_ON(!dqm);
 
-	dqm->ops.uninitialize(dqm);
+	dqm->ops->uninitialize(dqm);
 	kfree(dqm);
 }

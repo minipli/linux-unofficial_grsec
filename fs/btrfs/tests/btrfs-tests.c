@@ -119,7 +119,7 @@ struct btrfs_fs_info *btrfs_alloc_dummy_fs_info(void)
 	fs_info->running_transaction = NULL;
 	fs_info->qgroup_tree = RB_ROOT;
 	fs_info->qgroup_ulist = NULL;
-	atomic64_set(&fs_info->tree_mod_seq, 0);
+	atomic64_set_unchecked(&fs_info->tree_mod_seq, 0);
 	INIT_LIST_HEAD(&fs_info->dirty_qgroups);
 	INIT_LIST_HEAD(&fs_info->dead_roots);
 	INIT_LIST_HEAD(&fs_info->tree_mod_seq_list);

@@ -108,7 +108,7 @@ struct smp_operations {
 	int  (*cpu_disable)(unsigned int cpu);
 #endif
 #endif
-};
+} __no_const;
 
 struct of_cpu_method {
 	const char *method;

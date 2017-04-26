@@ -57,7 +57,7 @@ static u16 diva_send_message(struct capi_ctr *,
 			     diva_os_message_buffer_s *);
 extern void diva_os_set_controller_struct(struct capi_ctr *);
 
-extern void DIVA_DIDD_Read(DESCRIPTOR *, int);
+extern void DIVA_DIDD_Read(void *, int);
 
 /*
  * debug
@@ -1032,7 +1032,6 @@ static void didd_callback(void *context, DESCRIPTOR *adapter, int removal)
 			stop_dbg();
 		} else {
 			memcpy(&MAdapter, adapter, sizeof(MAdapter));
-			dprintf = (DIVA_DI_PRINTF) MAdapter.request;
 			DbgRegister("CAPI20", DRIVERRELEASE_CAPI, DBG_DEFAULT);
 		}
 	} else if ((adapter->type > 0) && (adapter->type < 16)) {	/* IDI Adapter */
@@ -1060,7 +1059,6 @@ static int divacapi_connect_didd(void)
 	for (x = 0; x < MAX_DESCRIPTORS; x++) {
 		if (DIDD_Table[x].type == IDI_DIMAINT) {	/* MAINT found */
 			memcpy(&MAdapter, &DIDD_Table[x], sizeof(DAdapter));
-			dprintf = (DIVA_DI_PRINTF) MAdapter.request;
 			DbgRegister("CAPI20", DRIVERRELEASE_CAPI, DBG_DEFAULT);
 			break;
 		}
@@ -1072,7 +1070,7 @@ static int divacapi_connect_didd(void)
 			req.didd_notify.e.Req = 0;
 			req.didd_notify.e.Rc =
 				IDI_SYNC_REQ_DIDD_REGISTER_ADAPTER_NOTIFY;
-			req.didd_notify.info.callback = (void *)didd_callback;
+			req.didd_notify.info.callback = didd_callback;
 			req.didd_notify.info.context = NULL;
 			DAdapter.request((ENTITY *)&req);
 			if (req.didd_notify.e.Rc != 0xff) {

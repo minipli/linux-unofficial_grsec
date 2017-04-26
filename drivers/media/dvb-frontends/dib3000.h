@@ -39,7 +39,7 @@ struct dib_fe_xfer_ops
 	int (*fifo_ctrl)(struct dvb_frontend *fe, int onoff);
 	int (*pid_ctrl)(struct dvb_frontend *fe, int index, int pid, int onoff);
 	int (*tuner_pass_ctrl)(struct dvb_frontend *fe, int onoff, u8 pll_ctrl);
-};
+} __no_const;
 
 #if IS_REACHABLE(CONFIG_DVB_DIB3000MB)
 extern struct dvb_frontend* dib3000mb_attach(const struct dib3000_config* config,

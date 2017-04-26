@@ -29,6 +29,10 @@ static ssize_t cm_write(struct file *file, const char __user * user_buf,
 	struct acpi_table_header table;
 	acpi_status status;
 
+#ifdef CONFIG_GRKERNSEC_KMEM
+	return -EPERM;
+#endif
+
 	if (!(*ppos)) {
 		/* parse the table header to get the table length */
 		if (count <= sizeof(struct acpi_table_header))

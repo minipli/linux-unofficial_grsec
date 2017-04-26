@@ -45,7 +45,8 @@ unsigned long convert_ip_to_linear(struct task_struct *child, struct pt_regs *re
 			addr += base;
 		}
 		mutex_unlock(&child->mm->context.lock);
-	}
+	} else if (seg == __KERNEL_CS || seg == __KERNEXEC_KERNEL_CS)
+		addr = ktla_ktva(addr);
 #endif
 
 	return addr;
@@ -56,6 +57,9 @@ static int is_setting_trap_flag(struct task_struct *child, struct pt_regs *regs)
 	int i, copied;
 	unsigned char opcode[15];
 	unsigned long addr = convert_ip_to_linear(child, regs);
+
+	if (addr == -1L)
+		return 0;
 
 	copied = access_process_vm(child, addr, opcode, sizeof(opcode),
 			FOLL_FORCE);

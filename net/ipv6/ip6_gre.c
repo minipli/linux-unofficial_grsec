@@ -71,8 +71,8 @@ struct ip6gre_net {
 	struct net_device *fb_tunnel_dev;
 };
 
-static struct rtnl_link_ops ip6gre_link_ops __read_mostly;
-static struct rtnl_link_ops ip6gre_tap_ops __read_mostly;
+static struct rtnl_link_ops ip6gre_link_ops;
+static struct rtnl_link_ops ip6gre_tap_ops;
 static int ip6gre_tunnel_init(struct net_device *dev);
 static void ip6gre_tunnel_setup(struct net_device *dev);
 static void ip6gre_tunnel_link(struct ip6gre_net *ign, struct ip6_tnl *t);
@@ -1069,7 +1069,7 @@ static void ip6gre_fb_tunnel_init(struct net_device *dev)
 }
 
 
-static struct inet6_protocol ip6gre_protocol __read_mostly = {
+static struct inet6_protocol ip6gre_protocol = {
 	.handler     = gre_rcv,
 	.err_handler = ip6gre_err,
 	.flags       = INET6_PROTO_NOPOLICY|INET6_PROTO_FINAL,
@@ -1522,7 +1522,7 @@ static const struct nla_policy ip6gre_policy[IFLA_GRE_MAX + 1] = {
 	[IFLA_GRE_ENCAP_DPORT]  = { .type = NLA_U16 },
 };
 
-static struct rtnl_link_ops ip6gre_link_ops __read_mostly = {
+static struct rtnl_link_ops ip6gre_link_ops = {
 	.kind		= "ip6gre",
 	.maxtype	= IFLA_GRE_MAX,
 	.policy		= ip6gre_policy,
@@ -1537,7 +1537,7 @@ static struct rtnl_link_ops ip6gre_link_ops __read_mostly = {
 	.get_link_net	= ip6_tnl_get_link_net,
 };
 
-static struct rtnl_link_ops ip6gre_tap_ops __read_mostly = {
+static struct rtnl_link_ops ip6gre_tap_ops = {
 	.kind		= "ip6gretap",
 	.maxtype	= IFLA_GRE_MAX,
 	.policy		= ip6gre_policy,

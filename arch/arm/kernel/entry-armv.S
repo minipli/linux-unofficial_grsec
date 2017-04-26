@@ -50,6 +50,87 @@
 9997:
 	.endm
 
+	.macro	pax_enter_kernel
+#if defined(CONFIG_PAX_KERNEXEC) || defined(CONFIG_PAX_MEMORY_UDEREF)
+	@ make aligned space for saved DACR
+	sub	sp, sp, #8
+	@ save regs
+	stmdb	sp!, {r1, r2}
+	@ read DACR from cpu_domain into r1
+	mov	r2, sp
+	@ assume 8K pages, since we have to split the immediate in two
+	bic	r2, r2, #(0x1fc0)
+	bic	r2, r2, #(0x3f)
+	ldr	r1, [r2, #TI_CPU_DOMAIN]
+	@ store old DACR on stack
+	str	r1, [sp, #8]
+#ifdef CONFIG_PAX_KERNEXEC
+	@ set type of DOMAIN_KERNEL to DOMAIN_KERNELCLIENT
+	bic	r1, r1, #(domain_val(DOMAIN_KERNEL, 3))
+	orr	r1, r1, #(domain_val(DOMAIN_KERNEL, DOMAIN_KERNELCLIENT))
+#endif
+#ifdef CONFIG_PAX_MEMORY_UDEREF
+	@ set current DOMAIN_USER to DOMAIN_NOACCESS
+	bic	r1, r1, #(domain_val(DOMAIN_USER, 3))
+#endif
+	@ write r1 to current_thread_info()->cpu_domain
+	str	r1, [r2, #TI_CPU_DOMAIN]
+	@ write r1 to DACR
+	mcr	p15, 0, r1, c3, c0, 0
+	@ instruction sync
+	instr_sync
+	@ restore regs
+	ldmia	sp!, {r1, r2}
+#endif
+	.endm
+
+	.macro	pax_open_userland
+#ifdef CONFIG_PAX_MEMORY_UDEREF
+	@ save regs
+	stmdb	sp!, {r0, r1}
+	@ read DACR from cpu_domain into r1
+	mov	r0, sp
+	@ assume 8K pages, since we have to split the immediate in two
+	bic	r0, r0, #(0x1fc0)
+	bic	r0, r0, #(0x3f)
+	ldr	r1, [r0, #TI_CPU_DOMAIN]
+	@ set current DOMAIN_USER to DOMAIN_CLIENT
+	bic	r1, r1, #(domain_val(DOMAIN_USER, 3))
+	orr	r1, r1, #(domain_val(DOMAIN_USER, DOMAIN_UDEREF))
+	@ write r1 to current_thread_info()->cpu_domain
+	str	r1, [r0, #TI_CPU_DOMAIN]
+	@ write r1 to DACR
+	mcr	p15, 0, r1, c3, c0, 0
+	@ instruction sync
+	instr_sync
+	@ restore regs
+	ldmia	sp!, {r0, r1}
+#endif
+	.endm
+
+	.macro	pax_close_userland
+#ifdef CONFIG_PAX_MEMORY_UDEREF
+	@ save regs
+	stmdb	sp!, {r0, r1}
+	@ read DACR from cpu_domain into r1
+	mov	r0, sp
+	@ assume 8K pages, since we have to split the immediate in two
+	bic	r0, r0, #(0x1fc0)
+	bic	r0, r0, #(0x3f)
+	ldr	r1, [r0, #TI_CPU_DOMAIN]
+	@ set current DOMAIN_USER to DOMAIN_NOACCESS
+	bic	r1, r1, #(domain_val(DOMAIN_USER, 3))
+	@ write r1 to current_thread_info()->cpu_domain
+	str	r1, [r0, #TI_CPU_DOMAIN]
+	@ write r1 to DACR
+	mcr	p15, 0, r1, c3, c0, 0
+	@ instruction sync
+	instr_sync
+	@ restore regs
+	ldmia	sp!, {r0, r1}
+#endif
+	.endm
+
 	.macro	pabt_helper
 	@ PABORT handler takes pt_regs in r2, fault address in r4 and psr in r5
 #ifdef MULTI_PABORT
@@ -92,11 +173,15 @@
  * Invalid mode handlers
  */
 	.macro	inv_entry, reason
+
+	pax_enter_kernel
+
 	sub	sp, sp, #PT_REGS_SIZE
  ARM(	stmib	sp, {r1 - lr}		)
  THUMB(	stmia	sp, {r0 - r12}		)
  THUMB(	str	sp, [sp, #S_SP]		)
  THUMB(	str	lr, [sp, #S_LR]		)
+
 	mov	r1, #\reason
 	.endm
 
@@ -152,6 +237,9 @@ ENDPROC(__und_invalid)
 	.macro	svc_entry, stack_hole=0, trace=1, uaccess=1
  UNWIND(.fnstart		)
  UNWIND(.save {r0 - pc}		)
+
+	pax_enter_kernel
+
 	sub	sp, sp, #(SVC_REGS_SIZE + \stack_hole - 4)
 #ifdef CONFIG_THUMB2_KERNEL
  SPFIX(	str	r0, [sp]	)	@ temporarily saved
@@ -167,7 +255,12 @@ ENDPROC(__und_invalid)
 	ldmia	r0, {r3 - r5}
 	add	r7, sp, #S_SP - 4	@ here for interlock avoidance
 	mov	r6, #-1			@  ""  ""      ""       ""
+#if defined(CONFIG_PAX_KERNEXEC) || defined(CONFIG_PAX_MEMORY_UDEREF)
+	@ offset sp by 8 as done in pax_enter_kernel
+	add	r2, sp, #(SVC_REGS_SIZE + \stack_hole + 4)
+#else
 	add	r2, sp, #(SVC_REGS_SIZE + \stack_hole - 4)
+#endif
  SPFIX(	addeq	r2, r2, #4	)
 	str	r3, [sp, #-4]!		@ save the "real" r0 copied
 					@ from the exception stack
@@ -382,6 +475,9 @@ ENDPROC(__fiq_abt)
 	.macro	usr_entry, trace=1, uaccess=1
  UNWIND(.fnstart	)
  UNWIND(.cantunwind	)	@ don't unwind the user space
+
+	pax_enter_kernel_user
+
 	sub	sp, sp, #PT_REGS_SIZE
  ARM(	stmib	sp, {r1 - r12}	)
  THUMB(	stmia	sp, {r0 - r12}	)
@@ -495,7 +591,9 @@ __und_usr:
 	tst	r3, #PSR_T_BIT			@ Thumb mode?
 	bne	__und_usr_thumb
 	sub	r4, r2, #4			@ ARM instr at LR - 4
+	pax_open_userland
 1:	ldrt	r0, [r4]
+	pax_close_userland
  ARM_BE8(rev	r0, r0)				@ little endian instruction
 
 	uaccess_disable ip
@@ -531,11 +629,15 @@ __und_usr_thumb:
  */
 	.arch	armv6t2
 #endif
+	pax_open_userland
 2:	ldrht	r5, [r4]
+	pax_close_userland
 ARM_BE8(rev16	r5, r5)				@ little endian instruction
 	cmp	r5, #0xe800			@ 32bit instruction if xx != 0
 	blo	__und_usr_fault_16_pan		@ 16bit undefined instruction
+	pax_open_userland
 3:	ldrht	r0, [r2]
+	pax_close_userland
 ARM_BE8(rev16	r0, r0)				@ little endian instruction
 	uaccess_disable ip
 	add	r2, r2, #2			@ r2 is PC + 2, make it PC + 4
@@ -566,7 +668,8 @@ ENDPROC(__und_usr)
  */
 	.pushsection .text.fixup, "ax"
 	.align	2
-4:	str     r4, [sp, #S_PC]			@ retry current instruction
+4:	pax_close_userland
+	str     r4, [sp, #S_PC]			@ retry current instruction
 	ret	r9
 	.popsection
 	.pushsection __ex_table,"a"
@@ -788,7 +891,7 @@ ENTRY(__switch_to)
  THUMB(	str	lr, [ip], #4		   )
 	ldr	r4, [r2, #TI_TP_VALUE]
 	ldr	r5, [r2, #TI_TP_VALUE + 4]
-#ifdef CONFIG_CPU_USE_DOMAINS
+#if defined(CONFIG_CPU_USE_DOMAINS) || defined(CONFIG_PAX_KERNEXEC) || defined(CONFIG_PAX_MEMORY_UDEREF)
 	mrc	p15, 0, r6, c3, c0, 0		@ Get domain register
 	str	r6, [r1, #TI_CPU_DOMAIN]	@ Save old domain register
 	ldr	r6, [r2, #TI_CPU_DOMAIN]
@@ -799,7 +902,7 @@ ENTRY(__switch_to)
 	ldr	r8, =__stack_chk_guard
 	ldr	r7, [r7, #TSK_STACK_CANARY]
 #endif
-#ifdef CONFIG_CPU_USE_DOMAINS
+#if defined(CONFIG_CPU_USE_DOMAINS) || defined(CONFIG_PAX_KERNEXEC) || defined(CONFIG_PAX_MEMORY_UDEREF)
 	mcr	p15, 0, r6, c3, c0, 0		@ Set domain register
 #endif
 	mov	r5, r0

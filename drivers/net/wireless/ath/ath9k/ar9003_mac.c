@@ -39,47 +39,47 @@ ar9003_set_txdesc(struct ath_hw *ah, void *ds, struct ath_tx_info *i)
 	      (i->qcu << AR_TxQcuNum_S) | desc_len;
 
 	checksum += val;
-	ACCESS_ONCE(ads->info) = val;
+	ACCESS_ONCE_RW(ads->info) = val;
 
 	checksum += i->link;
-	ACCESS_ONCE(ads->link) = i->link;
+	ACCESS_ONCE_RW(ads->link) = i->link;
 
 	checksum += i->buf_addr[0];
-	ACCESS_ONCE(ads->data0) = i->buf_addr[0];
+	ACCESS_ONCE_RW(ads->data0) = i->buf_addr[0];
 	checksum += i->buf_addr[1];
-	ACCESS_ONCE(ads->data1) = i->buf_addr[1];
+	ACCESS_ONCE_RW(ads->data1) = i->buf_addr[1];
 	checksum += i->buf_addr[2];
-	ACCESS_ONCE(ads->data2) = i->buf_addr[2];
+	ACCESS_ONCE_RW(ads->data2) = i->buf_addr[2];
 	checksum += i->buf_addr[3];
-	ACCESS_ONCE(ads->data3) = i->buf_addr[3];
+	ACCESS_ONCE_RW(ads->data3) = i->buf_addr[3];
 
 	checksum += (val = (i->buf_len[0] << AR_BufLen_S) & AR_BufLen);
-	ACCESS_ONCE(ads->ctl3) = val;
+	ACCESS_ONCE_RW(ads->ctl3) = val;
 	checksum += (val = (i->buf_len[1] << AR_BufLen_S) & AR_BufLen);
-	ACCESS_ONCE(ads->ctl5) = val;
+	ACCESS_ONCE_RW(ads->ctl5) = val;
 	checksum += (val = (i->buf_len[2] << AR_BufLen_S) & AR_BufLen);
-	ACCESS_ONCE(ads->ctl7) = val;
+	ACCESS_ONCE_RW(ads->ctl7) = val;
 	checksum += (val = (i->buf_len[3] << AR_BufLen_S) & AR_BufLen);
-	ACCESS_ONCE(ads->ctl9) = val;
+	ACCESS_ONCE_RW(ads->ctl9) = val;
 
 	checksum = (u16) (((checksum & 0xffff) + (checksum >> 16)) & 0xffff);
-	ACCESS_ONCE(ads->ctl10) = checksum;
+	ACCESS_ONCE_RW(ads->ctl10) = checksum;
 
 	if (i->is_first || i->is_last) {
-		ACCESS_ONCE(ads->ctl13) = set11nTries(i->rates, 0)
+		ACCESS_ONCE_RW(ads->ctl13) = set11nTries(i->rates, 0)
 			| set11nTries(i->rates, 1)
 			| set11nTries(i->rates, 2)
 			| set11nTries(i->rates, 3)
 			| (i->dur_update ? AR_DurUpdateEna : 0)
 			| SM(0, AR_BurstDur);
 
-		ACCESS_ONCE(ads->ctl14) = set11nRate(i->rates, 0)
+		ACCESS_ONCE_RW(ads->ctl14) = set11nRate(i->rates, 0)
 			| set11nRate(i->rates, 1)
 			| set11nRate(i->rates, 2)
 			| set11nRate(i->rates, 3);
 	} else {
-		ACCESS_ONCE(ads->ctl13) = 0;
-		ACCESS_ONCE(ads->ctl14) = 0;
+		ACCESS_ONCE_RW(ads->ctl13) = 0;
+		ACCESS_ONCE_RW(ads->ctl14) = 0;
 	}
 
 	ads->ctl20 = 0;
@@ -89,17 +89,17 @@ ar9003_set_txdesc(struct ath_hw *ah, void *ds, struct ath_tx_info *i)
 
 	ctl17 = SM(i->keytype, AR_EncrType);
 	if (!i->is_first) {
-		ACCESS_ONCE(ads->ctl11) = 0;
-		ACCESS_ONCE(ads->ctl12) = i->is_last ? 0 : AR_TxMore;
-		ACCESS_ONCE(ads->ctl15) = 0;
-		ACCESS_ONCE(ads->ctl16) = 0;
-		ACCESS_ONCE(ads->ctl17) = ctl17;
-		ACCESS_ONCE(ads->ctl18) = 0;
-		ACCESS_ONCE(ads->ctl19) = 0;
+		ACCESS_ONCE_RW(ads->ctl11) = 0;
+		ACCESS_ONCE_RW(ads->ctl12) = i->is_last ? 0 : AR_TxMore;
+		ACCESS_ONCE_RW(ads->ctl15) = 0;
+		ACCESS_ONCE_RW(ads->ctl16) = 0;
+		ACCESS_ONCE_RW(ads->ctl17) = ctl17;
+		ACCESS_ONCE_RW(ads->ctl18) = 0;
+		ACCESS_ONCE_RW(ads->ctl19) = 0;
 		return;
 	}
 
-	ACCESS_ONCE(ads->ctl11) = (i->pkt_len & AR_FrameLen)
+	ACCESS_ONCE_RW(ads->ctl11) = (i->pkt_len & AR_FrameLen)
 		| (i->flags & ATH9K_TXDESC_VMF ? AR_VirtMoreFrag : 0)
 		| SM(i->txpower[0], AR_XmitPower0)
 		| (i->flags & ATH9K_TXDESC_VEOL ? AR_VEOL : 0)
@@ -135,26 +135,26 @@ ar9003_set_txdesc(struct ath_hw *ah, void *ds, struct ath_tx_info *i)
 	val = (i->flags & ATH9K_TXDESC_PAPRD) >> ATH9K_TXDESC_PAPRD_S;
 	ctl12 |= SM(val, AR_PAPRDChainMask);
 
-	ACCESS_ONCE(ads->ctl12) = ctl12;
-	ACCESS_ONCE(ads->ctl17) = ctl17;
+	ACCESS_ONCE_RW(ads->ctl12) = ctl12;
+	ACCESS_ONCE_RW(ads->ctl17) = ctl17;
 
-	ACCESS_ONCE(ads->ctl15) = set11nPktDurRTSCTS(i->rates, 0)
+	ACCESS_ONCE_RW(ads->ctl15) = set11nPktDurRTSCTS(i->rates, 0)
 		| set11nPktDurRTSCTS(i->rates, 1);
 
-	ACCESS_ONCE(ads->ctl16) = set11nPktDurRTSCTS(i->rates, 2)
+	ACCESS_ONCE_RW(ads->ctl16) = set11nPktDurRTSCTS(i->rates, 2)
 		| set11nPktDurRTSCTS(i->rates, 3);
 
-	ACCESS_ONCE(ads->ctl18) = set11nRateFlags(i->rates, 0)
+	ACCESS_ONCE_RW(ads->ctl18) = set11nRateFlags(i->rates, 0)
 		| set11nRateFlags(i->rates, 1)
 		| set11nRateFlags(i->rates, 2)
 		| set11nRateFlags(i->rates, 3)
 		| SM(i->rtscts_rate, AR_RTSCTSRate);
 
-	ACCESS_ONCE(ads->ctl19) = AR_Not_Sounding;
+	ACCESS_ONCE_RW(ads->ctl19) = AR_Not_Sounding;
 
-	ACCESS_ONCE(ads->ctl20) = SM(i->txpower[1], AR_XmitPower1);
-	ACCESS_ONCE(ads->ctl21) = SM(i->txpower[2], AR_XmitPower2);
-	ACCESS_ONCE(ads->ctl22) = SM(i->txpower[3], AR_XmitPower3);
+	ACCESS_ONCE_RW(ads->ctl20) = SM(i->txpower[1], AR_XmitPower1);
+	ACCESS_ONCE_RW(ads->ctl21) = SM(i->txpower[2], AR_XmitPower2);
+	ACCESS_ONCE_RW(ads->ctl22) = SM(i->txpower[3], AR_XmitPower3);
 }
 
 static u16 ar9003_calc_ptr_chksum(struct ar9003_txc *ads)

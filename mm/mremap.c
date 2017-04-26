@@ -162,6 +162,12 @@ static void move_ptes(struct vm_area_struct *vma, pmd_t *old_pmd,
 		if (pte_present(pte) && pte_dirty(pte))
 			force_flush = true;
 		pte = move_pte(pte, new_vma->vm_page_prot, old_addr, new_addr);
+
+#ifdef CONFIG_ARCH_TRACK_EXEC_LIMIT
+		if (!(__supported_pte_mask & _PAGE_NX) && pte_present(pte) && (new_vma->vm_flags & (VM_PAGEEXEC | VM_EXEC)) == VM_PAGEEXEC)
+			pte = pte_exprotect(pte);
+#endif
+
 		pte = move_soft_dirty_pte(pte);
 		set_pte_at(mm, new_addr, new_pte, pte);
 	}
@@ -373,6 +379,11 @@ static struct vm_area_struct *vma_to_resize(unsigned long addr,
 	if (is_vm_hugetlb_page(vma))
 		return ERR_PTR(-EINVAL);
 
+#ifdef CONFIG_PAX_SEGMEXEC
+	if (pax_find_mirror_vma(vma))
+		return ERR_PTR(-EINVAL);
+#endif
+
 	/* We can't remap across vm area boundaries */
 	if (old_len > vma->vm_end - addr)
 		return ERR_PTR(-EFAULT);
@@ -420,11 +431,19 @@ static unsigned long mremap_to(unsigned long addr, unsigned long old_len,
 	unsigned long ret = -EINVAL;
 	unsigned long charged = 0;
 	unsigned long map_flags;
+	unsigned long pax_task_size = TASK_SIZE;
 
 	if (offset_in_page(new_addr))
 		goto out;
 
-	if (new_len > TASK_SIZE || new_addr > TASK_SIZE - new_len)
+#ifdef CONFIG_PAX_SEGMEXEC
+	if (mm->pax_flags & MF_PAX_SEGMEXEC)
+		pax_task_size = SEGMEXEC_TASK_SIZE;
+#endif
+
+	pax_task_size -= PAGE_SIZE;
+
+	if (new_len > TASK_SIZE || new_addr > pax_task_size - new_len)
 		goto out;
 
 	/* Ensure the old/new locations do not overlap */
@@ -497,6 +516,7 @@ SYSCALL_DEFINE5(mremap, unsigned long, addr, unsigned long, old_len,
 	unsigned long ret = -EINVAL;
 	unsigned long charged = 0;
 	bool locked = false;
+	unsigned long pax_task_size = TASK_SIZE;
 
 	if (flags & ~(MREMAP_FIXED | MREMAP_MAYMOVE))
 		return ret;
@@ -516,6 +536,17 @@ SYSCALL_DEFINE5(mremap, unsigned long, addr, unsigned long, old_len,
 	 * a zero new-len is nonsensical.
 	 */
 	if (!new_len)
+		return ret;
+
+#ifdef CONFIG_PAX_SEGMEXEC
+	if (mm->pax_flags & MF_PAX_SEGMEXEC)
+		pax_task_size = SEGMEXEC_TASK_SIZE;
+#endif
+
+	pax_task_size -= PAGE_SIZE;
+
+	if (new_len > pax_task_size || addr > pax_task_size-new_len ||
+	    old_len > pax_task_size || addr > pax_task_size-old_len)
 		return ret;
 
 	if (down_write_killable(&current->mm->mmap_sem))
@@ -569,6 +600,7 @@ SYSCALL_DEFINE5(mremap, unsigned long, addr, unsigned long, old_len,
 				new_addr = addr;
 			}
 			ret = addr;
+			track_exec_limit(vma->vm_mm, vma->vm_start, addr + new_len, vma->vm_flags);
 			goto out;
 		}
 	}
@@ -592,7 +624,12 @@ SYSCALL_DEFINE5(mremap, unsigned long, addr, unsigned long, old_len,
 			goto out;
 		}
 
+		map_flags = vma->vm_flags;
 		ret = move_vma(vma, addr, old_len, new_len, new_addr, &locked);
+		if (!(ret & ~PAGE_MASK)) {
+			track_exec_limit(current->mm, addr, addr + old_len, 0UL);
+			track_exec_limit(current->mm, new_addr, new_addr + new_len, map_flags);
+		}
 	}
 out:
 	if (offset_in_page(ret)) {

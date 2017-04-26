@@ -17,6 +17,7 @@
 
 #include <linux/linkage.h>
 #include <asm/frame.h>
+#include <asm/alternative-asm.h>
 
 #define CAMELLIA_TABLE_BYTE_LEN 272
 
@@ -192,7 +193,7 @@ roundsm16_x0_x1_x2_x3_x4_x5_x6_x7_y0_y1_y2_y3_y4_y5_y6_y7_cd:
 	roundsm16(%xmm0, %xmm1, %xmm2, %xmm3, %xmm4, %xmm5, %xmm6, %xmm7,
 		  %xmm8, %xmm9, %xmm10, %xmm11, %xmm12, %xmm13, %xmm14, %xmm15,
 		  %rcx, (%r9));
-	ret;
+	pax_ret roundsm16_x0_x1_x2_x3_x4_x5_x6_x7_y0_y1_y2_y3_y4_y5_y6_y7_cd;
 ENDPROC(roundsm16_x0_x1_x2_x3_x4_x5_x6_x7_y0_y1_y2_y3_y4_y5_y6_y7_cd)
 
 .align 8
@@ -200,7 +201,7 @@ roundsm16_x4_x5_x6_x7_x0_x1_x2_x3_y4_y5_y6_y7_y0_y1_y2_y3_ab:
 	roundsm16(%xmm4, %xmm5, %xmm6, %xmm7, %xmm0, %xmm1, %xmm2, %xmm3,
 		  %xmm12, %xmm13, %xmm14, %xmm15, %xmm8, %xmm9, %xmm10, %xmm11,
 		  %rax, (%r9));
-	ret;
+	pax_ret roundsm16_x4_x5_x6_x7_x0_x1_x2_x3_y4_y5_y6_y7_y0_y1_y2_y3_ab;
 ENDPROC(roundsm16_x4_x5_x6_x7_x0_x1_x2_x3_y4_y5_y6_y7_y0_y1_y2_y3_ab)
 
 /*
@@ -212,7 +213,7 @@ ENDPROC(roundsm16_x4_x5_x6_x7_x0_x1_x2_x3_y4_y5_y6_y7_y0_y1_y2_y3_ab)
 #define two_roundsm16(x0, x1, x2, x3, x4, x5, x6, x7, y0, y1, y2, y3, y4, y5, \
 		      y6, y7, mem_ab, mem_cd, i, dir, store_ab) \
 	leaq (key_table + (i) * 8)(CTX), %r9; \
-	call roundsm16_x0_x1_x2_x3_x4_x5_x6_x7_y0_y1_y2_y3_y4_y5_y6_y7_cd; \
+	pax_direct_call roundsm16_x0_x1_x2_x3_x4_x5_x6_x7_y0_y1_y2_y3_y4_y5_y6_y7_cd; \
 	\
 	vmovdqu x4, 0 * 16(mem_cd); \
 	vmovdqu x5, 1 * 16(mem_cd); \
@@ -224,7 +225,7 @@ ENDPROC(roundsm16_x4_x5_x6_x7_x0_x1_x2_x3_y4_y5_y6_y7_y0_y1_y2_y3_ab)
 	vmovdqu x3, 7 * 16(mem_cd); \
 	\
 	leaq (key_table + ((i) + (dir)) * 8)(CTX), %r9; \
-	call roundsm16_x4_x5_x6_x7_x0_x1_x2_x3_y4_y5_y6_y7_y0_y1_y2_y3_ab; \
+	pax_direct_call roundsm16_x4_x5_x6_x7_x0_x1_x2_x3_y4_y5_y6_y7_y0_y1_y2_y3_ab; \
 	\
 	store_ab(x0, x1, x2, x3, x4, x5, x6, x7, mem_ab);
 
@@ -783,7 +784,7 @@ __camellia_enc_blk16:
 		    %xmm15, (key_table)(CTX, %r8, 8), (%rax), 1 * 16(%rax));
 
 	FRAME_END
-	ret;
+	pax_ret camellia_xts_enc_16way;
 
 .align 8
 .Lenc_max32:
@@ -870,7 +871,7 @@ __camellia_dec_blk16:
 		    %xmm15, (key_table)(CTX), (%rax), 1 * 16(%rax));
 
 	FRAME_END
-	ret;
+	pax_ret camellia_xts_dec_16way;
 
 .align 8
 .Ldec_max32:
@@ -889,7 +890,7 @@ __camellia_dec_blk16:
 	jmp .Ldec_max24;
 ENDPROC(__camellia_dec_blk16)
 
-ENTRY(camellia_ecb_enc_16way)
+RAP_ENTRY(camellia_ecb_enc_16way)
 	/* input:
 	 *	%rdi: ctx, CTX
 	 *	%rsi: dst (16 blocks)
@@ -904,17 +905,17 @@ ENTRY(camellia_ecb_enc_16way)
 	/* now dst can be used as temporary buffer (even in src == dst case) */
 	movq	%rsi, %rax;
 
-	call __camellia_enc_blk16;
+	pax_direct_call __camellia_enc_blk16;
 
 	write_output(%xmm7, %xmm6, %xmm5, %xmm4, %xmm3, %xmm2, %xmm1, %xmm0,
 		     %xmm15, %xmm14, %xmm13, %xmm12, %xmm11, %xmm10, %xmm9,
 		     %xmm8, %rsi);
 
 	FRAME_END
-	ret;
+	pax_ret camellia_ecb_enc_16way;
 ENDPROC(camellia_ecb_enc_16way)
 
-ENTRY(camellia_ecb_dec_16way)
+RAP_ENTRY(camellia_ecb_dec_16way)
 	/* input:
 	 *	%rdi: ctx, CTX
 	 *	%rsi: dst (16 blocks)
@@ -934,17 +935,17 @@ ENTRY(camellia_ecb_dec_16way)
 	/* now dst can be used as temporary buffer (even in src == dst case) */
 	movq	%rsi, %rax;
 
-	call __camellia_dec_blk16;
+	pax_direct_call __camellia_dec_blk16;
 
 	write_output(%xmm7, %xmm6, %xmm5, %xmm4, %xmm3, %xmm2, %xmm1, %xmm0,
 		     %xmm15, %xmm14, %xmm13, %xmm12, %xmm11, %xmm10, %xmm9,
 		     %xmm8, %rsi);
 
 	FRAME_END
-	ret;
+	pax_ret camellia_ecb_dec_16way;
 ENDPROC(camellia_ecb_dec_16way)
 
-ENTRY(camellia_cbc_dec_16way)
+RAP_ENTRY(camellia_cbc_dec_16way)
 	/* input:
 	 *	%rdi: ctx, CTX
 	 *	%rsi: dst (16 blocks)
@@ -968,7 +969,7 @@ ENTRY(camellia_cbc_dec_16way)
 	subq $(16 * 16), %rsp;
 	movq %rsp, %rax;
 
-	call __camellia_dec_blk16;
+	pax_direct_call __camellia_dec_blk16;
 
 	addq $(16 * 16), %rsp;
 
@@ -992,7 +993,7 @@ ENTRY(camellia_cbc_dec_16way)
 		     %xmm8, %rsi);
 
 	FRAME_END
-	ret;
+	pax_ret camellia_cbc_dec_16way;
 ENDPROC(camellia_cbc_dec_16way)
 
 #define inc_le128(x, minus_one, tmp) \
@@ -1001,7 +1002,7 @@ ENDPROC(camellia_cbc_dec_16way)
 	vpslldq $8, tmp, tmp; \
 	vpsubq tmp, x, x;
 
-ENTRY(camellia_ctr_16way)
+RAP_ENTRY(camellia_ctr_16way)
 	/* input:
 	 *	%rdi: ctx, CTX
 	 *	%rsi: dst (16 blocks)
@@ -1080,7 +1081,7 @@ ENTRY(camellia_ctr_16way)
 	vpxor 14 * 16(%rax), %xmm15, %xmm14;
 	vpxor 15 * 16(%rax), %xmm15, %xmm15;
 
-	call __camellia_enc_blk16;
+	pax_direct_call __camellia_enc_blk16;
 
 	addq $(16 * 16), %rsp;
 
@@ -1105,7 +1106,7 @@ ENTRY(camellia_ctr_16way)
 		     %xmm8, %rsi);
 
 	FRAME_END
-	ret;
+	pax_ret camellia_ctr_16way;
 ENDPROC(camellia_ctr_16way)
 
 #define gf128mul_x_ble(iv, mask, tmp) \
@@ -1224,7 +1225,7 @@ camellia_xts_crypt_16way:
 	vpxor 14 * 16(%rax), %xmm15, %xmm14;
 	vpxor 15 * 16(%rax), %xmm15, %xmm15;
 
-	call *%r9;
+	pax_indirect_call "%r9", camellia_xts_enc_16way;
 
 	addq $(16 * 16), %rsp;
 
@@ -1249,10 +1250,10 @@ camellia_xts_crypt_16way:
 		     %xmm8, %rsi);
 
 	FRAME_END
-	ret;
+	pax_ret camellia_xts_crypt_16way;
 ENDPROC(camellia_xts_crypt_16way)
 
-ENTRY(camellia_xts_enc_16way)
+RAP_ENTRY(camellia_xts_enc_16way)
 	/* input:
 	 *	%rdi: ctx, CTX
 	 *	%rsi: dst (16 blocks)
@@ -1266,7 +1267,7 @@ ENTRY(camellia_xts_enc_16way)
 	jmp camellia_xts_crypt_16way;
 ENDPROC(camellia_xts_enc_16way)
 
-ENTRY(camellia_xts_dec_16way)
+RAP_ENTRY(camellia_xts_dec_16way)
 	/* input:
 	 *	%rdi: ctx, CTX
 	 *	%rsi: dst (16 blocks)

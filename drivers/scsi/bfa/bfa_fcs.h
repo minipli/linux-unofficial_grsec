@@ -67,8 +67,10 @@ struct bfa_fcs_s;
 #define BFA_FCS_PID_IS_WKA(pid)  ((bfa_ntoh3b(pid) > 0xFFF000) ?  1 : 0)
 #define BFA_FCS_MAX_RPORT_LOGINS 1024
 
+enum vport_ns_event;
+
 struct bfa_fcs_lport_ns_s {
-	bfa_sm_t        sm;		/*  state machine */
+	void (*sm)(struct bfa_fcs_lport_ns_s *, enum vport_ns_event);/*  state machine */
 	struct bfa_timer_s timer;
 	struct bfa_fcs_lport_s *port;	/*  parent port */
 	struct bfa_fcxp_s *fcxp;
@@ -77,18 +79,20 @@ struct bfa_fcs_lport_ns_s {
 	u8	num_rsnn_nn_retries;
 };
 
+enum port_scn_event;
 
 struct bfa_fcs_lport_scn_s {
-	bfa_sm_t        sm;		/*  state machine */
+	void (*sm)(struct bfa_fcs_lport_scn_s *, enum port_scn_event);/*  state machine */
 	struct bfa_timer_s timer;
 	struct bfa_fcs_lport_s *port;	/*  parent port */
 	struct bfa_fcxp_s *fcxp;
 	struct bfa_fcxp_wqe_s fcxp_wqe;
 };
 
+enum port_fdmi_event;
 
 struct bfa_fcs_lport_fdmi_s {
-	bfa_sm_t        sm;		/*  state machine */
+	void (*sm)(struct bfa_fcs_lport_fdmi_s *, enum port_fdmi_event);/*  state machine */
 	struct bfa_timer_s timer;
 	struct bfa_fcs_lport_ms_s *ms;	/*  parent ms */
 	struct bfa_fcxp_s *fcxp;
@@ -97,9 +101,10 @@ struct bfa_fcs_lport_fdmi_s {
 	u8	rsvd[3];
 };
 
+enum port_ms_event;
 
 struct bfa_fcs_lport_ms_s {
-	bfa_sm_t        sm;		/*  state machine */
+	void (*sm)(struct bfa_fcs_lport_ms_s *, enum port_ms_event);/*  state machine */
 	struct bfa_timer_s timer;
 	struct bfa_fcs_lport_s *port;	/*  parent port */
 	struct bfa_fcxp_s *fcxp;
@@ -139,10 +144,11 @@ union bfa_fcs_lport_topo_u {
 	struct bfa_fcs_lport_n2n_s pn2n;
 };
 
+enum bfa_fcs_lport_event;
 
 struct bfa_fcs_lport_s {
 	struct list_head         qe;	/*  used by port/vport */
-	bfa_sm_t               sm;	/*  state machine */
+	void (*sm)(struct bfa_fcs_lport_s *, enum bfa_fcs_lport_event);	/*  state machine */
 	struct bfa_fcs_fabric_s *fabric;	/*  parent fabric */
 	struct bfa_lport_cfg_s  port_cfg;	/*  port configuration */
 	struct bfa_timer_s link_timer;	/*  timer for link offline */
@@ -179,10 +185,11 @@ enum bfa_fcs_fabric_type {
 	BFA_FCS_FABRIC_LOOP = 3,
 };
 
+enum bfa_fcs_fabric_event;
 
 struct bfa_fcs_fabric_s {
 	struct list_head   qe;		/*  queue element */
-	bfa_sm_t	 sm;		/*  state machine */
+	void (*sm)(struct bfa_fcs_fabric_s *, enum bfa_fcs_fabric_event); /*  state machine */
 	struct bfa_fcs_s *fcs;		/*  FCS instance */
 	struct bfa_fcs_lport_s  bport;	/*  base logical port */
 	enum bfa_fcs_fabric_type fab_type; /*  fabric type */
@@ -355,9 +362,11 @@ void            bfa_fcs_lport_scn_process_rscn(struct bfa_fcs_lport_s *port,
 					      struct fchs_s *rx_frame, u32 len);
 void		bfa_fcs_lport_lip_scn_online(bfa_fcs_lport_t *port);
 
+enum bfa_fcs_vport_event;
+
 struct bfa_fcs_vport_s {
 	struct list_head		qe;		/*  queue elem	*/
-	bfa_sm_t		sm;		/*  state machine	*/
+	void (*sm)(struct bfa_fcs_vport_s *, enum bfa_fcs_vport_event);/*  state machine	*/
 	bfa_fcs_lport_t		lport;		/*  logical port	*/
 	struct bfa_timer_s	timer;
 	struct bfad_vport_s	*vport_drv;	/*  Driver private	*/
@@ -409,8 +418,10 @@ struct bfa_fcs_tin_s;
 struct bfa_fcs_iprp_s;
 
 /* Rport Features (RPF) */
+enum rpf_event;
+
 struct bfa_fcs_rpf_s {
-	bfa_sm_t	sm;	/*  state machine */
+	void (*sm)(struct bfa_fcs_rpf_s *, enum rpf_event); /*  state machine */
 	struct bfa_fcs_rport_s *rport;	/*  parent rport */
 	struct bfa_timer_s	timer;	/*  general purpose timer */
 	struct bfa_fcxp_s	*fcxp;	/*  FCXP needed for discarding */
@@ -424,6 +435,8 @@ struct bfa_fcs_rpf_s {
 	 * not supported by the rport.
 	 */
 };
+
+enum rport_event;
 
 struct bfa_fcs_rport_s {
 	struct list_head	qe;	/*  used by port/vport */
@@ -441,7 +454,7 @@ struct bfa_fcs_rport_s {
 	wwn_t	pwwn;	/*  port wwn of rport */
 	wwn_t	nwwn;	/*  node wwn of rport */
 	struct bfa_rport_symname_s psym_name; /*  port symbolic name  */
-	bfa_sm_t	sm;		/*  state machine */
+	void (*sm)(struct bfa_fcs_rport_s *, enum rport_event); /*  state machine */
 	struct bfa_timer_s timer;	/*  general purpose timer */
 	struct bfa_fcs_itnim_s *itnim;	/*  ITN initiator mode role */
 	struct bfa_fcs_tin_s *tin;	/*  ITN initiator mode role */
@@ -502,9 +515,10 @@ void  bfa_fcs_rpf_rport_offline(struct bfa_fcs_rport_s *rport);
  * forward declarations
  */
 struct bfad_itnim_s;
+enum bfa_fcs_itnim_event;
 
 struct bfa_fcs_itnim_s {
-	bfa_sm_t		sm;		/*  state machine */
+	void (*sm)(struct bfa_fcs_itnim_s *, enum bfa_fcs_itnim_event);/*  state machine */
 	struct bfa_fcs_rport_s	*rport;		/*  parent remote rport  */
 	struct bfad_itnim_s	*itnim_drv;	/*  driver peer instance */
 	struct bfa_fcs_s	*fcs;		/*  fcs instance	*/

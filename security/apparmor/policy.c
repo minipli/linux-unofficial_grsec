@@ -298,7 +298,7 @@ static struct aa_namespace *alloc_namespace(const char *prefix,
 	/* ns and ns->unconfined share ns->unconfined refcount */
 	ns->unconfined->ns = ns;
 
-	atomic_set(&ns->uniq_null, 0);
+	atomic_set_unchecked(&ns->uniq_null, 0);
 
 	return ns;
 
@@ -689,7 +689,7 @@ struct aa_profile *aa_new_null_profile(struct aa_profile *parent, int hat)
 {
 	struct aa_profile *profile = NULL;
 	char *name;
-	int uniq = atomic_inc_return(&parent->ns->uniq_null);
+	int uniq = atomic_inc_return_unchecked(&parent->ns->uniq_null);
 
 	/* freed below */
 	name = kmalloc(strlen(parent->base.hname) + 2 + 7 + 8, GFP_KERNEL);

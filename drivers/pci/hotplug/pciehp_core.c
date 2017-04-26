@@ -86,7 +86,7 @@ static int init_slot(struct controller *ctrl)
 	struct slot *slot = ctrl->slot;
 	struct hotplug_slot *hotplug = NULL;
 	struct hotplug_slot_info *info = NULL;
-	struct hotplug_slot_ops *ops = NULL;
+	hotplug_slot_ops_no_const *ops = NULL;
 	char name[SLOT_NAME_SIZE];
 	int retval = -ENOMEM;
 

@@ -76,6 +76,21 @@ int create_user_ns(struct cred *new)
 	struct ucounts *ucounts;
 	int ret, i;
 
+#ifdef CONFIG_GRKERNSEC
+	/*
+	 * This doesn't really inspire confidence:
+	 * http://marc.info/?l=linux-kernel&m=135543612731939&w=2
+	 * http://marc.info/?l=linux-kernel&m=135545831607095&w=2
+	 * Increases kernel attack surface in areas developers
+	 * previously cared little about ("low importance due
+	 * to requiring "root" capability")
+	 * To be removed when this code receives *proper* review
+	 */
+	if (!capable(CAP_SYS_ADMIN) || !capable(CAP_SETUID) ||
+			!capable(CAP_SETGID))
+		return -EPERM;
+#endif
+
 	ret = -ENOSPC;
 	if (parent_ns->level > 32)
 		goto fail;
@@ -1034,7 +1049,7 @@ static int userns_install(struct nsproxy *nsproxy, struct ns_common *ns)
 	if (!thread_group_empty(current))
 		return -EINVAL;
 
-	if (current->fs->users != 1)
+	if (atomic_read(&current->fs->users) != 1)
 		return -EINVAL;
 
 	if (!ns_capable(user_ns, CAP_SYS_ADMIN))

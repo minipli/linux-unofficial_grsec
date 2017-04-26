@@ -187,7 +187,7 @@ _gb_connection_create(struct gb_host_device *hd, int hd_cport_id,
 		connection->flags |= GB_CONNECTION_FLAG_NO_FLOWCTRL;
 	connection->state = GB_CONNECTION_STATE_DISABLED;
 
-	atomic_set(&connection->op_cycle, 0);
+	atomic_set_unchecked(&connection->op_cycle, 0);
 	mutex_init(&connection->mutex);
 	spin_lock_init(&connection->lock);
 	INIT_LIST_HEAD(&connection->operations);

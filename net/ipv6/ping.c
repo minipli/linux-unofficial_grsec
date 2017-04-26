@@ -250,6 +250,24 @@ static struct pernet_operations ping_v6_net_ops = {
 };
 #endif
 
+static struct pingv6_ops real_pingv6_ops = {
+	.ipv6_recv_error		= ipv6_recv_error,
+	.ip6_datagram_recv_common_ctl	= ip6_datagram_recv_common_ctl,
+	.ip6_datagram_recv_specific_ctl	= ip6_datagram_recv_specific_ctl,
+	.icmpv6_err_convert		= icmpv6_err_convert,
+	.ipv6_icmp_error		= ipv6_icmp_error,
+	.ipv6_chk_addr			= ipv6_chk_addr,
+};
+
+static struct pingv6_ops dummy_pingv6_ops = {
+	.ipv6_recv_error		= dummy_ipv6_recv_error,
+	.ip6_datagram_recv_common_ctl	= dummy_ip6_datagram_recv_ctl,
+	.ip6_datagram_recv_specific_ctl	= dummy_ip6_datagram_recv_ctl,
+	.icmpv6_err_convert		= dummy_icmpv6_err_convert,
+	.ipv6_icmp_error		= dummy_ipv6_icmp_error,
+	.ipv6_chk_addr			= dummy_ipv6_chk_addr,
+};
+
 int __init pingv6_init(void)
 {
 #ifdef CONFIG_PROC_FS
@@ -257,13 +275,7 @@ int __init pingv6_init(void)
 	if (ret)
 		return ret;
 #endif
-	pingv6_ops.ipv6_recv_error = ipv6_recv_error;
-	pingv6_ops.ip6_datagram_recv_common_ctl = ip6_datagram_recv_common_ctl;
-	pingv6_ops.ip6_datagram_recv_specific_ctl =
-		ip6_datagram_recv_specific_ctl;
-	pingv6_ops.icmpv6_err_convert = icmpv6_err_convert;
-	pingv6_ops.ipv6_icmp_error = ipv6_icmp_error;
-	pingv6_ops.ipv6_chk_addr = ipv6_chk_addr;
+	pingv6_ops = &real_pingv6_ops;
 	return inet6_register_protosw(&pingv6_protosw);
 }
 
@@ -272,14 +284,9 @@ int __init pingv6_init(void)
  */
 void pingv6_exit(void)
 {
-	pingv6_ops.ipv6_recv_error = dummy_ipv6_recv_error;
-	pingv6_ops.ip6_datagram_recv_common_ctl = dummy_ip6_datagram_recv_ctl;
-	pingv6_ops.ip6_datagram_recv_specific_ctl = dummy_ip6_datagram_recv_ctl;
-	pingv6_ops.icmpv6_err_convert = dummy_icmpv6_err_convert;
-	pingv6_ops.ipv6_icmp_error = dummy_ipv6_icmp_error;
-	pingv6_ops.ipv6_chk_addr = dummy_ipv6_chk_addr;
 #ifdef CONFIG_PROC_FS
 	unregister_pernet_subsys(&ping_v6_net_ops);
 #endif
+	pingv6_ops = &dummy_pingv6_ops;
 	inet6_unregister_protosw(&pingv6_protosw);
 }

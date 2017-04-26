@@ -36,19 +36,19 @@ irqreturn_t qxl_irq_handler(int irq, void *arg)
 	if (!pending)
 		return IRQ_NONE;
 
-	atomic_inc(&qdev->irq_received);
+	atomic_inc_unchecked(&qdev->irq_received);
 
 	if (pending & QXL_INTERRUPT_DISPLAY) {
-		atomic_inc(&qdev->irq_received_display);
+		atomic_inc_unchecked(&qdev->irq_received_display);
 		wake_up_all(&qdev->display_event);
 		qxl_queue_garbage_collect(qdev, false);
 	}
 	if (pending & QXL_INTERRUPT_CURSOR) {
-		atomic_inc(&qdev->irq_received_cursor);
+		atomic_inc_unchecked(&qdev->irq_received_cursor);
 		wake_up_all(&qdev->cursor_event);
 	}
 	if (pending & QXL_INTERRUPT_IO_CMD) {
-		atomic_inc(&qdev->irq_received_io_cmd);
+		atomic_inc_unchecked(&qdev->irq_received_io_cmd);
 		wake_up_all(&qdev->io_cmd_event);
 	}
 	if (pending & QXL_INTERRUPT_ERROR) {
@@ -85,10 +85,10 @@ int qxl_irq_init(struct qxl_device *qdev)
 	init_waitqueue_head(&qdev->io_cmd_event);
 	INIT_WORK(&qdev->client_monitors_config_work,
 		  qxl_client_monitors_config_work_func);
-	atomic_set(&qdev->irq_received, 0);
-	atomic_set(&qdev->irq_received_display, 0);
-	atomic_set(&qdev->irq_received_cursor, 0);
-	atomic_set(&qdev->irq_received_io_cmd, 0);
+	atomic_set_unchecked(&qdev->irq_received, 0);
+	atomic_set_unchecked(&qdev->irq_received_display, 0);
+	atomic_set_unchecked(&qdev->irq_received_cursor, 0);
+	atomic_set_unchecked(&qdev->irq_received_io_cmd, 0);
 	qdev->irq_received_error = 0;
 	ret = drm_irq_install(qdev->ddev, qdev->ddev->pdev->irq);
 	qdev->ram_header->int_mask = QXL_INTERRUPT_MASK;

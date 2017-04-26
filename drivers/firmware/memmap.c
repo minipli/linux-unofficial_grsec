@@ -124,7 +124,7 @@ static void __meminit release_firmware_map_entry(struct kobject *kobj)
 	kfree(entry);
 }
 
-static struct kobj_type __refdata memmap_ktype = {
+static const struct kobj_type __refconst memmap_ktype = {
 	.release	= release_firmware_map_entry,
 	.sysfs_ops	= &memmap_attr_ops,
 	.default_attrs	= def_attrs,

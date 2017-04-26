@@ -42,7 +42,7 @@ static const struct proto_ops rxrpc_rpc_ops;
 u32 rxrpc_epoch;
 
 /* current debugging ID */
-atomic_t rxrpc_debug_id;
+atomic_unchecked_t rxrpc_debug_id;
 
 /* count of skbs currently in use */
 atomic_t rxrpc_n_tx_skbs, rxrpc_n_rx_skbs;

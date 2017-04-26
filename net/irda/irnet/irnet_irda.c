@@ -613,8 +613,10 @@ irda_irnet_connect(irnet_socket *	self)
  * Note : this need to be called from a process context.
  */
 void
-irda_irnet_destroy(irnet_socket *	self)
+irda_irnet_destroy(void *_self)
 {
+  irnet_socket *self = _self;
+
   DENTER(IRDA_SOCK_TRACE, "(self=0x%p)\n", self);
   if(self == NULL)
     return;
@@ -1879,7 +1881,7 @@ irda_irnet_cleanup(void)
   irnet_destroy_server();
 
   /* Remove all instances of IrNET socket still present */
-  hashbin_delete(irnet_server.list, (FREE_FUNC) irda_irnet_destroy);
+  hashbin_delete(irnet_server.list, irda_irnet_destroy);
 
   DEXIT(MODULE_TRACE, "\n");
 }

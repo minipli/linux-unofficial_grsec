@@ -125,7 +125,7 @@ struct r8a66597 {
 	unsigned short interval_map;
 	unsigned char pipe_cnt[R8A66597_MAX_NUM_PIPE];
 	unsigned char dma_map;
-	unsigned int max_root_hub;
+	unsigned char max_root_hub;
 
 	struct list_head child_device;
 	unsigned long child_connect_map[4];

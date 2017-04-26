@@ -543,7 +543,7 @@ struct pnp_resource *pnp_add_irq_resource(struct pnp_dev *dev, int irq,
 	return pnp_res;
 }
 
-struct pnp_resource *pnp_add_dma_resource(struct pnp_dev *dev, int dma,
+struct pnp_resource *pnp_add_dma_resource(struct pnp_dev *dev, resource_size_t dma,
 					  int flags)
 {
 	struct pnp_resource *pnp_res;
@@ -551,7 +551,7 @@ struct pnp_resource *pnp_add_dma_resource(struct pnp_dev *dev, int dma,
 
 	pnp_res = pnp_new_resource(dev);
 	if (!pnp_res) {
-		dev_err(&dev->dev, "can't add resource for DMA %d\n", dma);
+		dev_err(&dev->dev, "can't add resource for DMA %lld\n", dma);
 		return NULL;
 	}
 

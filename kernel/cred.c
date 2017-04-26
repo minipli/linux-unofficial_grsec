@@ -172,6 +172,15 @@ void exit_creds(struct task_struct *tsk)
 	validate_creds(cred);
 	alter_cred_subscribers(cred, -1);
 	put_cred(cred);
+
+#ifdef CONFIG_GRKERNSEC_SETXID
+	cred = (struct cred *) tsk->delayed_cred;
+	if (cred != NULL) {
+		tsk->delayed_cred = NULL;
+		validate_creds(cred);
+		put_cred(cred);
+	}
+#endif
 }
 
 /**
@@ -419,7 +428,7 @@ static bool cred_cap_issubset(const struct cred *set, const struct cred *subset)
  * Always returns 0 thus allowing this function to be tail-called at the end
  * of, say, sys_setgid().
  */
-int commit_creds(struct cred *new)
+static int __commit_creds(struct cred *new)
 {
 	struct task_struct *task = current;
 	const struct cred *old = task->real_cred;
@@ -437,6 +446,8 @@ int commit_creds(struct cred *new)
 	BUG_ON(atomic_read(&new->usage) < 1);
 
 	get_cred(new); /* we will require a ref for the subj creds too */
+
+	gr_set_role_label(task, new->uid, new->gid);
 
 	/* dumpability changes */
 	if (!uid_eq(old->euid, new->euid) ||
@@ -487,6 +498,105 @@ int commit_creds(struct cred *new)
 	put_cred(old);
 	return 0;
 }
+#ifdef CONFIG_GRKERNSEC_SETXID
+extern int set_user(struct cred *new);
+
+void gr_delayed_cred_worker(void)
+{
+	const struct cred *new = current->delayed_cred;
+	struct cred *ncred;
+
+	current->delayed_cred = NULL;
+
+	if (!uid_eq(current_uid(), GLOBAL_ROOT_UID) && new != NULL) {
+		// from doing get_cred on it when queueing this
+		put_cred(new);
+		return;
+	} else if (new == NULL)
+		return;
+
+	ncred = prepare_creds();
+	if (!ncred)
+		goto die;
+	// uids
+	ncred->uid = new->uid;
+	ncred->euid = new->euid;
+	ncred->suid = new->suid;
+	ncred->fsuid = new->fsuid;
+	// gids
+	ncred->gid = new->gid;
+	ncred->egid = new->egid;
+	ncred->sgid = new->sgid;
+	ncred->fsgid = new->fsgid;
+	// groups
+	set_groups(ncred, new->group_info);
+	// caps
+	ncred->securebits = new->securebits;
+	ncred->cap_inheritable = new->cap_inheritable;
+	ncred->cap_permitted = new->cap_permitted;
+	ncred->cap_effective = new->cap_effective;
+	ncred->cap_bset = new->cap_bset;
+
+	if (set_user(ncred)) {
+		abort_creds(ncred);
+		goto die;
+	}
+
+	// from doing get_cred on it when queueing this
+	put_cred(new);
+
+	__commit_creds(ncred);
+	return;
+die:
+	// from doing get_cred on it when queueing this
+	put_cred(new);
+	do_group_exit(SIGKILL);
+}
+#endif
+
+int commit_creds(struct cred *new)
+{
+#ifdef CONFIG_GRKERNSEC_SETXID
+	int ret;
+	int schedule_it = 0;
+	struct task_struct *t;
+	unsigned oldsecurebits = current_cred()->securebits;
+
+	/* we won't get called with tasklist_lock held for writing
+	   and interrupts disabled as the cred struct in that case is
+	   init_cred
+	*/
+	if (grsec_enable_setxid && !current_is_single_threaded() &&
+	    uid_eq(current_uid(), GLOBAL_ROOT_UID) &&
+	    !uid_eq(new->uid, GLOBAL_ROOT_UID)) {
+		schedule_it = 1;
+	}
+	ret = __commit_creds(new);
+	if (schedule_it) {
+		rcu_read_lock();
+		read_lock(&tasklist_lock);
+		for (t = next_thread(current); t != current;
+		     t = next_thread(t)) {
+			/* we'll check if the thread has uid 0 in
+			 * the delayed worker routine
+			 */
+			if (task_securebits(t) == oldsecurebits &&
+			    t->delayed_cred == NULL) {
+				t->delayed_cred = get_cred(new);
+				set_tsk_thread_flag(t, TIF_GRSEC_SETXID);
+				set_tsk_need_resched(t);
+			}
+		}
+		read_unlock(&tasklist_lock);
+		rcu_read_unlock();
+	}
+
+	return ret;
+#else
+	return __commit_creds(new);
+#endif
+}
+
 EXPORT_SYMBOL(commit_creds);
 
 /**

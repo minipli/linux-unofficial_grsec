@@ -1644,7 +1644,7 @@ static struct gsm_dlci *gsm_dlci_alloc(struct gsm_mux *gsm, int addr)
 	spin_lock_init(&dlci->lock);
 	mutex_init(&dlci->mutex);
 	dlci->fifo = &dlci->_fifo;
-	if (kfifo_alloc(&dlci->_fifo, 4096, GFP_KERNEL) < 0) {
+	if (kfifo_alloc(&dlci->_fifo, 4096, GFP_KERNEL)) {
 		kfree(dlci);
 		return NULL;
 	}
@@ -2652,7 +2652,7 @@ static inline void muxnet_put(struct gsm_mux_net *mux_net)
 	kref_put(&mux_net->ref, net_free);
 }
 
-static int gsm_mux_net_start_xmit(struct sk_buff *skb,
+static netdev_tx_t gsm_mux_net_start_xmit(struct sk_buff *skb,
 				      struct net_device *net)
 {
 	struct gsm_mux_net *mux_net = netdev_priv(net);
@@ -2943,7 +2943,7 @@ static int gsmtty_open(struct tty_struct *tty, struct file *filp)
 	struct gsm_dlci *dlci = tty->driver_data;
 	struct tty_port *port = &dlci->port;
 
-	port->count++;
+	atomic_inc(&port->count);
 	tty_port_tty_set(port, tty);
 
 	dlci->modem_rx = 0;

@@ -213,7 +213,7 @@ static void chnl_flowctrl_cb(struct cflayer *layr, enum caif_ctrlcmd flow,
 	}
 }
 
-static int chnl_net_start_xmit(struct sk_buff *skb, struct net_device *dev)
+static netdev_tx_t chnl_net_start_xmit(struct sk_buff *skb, struct net_device *dev)
 {
 	struct chnl_net *priv;
 	struct cfpkt *pkt = NULL;
@@ -514,7 +514,7 @@ static const struct nla_policy ipcaif_policy[IFLA_CAIF_MAX + 1] = {
 };
 
 
-static struct rtnl_link_ops ipcaif_link_ops __read_mostly = {
+static struct rtnl_link_ops ipcaif_link_ops = {
 	.kind		= "caif",
 	.priv_size	= sizeof(struct chnl_net),
 	.setup		= ipcaif_net_setup,

@@ -75,8 +75,8 @@ struct mapped_device {
 	 * Event handling.
 	 */
 	wait_queue_head_t eventq;
-	atomic_t event_nr;
-	atomic_t uevent_seq;
+	atomic_unchecked_t event_nr;
+	atomic_unchecked_t uevent_seq;
 	struct list_head uevent_list;
 	spinlock_t uevent_lock; /* Protect access to uevent_list */
 

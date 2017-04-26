@@ -169,10 +169,10 @@ preferred_addr:
 	addl    %eax, %ebx
 	notl	%eax
 	andl    %eax, %ebx
-	cmpl	$LOAD_PHYSICAL_ADDR, %ebx
+	cmpl	$____LOAD_PHYSICAL_ADDR, %ebx
 	jge	1f
 #endif
-	movl	$LOAD_PHYSICAL_ADDR, %ebx
+	movl	$____LOAD_PHYSICAL_ADDR, %ebx
 1:
 
 	/* Target address to relocate to for decompression */

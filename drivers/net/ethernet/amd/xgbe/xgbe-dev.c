@@ -2818,7 +2818,7 @@ static void xgbe_powerdown_rx(struct xgbe_prv_data *pdata)
 
 static int xgbe_init(struct xgbe_prv_data *pdata)
 {
-	struct xgbe_desc_if *desc_if = &pdata->desc_if;
+	struct xgbe_desc_if *desc_if = pdata->desc_if;
 	int ret;
 
 	DBGPR("-->xgbe_init\n");
@@ -2884,107 +2884,102 @@ static int xgbe_init(struct xgbe_prv_data *pdata)
 	return 0;
 }
 
-void xgbe_init_function_ptrs_dev(struct xgbe_hw_if *hw_if)
-{
-	DBGPR("-->xgbe_init_function_ptrs\n");
+const struct xgbe_hw_if default_xgbe_hw_if = {
+	.tx_complete = xgbe_tx_complete,
 
-	hw_if->tx_complete = xgbe_tx_complete;
+	.set_mac_address = xgbe_set_mac_address,
+	.config_rx_mode = xgbe_config_rx_mode,
 
-	hw_if->set_mac_address = xgbe_set_mac_address;
-	hw_if->config_rx_mode = xgbe_config_rx_mode;
+	.enable_rx_csum = xgbe_enable_rx_csum,
+	.disable_rx_csum = xgbe_disable_rx_csum,
 
-	hw_if->enable_rx_csum = xgbe_enable_rx_csum;
-	hw_if->disable_rx_csum = xgbe_disable_rx_csum;
+	.enable_rx_vlan_stripping = xgbe_enable_rx_vlan_stripping,
+	.disable_rx_vlan_stripping = xgbe_disable_rx_vlan_stripping,
+	.enable_rx_vlan_filtering = xgbe_enable_rx_vlan_filtering,
+	.disable_rx_vlan_filtering = xgbe_disable_rx_vlan_filtering,
+	.update_vlan_hash_table = xgbe_update_vlan_hash_table,
 
-	hw_if->enable_rx_vlan_stripping = xgbe_enable_rx_vlan_stripping;
-	hw_if->disable_rx_vlan_stripping = xgbe_disable_rx_vlan_stripping;
-	hw_if->enable_rx_vlan_filtering = xgbe_enable_rx_vlan_filtering;
-	hw_if->disable_rx_vlan_filtering = xgbe_disable_rx_vlan_filtering;
-	hw_if->update_vlan_hash_table = xgbe_update_vlan_hash_table;
+	.read_mmd_regs = xgbe_read_mmd_regs,
+	.write_mmd_regs = xgbe_write_mmd_regs,
 
-	hw_if->read_mmd_regs = xgbe_read_mmd_regs;
-	hw_if->write_mmd_regs = xgbe_write_mmd_regs;
+	.set_gmii_speed = xgbe_set_gmii_speed,
+	.set_gmii_2500_speed = xgbe_set_gmii_2500_speed,
+	.set_xgmii_speed = xgbe_set_xgmii_speed,
 
-	hw_if->set_gmii_speed = xgbe_set_gmii_speed;
-	hw_if->set_gmii_2500_speed = xgbe_set_gmii_2500_speed;
-	hw_if->set_xgmii_speed = xgbe_set_xgmii_speed;
+	.enable_tx = xgbe_enable_tx,
+	.disable_tx = xgbe_disable_tx,
+	.enable_rx = xgbe_enable_rx,
+	.disable_rx = xgbe_disable_rx,
 
-	hw_if->enable_tx = xgbe_enable_tx;
-	hw_if->disable_tx = xgbe_disable_tx;
-	hw_if->enable_rx = xgbe_enable_rx;
-	hw_if->disable_rx = xgbe_disable_rx;
+	.powerup_tx = xgbe_powerup_tx,
+	.powerdown_tx = xgbe_powerdown_tx,
+	.powerup_rx = xgbe_powerup_rx,
+	.powerdown_rx = xgbe_powerdown_rx,
 
-	hw_if->powerup_tx = xgbe_powerup_tx;
-	hw_if->powerdown_tx = xgbe_powerdown_tx;
-	hw_if->powerup_rx = xgbe_powerup_rx;
-	hw_if->powerdown_rx = xgbe_powerdown_rx;
-
-	hw_if->dev_xmit = xgbe_dev_xmit;
-	hw_if->dev_read = xgbe_dev_read;
-	hw_if->enable_int = xgbe_enable_int;
-	hw_if->disable_int = xgbe_disable_int;
-	hw_if->init = xgbe_init;
-	hw_if->exit = xgbe_exit;
+	.dev_xmit = xgbe_dev_xmit,
+	.dev_read = xgbe_dev_read,
+	.enable_int = xgbe_enable_int,
+	.disable_int = xgbe_disable_int,
+	.init = xgbe_init,
+	.exit = xgbe_exit,
 
 	/* Descriptor related Sequences have to be initialized here */
-	hw_if->tx_desc_init = xgbe_tx_desc_init;
-	hw_if->rx_desc_init = xgbe_rx_desc_init;
-	hw_if->tx_desc_reset = xgbe_tx_desc_reset;
-	hw_if->rx_desc_reset = xgbe_rx_desc_reset;
-	hw_if->is_last_desc = xgbe_is_last_desc;
-	hw_if->is_context_desc = xgbe_is_context_desc;
-	hw_if->tx_start_xmit = xgbe_tx_start_xmit;
+	.tx_desc_init = xgbe_tx_desc_init,
+	.rx_desc_init = xgbe_rx_desc_init,
+	.tx_desc_reset = xgbe_tx_desc_reset,
+	.rx_desc_reset = xgbe_rx_desc_reset,
+	.is_last_desc = xgbe_is_last_desc,
+	.is_context_desc = xgbe_is_context_desc,
+	.tx_start_xmit = xgbe_tx_start_xmit,
 
 	/* For FLOW ctrl */
-	hw_if->config_tx_flow_control = xgbe_config_tx_flow_control;
-	hw_if->config_rx_flow_control = xgbe_config_rx_flow_control;
+	.config_tx_flow_control = xgbe_config_tx_flow_control,
+	.config_rx_flow_control = xgbe_config_rx_flow_control,
 
 	/* For RX coalescing */
-	hw_if->config_rx_coalesce = xgbe_config_rx_coalesce;
-	hw_if->config_tx_coalesce = xgbe_config_tx_coalesce;
-	hw_if->usec_to_riwt = xgbe_usec_to_riwt;
-	hw_if->riwt_to_usec = xgbe_riwt_to_usec;
+	.config_rx_coalesce = xgbe_config_rx_coalesce,
+	.config_tx_coalesce = xgbe_config_tx_coalesce,
+	.usec_to_riwt = xgbe_usec_to_riwt,
+	.riwt_to_usec = xgbe_riwt_to_usec,
 
 	/* For RX and TX threshold config */
-	hw_if->config_rx_threshold = xgbe_config_rx_threshold;
-	hw_if->config_tx_threshold = xgbe_config_tx_threshold;
+	.config_rx_threshold = xgbe_config_rx_threshold,
+	.config_tx_threshold = xgbe_config_tx_threshold,
 
 	/* For RX and TX Store and Forward Mode config */
-	hw_if->config_rsf_mode = xgbe_config_rsf_mode;
-	hw_if->config_tsf_mode = xgbe_config_tsf_mode;
+	.config_rsf_mode = xgbe_config_rsf_mode,
+	.config_tsf_mode = xgbe_config_tsf_mode,
 
 	/* For TX DMA Operating on Second Frame config */
-	hw_if->config_osp_mode = xgbe_config_osp_mode;
+	.config_osp_mode = xgbe_config_osp_mode,
 
 	/* For RX and TX PBL config */
-	hw_if->config_rx_pbl_val = xgbe_config_rx_pbl_val;
-	hw_if->get_rx_pbl_val = xgbe_get_rx_pbl_val;
-	hw_if->config_tx_pbl_val = xgbe_config_tx_pbl_val;
-	hw_if->get_tx_pbl_val = xgbe_get_tx_pbl_val;
-	hw_if->config_pblx8 = xgbe_config_pblx8;
+	.config_rx_pbl_val = xgbe_config_rx_pbl_val,
+	.get_rx_pbl_val = xgbe_get_rx_pbl_val,
+	.config_tx_pbl_val = xgbe_config_tx_pbl_val,
+	.get_tx_pbl_val = xgbe_get_tx_pbl_val,
+	.config_pblx8 = xgbe_config_pblx8,
 
 	/* For MMC statistics support */
-	hw_if->tx_mmc_int = xgbe_tx_mmc_int;
-	hw_if->rx_mmc_int = xgbe_rx_mmc_int;
-	hw_if->read_mmc_stats = xgbe_read_mmc_stats;
+	.tx_mmc_int = xgbe_tx_mmc_int,
+	.rx_mmc_int = xgbe_rx_mmc_int,
+	.read_mmc_stats = xgbe_read_mmc_stats,
 
 	/* For PTP config */
-	hw_if->config_tstamp = xgbe_config_tstamp;
-	hw_if->update_tstamp_addend = xgbe_update_tstamp_addend;
-	hw_if->set_tstamp_time = xgbe_set_tstamp_time;
-	hw_if->get_tstamp_time = xgbe_get_tstamp_time;
-	hw_if->get_tx_tstamp = xgbe_get_tx_tstamp;
+	.config_tstamp = xgbe_config_tstamp,
+	.update_tstamp_addend = xgbe_update_tstamp_addend,
+	.set_tstamp_time = xgbe_set_tstamp_time,
+	.get_tstamp_time = xgbe_get_tstamp_time,
+	.get_tx_tstamp = xgbe_get_tx_tstamp,
 
 	/* For Data Center Bridging config */
-	hw_if->config_tc = xgbe_config_tc;
-	hw_if->config_dcb_tc = xgbe_config_dcb_tc;
-	hw_if->config_dcb_pfc = xgbe_config_dcb_pfc;
+	.config_tc = xgbe_config_tc,
+	.config_dcb_tc = xgbe_config_dcb_tc,
+	.config_dcb_pfc = xgbe_config_dcb_pfc,
 
 	/* For Receive Side Scaling */
-	hw_if->enable_rss = xgbe_enable_rss;
-	hw_if->disable_rss = xgbe_disable_rss;
-	hw_if->set_rss_hash_key = xgbe_set_rss_hash_key;
-	hw_if->set_rss_lookup_table = xgbe_set_rss_lookup_table;
-
-	DBGPR("<--xgbe_init_function_ptrs\n");
-}
+	.enable_rss = xgbe_enable_rss,
+	.disable_rss = xgbe_disable_rss,
+	.set_rss_hash_key = xgbe_set_rss_hash_key,
+	.set_rss_lookup_table = xgbe_set_rss_lookup_table,
+};

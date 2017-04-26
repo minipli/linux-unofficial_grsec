@@ -30,7 +30,7 @@ struct gb_channel {
 	u32				mode;
 	char				*mode_name;
 	struct attribute		**attrs;
-	struct attribute_group		*attr_group;
+	attribute_group_no_const	*attr_group;
 	const struct attribute_group	**attr_groups;
 	struct led_classdev		*led;
 #if IS_REACHABLE(CONFIG_LEDS_CLASS_FLASH)

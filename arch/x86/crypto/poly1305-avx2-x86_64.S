@@ -10,6 +10,7 @@
  */
 
 #include <linux/linkage.h>
+#include <asm/alternative-asm.h>
 
 .data
 .align 32
@@ -382,5 +383,5 @@ ENTRY(poly1305_4block_avx2)
 	pop		%r13
 	pop		%r12
 	pop		%rbx
-	ret
+	pax_ret poly1305_4block_avx2
 ENDPROC(poly1305_4block_avx2)

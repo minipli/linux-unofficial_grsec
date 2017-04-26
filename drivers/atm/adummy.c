@@ -114,7 +114,7 @@ adummy_send(struct atm_vcc *vcc, struct sk_buff *skb)
 		vcc->pop(vcc, skb);
 	else
 		dev_kfree_skb_any(skb);
-	atomic_inc(&vcc->stats->tx);
+	atomic_inc_unchecked(&vcc->stats->tx);
 
 	return 0;
 }

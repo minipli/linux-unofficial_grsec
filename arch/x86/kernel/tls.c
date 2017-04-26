@@ -140,6 +140,11 @@ int do_set_thread_area(struct task_struct *p, int idx,
 	if (idx < GDT_ENTRY_TLS_MIN || idx > GDT_ENTRY_TLS_MAX)
 		return -EINVAL;
 
+#ifdef CONFIG_PAX_SEGMEXEC
+	if ((p->mm->pax_flags & MF_PAX_SEGMEXEC) && (info.contents & MODIFY_LDT_CONTENTS_CODE))
+		return -EINVAL;
+#endif
+
 	set_tls_desc(p, idx, &info, 1);
 
 	/*
@@ -298,7 +303,7 @@ int regset_tls_set(struct task_struct *target, const struct user_regset *regset,
 
 	if (kbuf)
 		info = kbuf;
-	else if (__copy_from_user(infobuf, ubuf, count))
+	else if (count > sizeof infobuf || __copy_from_user(infobuf, ubuf, count))
 		return -EFAULT;
 	else
 		info = infobuf;

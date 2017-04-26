@@ -269,7 +269,7 @@ static void hpet_msi_write_msg(struct irq_data *data, struct msi_msg *msg)
 	hpet_msi_write(irq_data_get_irq_handler_data(data), msg);
 }
 
-static struct irq_chip hpet_msi_controller __ro_after_init = {
+static irq_chip_no_const hpet_msi_controller __ro_after_init = {
 	.name = "HPET-MSI",
 	.irq_unmask = hpet_msi_unmask,
 	.irq_mask = hpet_msi_mask,
@@ -315,7 +315,7 @@ static struct msi_domain_info hpet_msi_domain_info = {
 	.chip		= &hpet_msi_controller,
 };
 
-struct irq_domain *hpet_create_irq_domain(int hpet_id)
+__init struct irq_domain *hpet_create_irq_domain(int hpet_id)
 {
 	struct irq_domain *parent;
 	struct irq_alloc_info info;

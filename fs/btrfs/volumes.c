@@ -246,7 +246,7 @@ static struct btrfs_device *__alloc_device(void)
 
 	spin_lock_init(&dev->reada_lock);
 	atomic_set(&dev->reada_in_flight, 0);
-	atomic_set(&dev->dev_stats_ccnt, 0);
+	atomic_set_unchecked(&dev->dev_stats_ccnt, 0);
 	btrfs_device_data_ordered_init(dev);
 	INIT_RADIX_TREE(&dev->reada_zones, GFP_NOFS & ~__GFP_DIRECT_RECLAIM);
 	INIT_RADIX_TREE(&dev->reada_extents, GFP_NOFS & ~__GFP_DIRECT_RECLAIM);
@@ -5309,7 +5309,7 @@ static struct btrfs_bio *alloc_btrfs_bio(int total_stripes, int real_stripes)
 		sizeof(u64) * (total_stripes),
 		GFP_NOFS|__GFP_NOFAIL);
 
-	atomic_set(&bbio->error, 0);
+	atomic_set_unchecked(&bbio->error, 0);
 	atomic_set(&bbio->refs, 1);
 
 	return bbio;
@@ -6008,7 +6008,7 @@ static void btrfs_end_bio(struct bio *bio)
 	int is_orig_bio = 0;
 
 	if (bio->bi_error) {
-		atomic_inc(&bbio->error);
+		atomic_inc_unchecked(&bbio->error);
 		if (bio->bi_error == -EIO || bio->bi_error == -EREMOTEIO) {
 			unsigned int stripe_index =
 				btrfs_io_bio(bio)->stripe_index;
@@ -6046,7 +6046,7 @@ static void btrfs_end_bio(struct bio *bio)
 		/* only send an error to the higher layers if it is
 		 * beyond the tolerance of the btrfs bio
 		 */
-		if (atomic_read(&bbio->error) > bbio->max_errors) {
+		if (atomic_read_unchecked(&bbio->error) > bbio->max_errors) {
 			bio->bi_error = -EIO;
 		} else {
 			/*
@@ -6158,7 +6158,7 @@ static void submit_stripe_bio(struct btrfs_root *root, struct btrfs_bio *bbio,
 
 static void bbio_error(struct btrfs_bio *bbio, struct bio *bio, u64 logical)
 {
-	atomic_inc(&bbio->error);
+	atomic_inc_unchecked(&bbio->error);
 	if (atomic_dec_and_test(&bbio->stripes_pending)) {
 		/* Should be the original bio. */
 		WARN_ON(bio != bbio->orig_bio);
@@ -7038,10 +7038,10 @@ int btrfs_run_dev_stats(struct btrfs_trans_handle *trans,
 		if (!device->dev_stats_valid || !btrfs_dev_stats_dirty(device))
 			continue;
 
-		stats_cnt = atomic_read(&device->dev_stats_ccnt);
+		stats_cnt = atomic_read_unchecked(&device->dev_stats_ccnt);
 		ret = update_dev_stat_item(trans, dev_root, device);
 		if (!ret)
-			atomic_sub(stats_cnt, &device->dev_stats_ccnt);
+			atomic_sub_unchecked(stats_cnt, &device->dev_stats_ccnt);
 	}
 	mutex_unlock(&fs_devices->device_list_mutex);
 

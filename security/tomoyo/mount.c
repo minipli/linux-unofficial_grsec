@@ -118,6 +118,10 @@ static int tomoyo_mount_acl(struct tomoyo_request_info *r,
 		   type == tomoyo_mounts[TOMOYO_MOUNT_MOVE]) {
 		need_dev = -1; /* dev_name is a directory */
 	} else {
+		if (!capable(CAP_SYS_ADMIN)) {
+			error = -EPERM;
+			goto out;
+		}
 		fstype = get_fs_type(type);
 		if (!fstype) {
 			error = -ENODEV;

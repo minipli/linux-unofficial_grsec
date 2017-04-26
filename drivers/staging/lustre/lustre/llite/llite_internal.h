@@ -504,16 +504,16 @@ struct ll_sb_info {
 
 	/* metadata stat-ahead */
 	unsigned int	      ll_sa_max;     /* max statahead RPCs */
-	atomic_t		  ll_sa_total;   /* statahead thread started
+	atomic_unchecked_t	  ll_sa_total;   /* statahead thread started
 						  * count
 						  */
-	atomic_t		  ll_sa_wrong;   /* statahead thread stopped for
+	atomic_unchecked_t	  ll_sa_wrong;   /* statahead thread stopped for
 						  * low hit ratio
 						  */
 	atomic_t		ll_sa_running;	/* running statahead thread
 						 * count
 						 */
-	atomic_t		  ll_agl_total;  /* AGL thread started count */
+	atomic_unchecked_t	  ll_agl_total;  /* AGL thread started count */
 
 	dev_t			  ll_sdev_orig; /* save s_dev before assign for
 						 * clustered nfs

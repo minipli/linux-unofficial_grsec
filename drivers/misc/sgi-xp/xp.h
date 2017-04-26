@@ -288,7 +288,7 @@ struct xpc_interface {
 					xpc_notify_func, void *);
 	void (*received) (short, int, void *);
 	enum xp_retval (*partid_to_nasids) (short, void *);
-};
+} __no_const;
 
 extern struct xpc_interface xpc_interface;
 

@@ -184,7 +184,7 @@ out:
 
 static struct kobj_attribute type_attr = __ATTR_RO(type);
 
-static struct bin_attribute data_attr __ro_after_init = {
+static bin_attribute_no_const data_attr __ro_after_init = {
 	.attr = {
 		.name = "data",
 		.mode = S_IRUGO,

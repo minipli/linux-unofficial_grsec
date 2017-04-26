@@ -35,7 +35,7 @@ struct gpd_dev_ops {
 	int (*start)(struct device *dev);
 	int (*stop)(struct device *dev);
 	bool (*active_wakeup)(struct device *dev);
-};
+} __no_const;
 
 struct genpd_power_state {
 	s64 power_off_latency_ns;

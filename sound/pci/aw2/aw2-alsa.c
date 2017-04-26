@@ -458,7 +458,6 @@ static int snd_aw2_pcm_prepare_playback(struct snd_pcm_substream *substream)
 
 	/* Define Interrupt callback */
 	snd_aw2_saa7146_define_it_playback_callback(pcm_device->stream_number,
-						    (snd_aw2_saa7146_it_cb)
 						    snd_pcm_period_elapsed,
 						    (void *)substream);
 
@@ -487,7 +486,6 @@ static int snd_aw2_pcm_prepare_capture(struct snd_pcm_substream *substream)
 
 	/* Define Interrupt callback */
 	snd_aw2_saa7146_define_it_capture_callback(pcm_device->stream_number,
-						   (snd_aw2_saa7146_it_cb)
 						   snd_pcm_period_elapsed,
 						   (void *)substream);
 

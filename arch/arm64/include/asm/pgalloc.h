@@ -51,6 +51,11 @@ static inline void pud_populate(struct mm_struct *mm, pud_t *pud, pmd_t *pmd)
 {
 	__pud_populate(pud, __pa(pmd), PMD_TYPE_TABLE);
 }
+
+static inline void pud_populate_kernel(struct mm_struct *mm, pud_t *pud, pmd_t *pmd)
+{
+	pud_populate(mm, pud, pmd);
+}
 #else
 static inline void __pud_populate(pud_t *pud, phys_addr_t pmd, pudval_t prot)
 {
@@ -79,6 +84,11 @@ static inline void __pgd_populate(pgd_t *pgdp, phys_addr_t pud, pgdval_t prot)
 static inline void pgd_populate(struct mm_struct *mm, pgd_t *pgd, pud_t *pud)
 {
 	__pgd_populate(pgd, __pa(pud), PUD_TYPE_TABLE);
+}
+
+static inline void pgd_populate_kernel(struct mm_struct *mm, pgd_t *pgd, pud_t *pud)
+{
+	pgd_populate(mm, pgd, pud);
 }
 #else
 static inline void __pgd_populate(pgd_t *pgdp, phys_addr_t pud, pgdval_t prot)

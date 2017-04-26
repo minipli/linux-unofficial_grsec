@@ -5621,7 +5621,7 @@ static int bnx2x_get_link_speed_duplex(struct bnx2x_phy *phy,
 	return 0;
 }
 
-static int bnx2x_link_settings_status(struct bnx2x_phy *phy,
+static u8 bnx2x_link_settings_status(struct bnx2x_phy *phy,
 				      struct link_params *params,
 				      struct link_vars *vars)
 {
@@ -5695,7 +5695,7 @@ static int bnx2x_link_settings_status(struct bnx2x_phy *phy,
 	return rc;
 }
 
-static int bnx2x_warpcore_read_status(struct bnx2x_phy *phy,
+static u8 bnx2x_warpcore_read_status(struct bnx2x_phy *phy,
 				     struct link_params *params,
 				     struct link_vars *vars)
 {
@@ -7436,7 +7436,7 @@ static void bnx2x_8073_specific_func(struct bnx2x_phy *phy,
 	}
 }
 
-static int bnx2x_8073_config_init(struct bnx2x_phy *phy,
+static void bnx2x_8073_config_init(struct bnx2x_phy *phy,
 				  struct link_params *params,
 				  struct link_vars *vars)
 {
@@ -7499,7 +7499,7 @@ static int bnx2x_8073_config_init(struct bnx2x_phy *phy,
 	if (params->loopback_mode == LOOPBACK_EXT) {
 		bnx2x_807x_force_10G(bp, phy);
 		DP(NETIF_MSG_LINK, "Forced speed 10G on 807X\n");
-		return 0;
+		return;
 	} else {
 		bnx2x_cl45_write(bp, phy,
 				 MDIO_PMA_DEVAD, MDIO_PMA_REG_BCM_CTRL, 0x0002);
@@ -7581,7 +7581,6 @@ static int bnx2x_8073_config_init(struct bnx2x_phy *phy,
 	bnx2x_cl45_write(bp, phy, MDIO_AN_DEVAD, MDIO_AN_REG_CTRL, 0x1200);
 	DP(NETIF_MSG_LINK, "807x Autoneg Restart: Advertise 1G=%x, 10G=%x\n",
 		   ((val & (1<<5)) > 0), ((val & (1<<7)) > 0));
-	return 0;
 }
 
 static u8 bnx2x_8073_read_status(struct bnx2x_phy *phy,
@@ -7748,7 +7747,7 @@ static void bnx2x_8073_link_reset(struct bnx2x_phy *phy,
 /******************************************************************/
 /*			BCM8705 PHY SECTION			  */
 /******************************************************************/
-static int bnx2x_8705_config_init(struct bnx2x_phy *phy,
+static void bnx2x_8705_config_init(struct bnx2x_phy *phy,
 				  struct link_params *params,
 				  struct link_vars *vars)
 {
@@ -7772,7 +7771,6 @@ static int bnx2x_8705_config_init(struct bnx2x_phy *phy,
 			 MDIO_WIS_DEVAD, MDIO_WIS_REG_LASI_CNTL, 0x1);
 	/* BCM8705 doesn't have microcode, hence the 0 */
 	bnx2x_save_spirom_version(bp, params->port, params->shmem_base, 0);
-	return 0;
 }
 
 static u8 bnx2x_8705_read_status(struct bnx2x_phy *phy,
@@ -8959,7 +8957,7 @@ static u8 bnx2x_8706_8726_read_status(struct bnx2x_phy *phy,
 /******************************************************************/
 /*			BCM8706 PHY SECTION			  */
 /******************************************************************/
-static u8 bnx2x_8706_config_init(struct bnx2x_phy *phy,
+static void bnx2x_8706_config_init(struct bnx2x_phy *phy,
 				 struct link_params *params,
 				 struct link_vars *vars)
 {
@@ -9061,11 +9059,9 @@ static u8 bnx2x_8706_config_init(struct bnx2x_phy *phy,
 		bnx2x_cl45_write(bp, phy,
 			MDIO_PMA_DEVAD, MDIO_PMA_REG_DIGITAL_CTRL, tmp1);
 	}
-
-	return 0;
 }
 
-static int bnx2x_8706_read_status(struct bnx2x_phy *phy,
+static u8 bnx2x_8706_read_status(struct bnx2x_phy *phy,
 				  struct link_params *params,
 				  struct link_vars *vars)
 {
@@ -9142,7 +9138,7 @@ static u8 bnx2x_8726_read_status(struct bnx2x_phy *phy,
 }
 
 
-static int bnx2x_8726_config_init(struct bnx2x_phy *phy,
+static void bnx2x_8726_config_init(struct bnx2x_phy *phy,
 				  struct link_params *params,
 				  struct link_vars *vars)
 {
@@ -9222,8 +9218,6 @@ static int bnx2x_8726_config_init(struct bnx2x_phy *phy,
 				 MDIO_PMA_REG_8726_TX_CTRL2,
 				 phy->tx_preemphasis[1]);
 	}
-
-	return 0;
 
 }
 
@@ -9360,7 +9354,7 @@ static void bnx2x_8727_config_speed(struct bnx2x_phy *phy,
 	}
 }
 
-static int bnx2x_8727_config_init(struct bnx2x_phy *phy,
+static void bnx2x_8727_config_init(struct bnx2x_phy *phy,
 				  struct link_params *params,
 				  struct link_vars *vars)
 {
@@ -9442,8 +9436,6 @@ static int bnx2x_8727_config_init(struct bnx2x_phy *phy,
 				 MDIO_PMA_DEVAD, MDIO_PMA_REG_PHY_IDENTIFIER,
 				 (tmp2 & 0x7fff));
 	}
-
-	return 0;
 }
 
 static void bnx2x_8727_handle_mod_abs(struct bnx2x_phy *phy,
@@ -10018,7 +10010,7 @@ static int bnx2x_848xx_cmn_config_init(struct bnx2x_phy *phy,
 	return 0;
 }
 
-static int bnx2x_8481_config_init(struct bnx2x_phy *phy,
+static void bnx2x_8481_config_init(struct bnx2x_phy *phy,
 				  struct link_params *params,
 				  struct link_vars *vars)
 {
@@ -10032,7 +10024,7 @@ static int bnx2x_8481_config_init(struct bnx2x_phy *phy,
 	bnx2x_wait_reset_complete(bp, phy, params);
 
 	bnx2x_cl45_write(bp, phy, MDIO_PMA_DEVAD, MDIO_PMA_REG_CTRL, 1<<15);
-	return bnx2x_848xx_cmn_config_init(phy, params, vars);
+	bnx2x_848xx_cmn_config_init(phy, params, vars);
 }
 
 #define PHY848xx_CMDHDLR_WAIT 300
@@ -10282,7 +10274,7 @@ static u8 bnx2x_84833_get_reset_gpios(struct bnx2x *bp,
 	return reset_gpios;
 }
 
-static int bnx2x_84833_hw_reset_phy(struct bnx2x_phy *phy,
+static void bnx2x_84833_hw_reset_phy(struct bnx2x_phy *phy,
 				struct link_params *params)
 {
 	struct bnx2x *bp = params->bp;
@@ -10311,8 +10303,6 @@ static int bnx2x_84833_hw_reset_phy(struct bnx2x_phy *phy,
 	udelay(10);
 	DP(NETIF_MSG_LINK, "84833 hw reset on pin values 0x%x\n",
 		reset_gpios);
-
-	return 0;
 }
 
 static int bnx2x_8483x_disable_eee(struct bnx2x_phy *phy,
@@ -10355,7 +10345,7 @@ static int bnx2x_8483x_enable_eee(struct bnx2x_phy *phy,
 }
 
 #define PHY84833_CONSTANT_LATENCY 1193
-static int bnx2x_848x3_config_init(struct bnx2x_phy *phy,
+static void bnx2x_848x3_config_init(struct bnx2x_phy *phy,
 				   struct link_params *params,
 				   struct link_vars *vars)
 {
@@ -10502,7 +10492,7 @@ static int bnx2x_848x3_config_init(struct bnx2x_phy *phy,
 		if (rc) {
 			DP(NETIF_MSG_LINK, "Failed to configure EEE timers\n");
 			bnx2x_8483x_disable_eee(phy, params, vars);
-			return rc;
+			return;
 		}
 
 		if ((phy->req_duplex == DUPLEX_FULL) &&
@@ -10514,7 +10504,7 @@ static int bnx2x_848x3_config_init(struct bnx2x_phy *phy,
 			rc = bnx2x_8483x_disable_eee(phy, params, vars);
 		if (rc) {
 			DP(NETIF_MSG_LINK, "Failed to set EEE advertisement\n");
-			return rc;
+			return;
 		}
 	} else {
 		vars->eee_status &= ~SHMEM_EEE_SUPPORTED_MASK;
@@ -10553,7 +10543,6 @@ static int bnx2x_848x3_config_init(struct bnx2x_phy *phy,
 					  MDIO_84833_TOP_CFG_XGPHY_STRAP1,
 					  (u16)~MDIO_84833_SUPER_ISOLATE);
 	}
-	return rc;
 }
 
 static u8 bnx2x_848xx_read_status(struct bnx2x_phy *phy,
@@ -11113,7 +11102,7 @@ static void bnx2x_54618se_specific_func(struct bnx2x_phy *phy,
 	}
 }
 
-static int bnx2x_54618se_config_init(struct bnx2x_phy *phy,
+static void bnx2x_54618se_config_init(struct bnx2x_phy *phy,
 					       struct link_params *params,
 					       struct link_vars *vars)
 {
@@ -11315,8 +11304,6 @@ static int bnx2x_54618se_config_init(struct bnx2x_phy *phy,
 
 	bnx2x_cl22_write(bp, phy,
 			MDIO_PMA_REG_CTRL, autoneg_val);
-
-	return 0;
 }
 
 
@@ -11540,7 +11527,7 @@ static void bnx2x_7101_config_loopback(struct bnx2x_phy *phy,
 			 MDIO_XS_DEVAD, MDIO_XS_SFX7101_XGXS_TEST1, 0x100);
 }
 
-static int bnx2x_7101_config_init(struct bnx2x_phy *phy,
+static void bnx2x_7101_config_init(struct bnx2x_phy *phy,
 				  struct link_params *params,
 				  struct link_vars *vars)
 {
@@ -11577,7 +11564,6 @@ static int bnx2x_7101_config_init(struct bnx2x_phy *phy,
 			MDIO_PMA_DEVAD, MDIO_PMA_REG_7101_VER2, &fw_ver2);
 	bnx2x_save_spirom_version(bp, params->port,
 				  (u32)(fw_ver1<<16 | fw_ver2), phy->ver_addr);
-	return 0;
 }
 
 static u8 bnx2x_7101_read_status(struct bnx2x_phy *phy,
@@ -11746,9 +11732,9 @@ static const struct bnx2x_phy phy_serdes = {
 	.speed_cap_mask	= 0,
 	.req_duplex	= 0,
 	.rsrv		= 0,
-	.config_init	= (config_init_t)bnx2x_xgxs_config_init,
-	.read_status	= (read_status_t)bnx2x_link_settings_status,
-	.link_reset	= (link_reset_t)bnx2x_int_link_reset,
+	.config_init	= bnx2x_xgxs_config_init,
+	.read_status	= bnx2x_link_settings_status,
+	.link_reset	= bnx2x_int_link_reset,
 	.config_loopback = (config_loopback_t)NULL,
 	.format_fw_ver	= (format_fw_ver_t)NULL,
 	.hw_reset	= (hw_reset_t)NULL,
@@ -11782,14 +11768,14 @@ static const struct bnx2x_phy phy_xgxs = {
 	.speed_cap_mask	= 0,
 	.req_duplex	= 0,
 	.rsrv		= 0,
-	.config_init	= (config_init_t)bnx2x_xgxs_config_init,
-	.read_status	= (read_status_t)bnx2x_link_settings_status,
-	.link_reset	= (link_reset_t)bnx2x_int_link_reset,
-	.config_loopback = (config_loopback_t)bnx2x_set_xgxs_loopback,
+	.config_init	= bnx2x_xgxs_config_init,
+	.read_status	= bnx2x_link_settings_status,
+	.link_reset	= bnx2x_int_link_reset,
+	.config_loopback = bnx2x_set_xgxs_loopback,
 	.format_fw_ver	= (format_fw_ver_t)NULL,
 	.hw_reset	= (hw_reset_t)NULL,
 	.set_link_led	= (set_link_led_t)NULL,
-	.phy_specific_func = (phy_specific_func_t)bnx2x_xgxs_specific_func
+	.phy_specific_func = bnx2x_xgxs_specific_func
 };
 static const struct bnx2x_phy phy_warpcore = {
 	.type		= PORT_HW_CFG_XGXS_EXT_PHY_TYPE_DIRECT,
@@ -11820,12 +11806,12 @@ static const struct bnx2x_phy phy_warpcore = {
 	.speed_cap_mask	= 0,
 	/* req_duplex = */0,
 	/* rsrv = */0,
-	.config_init	= (config_init_t)bnx2x_warpcore_config_init,
-	.read_status	= (read_status_t)bnx2x_warpcore_read_status,
-	.link_reset	= (link_reset_t)bnx2x_warpcore_link_reset,
-	.config_loopback = (config_loopback_t)bnx2x_set_warpcore_loopback,
+	.config_init	= bnx2x_warpcore_config_init,
+	.read_status	= bnx2x_warpcore_read_status,
+	.link_reset	= bnx2x_warpcore_link_reset,
+	.config_loopback = bnx2x_set_warpcore_loopback,
 	.format_fw_ver	= (format_fw_ver_t)NULL,
-	.hw_reset	= (hw_reset_t)bnx2x_warpcore_hw_reset,
+	.hw_reset	= bnx2x_warpcore_hw_reset,
 	.set_link_led	= (set_link_led_t)NULL,
 	.phy_specific_func = (phy_specific_func_t)NULL
 };
@@ -11851,13 +11837,13 @@ static const struct bnx2x_phy phy_7101 = {
 	.speed_cap_mask	= 0,
 	.req_duplex	= 0,
 	.rsrv		= 0,
-	.config_init	= (config_init_t)bnx2x_7101_config_init,
-	.read_status	= (read_status_t)bnx2x_7101_read_status,
-	.link_reset	= (link_reset_t)bnx2x_common_ext_link_reset,
-	.config_loopback = (config_loopback_t)bnx2x_7101_config_loopback,
-	.format_fw_ver	= (format_fw_ver_t)bnx2x_7101_format_ver,
-	.hw_reset	= (hw_reset_t)bnx2x_7101_hw_reset,
-	.set_link_led	= (set_link_led_t)bnx2x_7101_set_link_led,
+	.config_init	= bnx2x_7101_config_init,
+	.read_status	= bnx2x_7101_read_status,
+	.link_reset	= bnx2x_common_ext_link_reset,
+	.config_loopback = bnx2x_7101_config_loopback,
+	.format_fw_ver	= bnx2x_7101_format_ver,
+	.hw_reset	= bnx2x_7101_hw_reset,
+	.set_link_led	= bnx2x_7101_set_link_led,
 	.phy_specific_func = (phy_specific_func_t)NULL
 };
 static const struct bnx2x_phy phy_8073 = {
@@ -11882,14 +11868,14 @@ static const struct bnx2x_phy phy_8073 = {
 	.speed_cap_mask	= 0,
 	.req_duplex	= 0,
 	.rsrv		= 0,
-	.config_init	= (config_init_t)bnx2x_8073_config_init,
-	.read_status	= (read_status_t)bnx2x_8073_read_status,
-	.link_reset	= (link_reset_t)bnx2x_8073_link_reset,
+	.config_init	= bnx2x_8073_config_init,
+	.read_status	= bnx2x_8073_read_status,
+	.link_reset	= bnx2x_8073_link_reset,
 	.config_loopback = (config_loopback_t)NULL,
-	.format_fw_ver	= (format_fw_ver_t)bnx2x_format_ver,
+	.format_fw_ver	= bnx2x_format_ver,
 	.hw_reset	= (hw_reset_t)NULL,
 	.set_link_led	= (set_link_led_t)NULL,
-	.phy_specific_func = (phy_specific_func_t)bnx2x_8073_specific_func
+	.phy_specific_func = bnx2x_8073_specific_func
 };
 static const struct bnx2x_phy phy_8705 = {
 	.type		= PORT_HW_CFG_XGXS_EXT_PHY_TYPE_BCM8705,
@@ -11910,11 +11896,11 @@ static const struct bnx2x_phy phy_8705 = {
 	.speed_cap_mask	= 0,
 	.req_duplex	= 0,
 	.rsrv		= 0,
-	.config_init	= (config_init_t)bnx2x_8705_config_init,
-	.read_status	= (read_status_t)bnx2x_8705_read_status,
-	.link_reset	= (link_reset_t)bnx2x_common_ext_link_reset,
+	.config_init	= bnx2x_8705_config_init,
+	.read_status	= bnx2x_8705_read_status,
+	.link_reset	= bnx2x_common_ext_link_reset,
 	.config_loopback = (config_loopback_t)NULL,
-	.format_fw_ver	= (format_fw_ver_t)bnx2x_null_format_ver,
+	.format_fw_ver	= bnx2x_null_format_ver,
 	.hw_reset	= (hw_reset_t)NULL,
 	.set_link_led	= (set_link_led_t)NULL,
 	.phy_specific_func = (phy_specific_func_t)NULL
@@ -11939,11 +11925,11 @@ static const struct bnx2x_phy phy_8706 = {
 	.speed_cap_mask	= 0,
 	.req_duplex	= 0,
 	.rsrv		= 0,
-	.config_init	= (config_init_t)bnx2x_8706_config_init,
-	.read_status	= (read_status_t)bnx2x_8706_read_status,
-	.link_reset	= (link_reset_t)bnx2x_common_ext_link_reset,
+	.config_init	= bnx2x_8706_config_init,
+	.read_status	= bnx2x_8706_read_status,
+	.link_reset	= bnx2x_common_ext_link_reset,
 	.config_loopback = (config_loopback_t)NULL,
-	.format_fw_ver	= (format_fw_ver_t)bnx2x_format_ver,
+	.format_fw_ver	= bnx2x_format_ver,
 	.hw_reset	= (hw_reset_t)NULL,
 	.set_link_led	= (set_link_led_t)NULL,
 	.phy_specific_func = (phy_specific_func_t)NULL
@@ -11971,11 +11957,11 @@ static const struct bnx2x_phy phy_8726 = {
 	.speed_cap_mask	= 0,
 	.req_duplex	= 0,
 	.rsrv		= 0,
-	.config_init	= (config_init_t)bnx2x_8726_config_init,
-	.read_status	= (read_status_t)bnx2x_8726_read_status,
-	.link_reset	= (link_reset_t)bnx2x_8726_link_reset,
-	.config_loopback = (config_loopback_t)bnx2x_8726_config_loopback,
-	.format_fw_ver	= (format_fw_ver_t)bnx2x_format_ver,
+	.config_init	= bnx2x_8726_config_init,
+	.read_status	= bnx2x_8726_read_status,
+	.link_reset	= bnx2x_8726_link_reset,
+	.config_loopback = bnx2x_8726_config_loopback,
+	.format_fw_ver	= bnx2x_format_ver,
 	.hw_reset	= (hw_reset_t)NULL,
 	.set_link_led	= (set_link_led_t)NULL,
 	.phy_specific_func = (phy_specific_func_t)NULL
@@ -12002,14 +11988,14 @@ static const struct bnx2x_phy phy_8727 = {
 	.speed_cap_mask	= 0,
 	.req_duplex	= 0,
 	.rsrv		= 0,
-	.config_init	= (config_init_t)bnx2x_8727_config_init,
-	.read_status	= (read_status_t)bnx2x_8727_read_status,
-	.link_reset	= (link_reset_t)bnx2x_8727_link_reset,
+	.config_init	= bnx2x_8727_config_init,
+	.read_status	= bnx2x_8727_read_status,
+	.link_reset	= bnx2x_8727_link_reset,
 	.config_loopback = (config_loopback_t)NULL,
-	.format_fw_ver	= (format_fw_ver_t)bnx2x_format_ver,
-	.hw_reset	= (hw_reset_t)bnx2x_8727_hw_reset,
-	.set_link_led	= (set_link_led_t)bnx2x_8727_set_link_led,
-	.phy_specific_func = (phy_specific_func_t)bnx2x_8727_specific_func
+	.format_fw_ver	= bnx2x_format_ver,
+	.hw_reset	= bnx2x_8727_hw_reset,
+	.set_link_led	= bnx2x_8727_set_link_led,
+	.phy_specific_func = bnx2x_8727_specific_func
 };
 static const struct bnx2x_phy phy_8481 = {
 	.type		= PORT_HW_CFG_XGXS_EXT_PHY_TYPE_BCM8481,
@@ -12037,13 +12023,13 @@ static const struct bnx2x_phy phy_8481 = {
 	.speed_cap_mask	= 0,
 	.req_duplex	= 0,
 	.rsrv		= 0,
-	.config_init	= (config_init_t)bnx2x_8481_config_init,
-	.read_status	= (read_status_t)bnx2x_848xx_read_status,
-	.link_reset	= (link_reset_t)bnx2x_8481_link_reset,
+	.config_init	= bnx2x_8481_config_init,
+	.read_status	= bnx2x_848xx_read_status,
+	.link_reset	= bnx2x_8481_link_reset,
 	.config_loopback = (config_loopback_t)NULL,
-	.format_fw_ver	= (format_fw_ver_t)bnx2x_848xx_format_ver,
-	.hw_reset	= (hw_reset_t)bnx2x_8481_hw_reset,
-	.set_link_led	= (set_link_led_t)bnx2x_848xx_set_link_led,
+	.format_fw_ver	= bnx2x_848xx_format_ver,
+	.hw_reset	= bnx2x_8481_hw_reset,
+	.set_link_led	= bnx2x_848xx_set_link_led,
 	.phy_specific_func = (phy_specific_func_t)NULL
 };
 
@@ -12074,14 +12060,14 @@ static const struct bnx2x_phy phy_84823 = {
 	.speed_cap_mask	= 0,
 	.req_duplex	= 0,
 	.rsrv		= 0,
-	.config_init	= (config_init_t)bnx2x_848x3_config_init,
-	.read_status	= (read_status_t)bnx2x_848xx_read_status,
-	.link_reset	= (link_reset_t)bnx2x_848x3_link_reset,
+	.config_init	= bnx2x_848x3_config_init,
+	.read_status	= bnx2x_848xx_read_status,
+	.link_reset	= bnx2x_848x3_link_reset,
 	.config_loopback = (config_loopback_t)NULL,
-	.format_fw_ver	= (format_fw_ver_t)bnx2x_848xx_format_ver,
+	.format_fw_ver	= bnx2x_848xx_format_ver,
 	.hw_reset	= (hw_reset_t)NULL,
-	.set_link_led	= (set_link_led_t)bnx2x_848xx_set_link_led,
-	.phy_specific_func = (phy_specific_func_t)bnx2x_848xx_specific_func
+	.set_link_led	= bnx2x_848xx_set_link_led,
+	.phy_specific_func = bnx2x_848xx_specific_func
 };
 
 static const struct bnx2x_phy phy_84833 = {
@@ -12109,14 +12095,14 @@ static const struct bnx2x_phy phy_84833 = {
 	.speed_cap_mask	= 0,
 	.req_duplex	= 0,
 	.rsrv		= 0,
-	.config_init	= (config_init_t)bnx2x_848x3_config_init,
-	.read_status	= (read_status_t)bnx2x_848xx_read_status,
-	.link_reset	= (link_reset_t)bnx2x_848x3_link_reset,
+	.config_init	= bnx2x_848x3_config_init,
+	.read_status	= bnx2x_848xx_read_status,
+	.link_reset	= bnx2x_848x3_link_reset,
 	.config_loopback = (config_loopback_t)NULL,
-	.format_fw_ver	= (format_fw_ver_t)bnx2x_848xx_format_ver,
-	.hw_reset	= (hw_reset_t)bnx2x_84833_hw_reset_phy,
-	.set_link_led	= (set_link_led_t)bnx2x_848xx_set_link_led,
-	.phy_specific_func = (phy_specific_func_t)bnx2x_848xx_specific_func
+	.format_fw_ver	= bnx2x_848xx_format_ver,
+	.hw_reset	= bnx2x_84833_hw_reset_phy,
+	.set_link_led	= bnx2x_848xx_set_link_led,
+	.phy_specific_func = bnx2x_848xx_specific_func
 };
 
 static const struct bnx2x_phy phy_84834 = {
@@ -12143,14 +12129,14 @@ static const struct bnx2x_phy phy_84834 = {
 	.speed_cap_mask	= 0,
 	.req_duplex	= 0,
 	.rsrv		= 0,
-	.config_init	= (config_init_t)bnx2x_848x3_config_init,
-	.read_status	= (read_status_t)bnx2x_848xx_read_status,
-	.link_reset	= (link_reset_t)bnx2x_848x3_link_reset,
+	.config_init	= bnx2x_848x3_config_init,
+	.read_status	= bnx2x_848xx_read_status,
+	.link_reset	= bnx2x_848x3_link_reset,
 	.config_loopback = (config_loopback_t)NULL,
-	.format_fw_ver	= (format_fw_ver_t)bnx2x_848xx_format_ver,
-	.hw_reset	= (hw_reset_t)bnx2x_84833_hw_reset_phy,
-	.set_link_led	= (set_link_led_t)bnx2x_848xx_set_link_led,
-	.phy_specific_func = (phy_specific_func_t)bnx2x_848xx_specific_func
+	.format_fw_ver	= bnx2x_848xx_format_ver,
+	.hw_reset	= bnx2x_84833_hw_reset_phy,
+	.set_link_led	= bnx2x_848xx_set_link_led,
+	.phy_specific_func = bnx2x_848xx_specific_func
 };
 
 static const struct bnx2x_phy phy_84858 = {
@@ -12177,14 +12163,14 @@ static const struct bnx2x_phy phy_84858 = {
 	.speed_cap_mask	= 0,
 	.req_duplex	= 0,
 	.rsrv		= 0,
-	.config_init	= (config_init_t)bnx2x_848x3_config_init,
-	.read_status	= (read_status_t)bnx2x_848xx_read_status,
-	.link_reset	= (link_reset_t)bnx2x_848x3_link_reset,
+	.config_init	= bnx2x_848x3_config_init,
+	.read_status	= bnx2x_848xx_read_status,
+	.link_reset	= bnx2x_848x3_link_reset,
 	.config_loopback = (config_loopback_t)NULL,
-	.format_fw_ver	= (format_fw_ver_t)bnx2x_8485x_format_ver,
-	.hw_reset	= (hw_reset_t)bnx2x_84833_hw_reset_phy,
-	.set_link_led	= (set_link_led_t)bnx2x_848xx_set_link_led,
-	.phy_specific_func = (phy_specific_func_t)bnx2x_848xx_specific_func
+	.format_fw_ver	= bnx2x_8485x_format_ver,
+	.hw_reset	= bnx2x_84833_hw_reset_phy,
+	.set_link_led	= bnx2x_848xx_set_link_led,
+	.phy_specific_func = bnx2x_848xx_specific_func
 };
 
 static const struct bnx2x_phy phy_54618se = {
@@ -12211,14 +12197,14 @@ static const struct bnx2x_phy phy_54618se = {
 	.speed_cap_mask	= 0,
 	/* req_duplex = */0,
 	/* rsrv = */0,
-	.config_init	= (config_init_t)bnx2x_54618se_config_init,
-	.read_status	= (read_status_t)bnx2x_54618se_read_status,
-	.link_reset	= (link_reset_t)bnx2x_54618se_link_reset,
-	.config_loopback = (config_loopback_t)bnx2x_54618se_config_loopback,
+	.config_init	= bnx2x_54618se_config_init,
+	.read_status	= bnx2x_54618se_read_status,
+	.link_reset	= bnx2x_54618se_link_reset,
+	.config_loopback = bnx2x_54618se_config_loopback,
 	.format_fw_ver	= (format_fw_ver_t)NULL,
 	.hw_reset	= (hw_reset_t)NULL,
-	.set_link_led	= (set_link_led_t)bnx2x_5461x_set_link_led,
-	.phy_specific_func = (phy_specific_func_t)bnx2x_54618se_specific_func
+	.set_link_led	= bnx2x_5461x_set_link_led,
+	.phy_specific_func = bnx2x_54618se_specific_func
 };
 /*****************************************************************/
 /*                                                               */

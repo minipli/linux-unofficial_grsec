@@ -13,15 +13,25 @@ typedef struct
 	atomic_long_t a;
 } local_t;
 
+typedef struct {
+	atomic_long_unchecked_t a;
+} local_unchecked_t;
+
 #define LOCAL_INIT(i)	{ ATOMIC_LONG_INIT(i) }
 
 #define local_read(l)	atomic_long_read(&(l)->a)
+#define local_read_unchecked(l)	atomic_long_read_unchecked(&(l)->a)
 #define local_set(l, i) atomic_long_set(&(l)->a, (i))
+#define local_set_unchecked(l, i)	atomic_long_set_unchecked(&(l)->a, (i))
 
 #define local_add(i, l) atomic_long_add((i), (&(l)->a))
+#define local_add_unchecked(i, l) atomic_long_add_unchecked((i), (&(l)->a))
 #define local_sub(i, l) atomic_long_sub((i), (&(l)->a))
+#define local_sub_unchecked(i, l) atomic_long_sub_unchecked((i), (&(l)->a))
 #define local_inc(l)	atomic_long_inc(&(l)->a)
+#define local_inc_unchecked(l)	atomic_long_inc_unchecked(&(l)->a)
 #define local_dec(l)	atomic_long_dec(&(l)->a)
+#define local_dec_unchecked(l)	atomic_long_dec_unchecked(&(l)->a)
 
 /*
  * Same as above, but return the result value
@@ -49,6 +59,51 @@ static __inline__ long local_add_return(long i, local_t * l)
 
 		__asm__ __volatile__(
 		"	.set	"MIPS_ISA_ARCH_LEVEL"			\n"
+		"1:"	__LL	"%1, %2		# local_add_return	\n"
+		"	addu	%0, %1, %3				\n"
+			__SC	"%0, %2					\n"
+		"	beqz	%0, 1b					\n"
+		"	addu	%0, %1, %3				\n"
+		"	.set	mips0					\n"
+		: "=&r" (result), "=&r" (temp), "=m" (l->a.counter)
+		: "Ir" (i), "m" (l->a.counter)
+		: "memory");
+	} else {
+		unsigned long flags;
+
+		local_irq_save(flags);
+		result = l->a.counter;
+		result += i;
+		l->a.counter = result;
+		local_irq_restore(flags);
+	}
+
+	return result;
+}
+
+static __inline__ long local_add_return_unchecked(long i, local_unchecked_t * l)
+{
+	unsigned long result;
+
+	if (kernel_uses_llsc && R10000_LLSC_WAR) {
+		unsigned long temp;
+
+		__asm__ __volatile__(
+		"	.set	mips3					\n"
+		"1:"	__LL	"%1, %2		# local_add_return	\n"
+		"	addu	%0, %1, %3				\n"
+			__SC	"%0, %2					\n"
+		"	beqzl	%0, 1b					\n"
+		"	addu	%0, %1, %3				\n"
+		"	.set	mips0					\n"
+		: "=&r" (result), "=&r" (temp), "=m" (l->a.counter)
+		: "Ir" (i), "m" (l->a.counter)
+		: "memory");
+	} else if (kernel_uses_llsc) {
+		unsigned long temp;
+
+		__asm__ __volatile__(
+		"	.set	mips3					\n"
 		"1:"	__LL	"%1, %2		# local_add_return	\n"
 		"	addu	%0, %1, %3				\n"
 			__SC	"%0, %2					\n"
@@ -117,6 +172,8 @@ static __inline__ long local_sub_return(long i, local_t * l)
 }
 
 #define local_cmpxchg(l, o, n) \
+	((long)cmpxchg_local(&((l)->a.counter), (o), (n)))
+#define local_cmpxchg_unchecked(l, o, n) \
 	((long)cmpxchg_local(&((l)->a.counter), (o), (n)))
 #define local_xchg(l, n) (atomic_long_xchg((&(l)->a), (n)))
 

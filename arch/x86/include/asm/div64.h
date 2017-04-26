@@ -39,7 +39,7 @@
 	__mod;							\
 })
 
-static inline u64 div_u64_rem(u64 dividend, u32 divisor, u32 *remainder)
+static inline u64 __intentional_overflow(-1) div_u64_rem(u64 dividend, u32 divisor, u32 *remainder)
 {
 	union {
 		u64 v64;

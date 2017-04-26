@@ -1174,7 +1174,9 @@ static int ufx_ops_release(struct fb_info *info, int user)
 		fb_deferred_io_cleanup(info);
 		kfree(info->fbdefio);
 		info->fbdefio = NULL;
-		info->fbops->fb_mmap = ufx_ops_mmap;
+		pax_open_kernel();
+		const_cast(info->fbops->fb_mmap) = ufx_ops_mmap;
+		pax_close_kernel();
 	}
 
 	pr_debug("released /dev/fb%d user=%d count=%d",

@@ -483,7 +483,7 @@ static void __ghes_print_estatus(const char *pfx,
 				 const struct acpi_hest_generic *generic,
 				 const struct acpi_hest_generic_status *estatus)
 {
-	static atomic_t seqno;
+	static atomic_unchecked_t seqno;
 	unsigned int curr_seqno;
 	char pfx_seq[64];
 
@@ -494,7 +494,7 @@ static void __ghes_print_estatus(const char *pfx,
 		else
 			pfx = KERN_ERR;
 	}
-	curr_seqno = atomic_inc_return(&seqno);
+	curr_seqno = atomic_inc_return_unchecked(&seqno);
 	snprintf(pfx_seq, sizeof(pfx_seq), "%s{%u}" HW_ERR, pfx, curr_seqno);
 	printk("%s""Hardware error from APEI Generic Hardware Error Source: %d\n",
 	       pfx_seq, generic->header.source_id);
@@ -544,7 +544,7 @@ static int ghes_estatus_cached(struct acpi_hest_generic_status *estatus)
 		cache_estatus = GHES_ESTATUS_FROM_CACHE(cache);
 		if (memcmp(estatus, cache_estatus, len))
 			continue;
-		atomic_inc(&cache->count);
+		atomic_inc_unchecked(&cache->count);
 		now = sched_clock();
 		if (now - cache->time_in < GHES_ESTATUS_IN_CACHE_MAX_NSEC)
 			cached = 1;
@@ -578,7 +578,7 @@ static struct ghes_estatus_cache *ghes_estatus_cache_alloc(
 	cache_estatus = GHES_ESTATUS_FROM_CACHE(cache);
 	memcpy(cache_estatus, estatus, len);
 	cache->estatus_len = len;
-	atomic_set(&cache->count, 0);
+	atomic_set_unchecked(&cache->count, 0);
 	cache->generic = generic;
 	cache->time_in = sched_clock();
 	return cache;
@@ -628,7 +628,7 @@ static void ghes_estatus_cache_add(
 			slot_cache = cache;
 			break;
 		}
-		count = atomic_read(&cache->count);
+		count = atomic_read_unchecked(&cache->count);
 		period = duration;
 		do_div(period, (count + 1));
 		if (period > max_period) {

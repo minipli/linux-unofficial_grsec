@@ -367,13 +367,19 @@ static bool toneport_has_source_select(struct usb_line6_toneport *toneport)
 */
 static void toneport_setup(struct usb_line6_toneport *toneport)
 {
-	int ticks;
+	int *ticks;
 	struct usb_line6 *line6 = &toneport->line6;
 	struct usb_device *usbdev = line6->usbdev;
 
+	ticks = kmalloc(sizeof(int), GFP_KERNEL);
+	if (ticks == NULL)
+		return;
+
 	/* sync time on device with host: */
-	ticks = (int)get_seconds();
-	line6_write_data(line6, 0x80c6, &ticks, 4);
+	*ticks = (int)get_seconds();
+	line6_write_data(line6, 0x80c6, ticks, sizeof(int));
+
+	kfree(ticks);
 
 	/* enable device: */
 	toneport_send_cmd(usbdev, 0x0301, 0x0000);

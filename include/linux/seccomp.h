@@ -7,7 +7,7 @@
 
 #ifdef CONFIG_SECCOMP
 
-#include <linux/thread_info.h>
+//#include <linux/thread_info.h>
 #include <asm/seccomp.h>
 
 struct seccomp_filter;
@@ -28,13 +28,7 @@ struct seccomp {
 };
 
 #ifdef CONFIG_HAVE_ARCH_SECCOMP_FILTER
-extern int __secure_computing(const struct seccomp_data *sd);
-static inline int secure_computing(const struct seccomp_data *sd)
-{
-	if (unlikely(test_thread_flag(TIF_SECCOMP)))
-		return  __secure_computing(sd);
-	return 0;
-}
+extern int secure_computing(const struct seccomp_data *sd);
 #else
 extern void secure_computing_strict(int this_syscall);
 #endif

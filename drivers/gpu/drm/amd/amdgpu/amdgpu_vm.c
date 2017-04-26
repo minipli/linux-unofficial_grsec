@@ -205,7 +205,7 @@ int amdgpu_vm_grab_id(struct amdgpu_vm *vm, struct amdgpu_ring *ring,
 	unsigned i;
 	int r = 0;
 
-	fences = kmalloc_array(sizeof(void *), adev->vm_manager.num_ids,
+	fences = kmalloc_array(adev->vm_manager.num_ids, sizeof(void *),
 			       GFP_KERNEL);
 	if (!fences)
 		return -ENOMEM;

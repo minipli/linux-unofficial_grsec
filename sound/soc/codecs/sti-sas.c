@@ -591,11 +591,13 @@ static int sti_sas_driver_probe(struct platform_device *pdev)
 	sti_sas_dai[STI_SAS_DAI_ANALOG_OUT].ops = drvdata->dev_data->dac_ops;
 
 	/* Set dapms*/
-	sti_sas_driver.component_driver.dapm_widgets = drvdata->dev_data->dapm_widgets;
-	sti_sas_driver.component_driver.num_dapm_widgets = drvdata->dev_data->num_dapm_widgets;
+	pax_open_kernel();
+	const_cast(sti_sas_driver.component_driver.dapm_widgets) = drvdata->dev_data->dapm_widgets;
+	const_cast(sti_sas_driver.component_driver.num_dapm_widgets) = drvdata->dev_data->num_dapm_widgets;
 
-	sti_sas_driver.component_driver.dapm_routes = drvdata->dev_data->dapm_routes;
-	sti_sas_driver.component_driver.num_dapm_routes = drvdata->dev_data->num_dapm_routes;
+	const_cast(sti_sas_driver.component_driver.dapm_routes) = drvdata->dev_data->dapm_routes;
+	const_cast(sti_sas_driver.component_driver.num_dapm_routes) = drvdata->dev_data->num_dapm_routes;
+	pax_close_kernel();
 
 	/* Store context */
 	dev_set_drvdata(&pdev->dev, drvdata);

@@ -776,7 +776,7 @@ static void calc_max_reserv(struct gfs2_inode *ip, loff_t *len,
 {
 	loff_t max = *len;
 	const struct gfs2_sbd *sdp = GFS2_SB(&ip->i_inode);
-	unsigned int tmp, max_data = max_blocks - 3 * (sdp->sd_max_height - 1);
+	unsigned int tmp, max_data = max_blocks - 3 * sdp->sd_max_height + 3;
 
 	for (tmp = max_data; tmp > sdp->sd_diptrs;) {
 		tmp = DIV_ROUND_UP(tmp, sdp->sd_inptrs);

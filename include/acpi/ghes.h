@@ -32,7 +32,7 @@ struct ghes_estatus_node {
 
 struct ghes_estatus_cache {
 	u32 estatus_len;
-	atomic_t count;
+	atomic_unchecked_t count;
 	struct acpi_hest_generic *generic;
 	unsigned long long time_in;
 	struct rcu_head rcu;

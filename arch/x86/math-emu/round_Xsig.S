@@ -77,7 +77,7 @@ L_exit:
 	popl	%esi
 	popl	%ebx
 	leave
-	ret
+	pax_ret round_Xsig
 
 
 
@@ -137,5 +137,5 @@ L_n_exit:
 	popl	%esi
 	popl	%ebx
 	leave
-	ret
+	pax_ret norm_Xsig
 

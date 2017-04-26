@@ -250,7 +250,35 @@ static int ptrace_check_attach(struct task_struct *child, bool ignore_state)
 	return ret;
 }
 
-static int ptrace_has_cap(struct user_namespace *ns, unsigned int mode)
+static bool ptrace_has_cap(const struct cred *tcred, unsigned int mode)
+{
+	struct user_namespace *tns = tcred->user_ns;
+	struct user_namespace *curns = current_cred()->user_ns;
+
+	/* When a root-owned process enters a user namespace created by a
+	 * malicious user, the user shouldn't be able to execute code under
+	 * uid 0 by attaching to the root-owned process via ptrace.
+	 * Therefore, similar to the capable_wrt_inode_uidgid() check,
+	 * verify that all the uids and gids of the target process are
+	 * mapped into the current namespace.
+	 * No fsuid/fsgid check because __ptrace_may_access doesn't do it
+	 * either.
+	 */
+	if (!kuid_has_mapping(curns, tcred->euid) ||
+			!kuid_has_mapping(curns, tcred->suid) ||
+			!kuid_has_mapping(curns, tcred->uid)  ||
+			!kgid_has_mapping(curns, tcred->egid) ||
+			!kgid_has_mapping(curns, tcred->sgid) ||
+			!kgid_has_mapping(curns, tcred->gid))
+		return false;
+
+	if (mode & PTRACE_MODE_NOAUDIT)
+		return has_ns_capability_noaudit(current, tns, CAP_SYS_PTRACE);
+	else
+		return has_ns_capability(current, tns, CAP_SYS_PTRACE);
+}
+
+static bool ptrace_userns_has_cap(struct user_namespace *ns, unsigned int mode)
 {
 	if (mode & PTRACE_MODE_NOAUDIT)
 		return has_ns_capability_noaudit(current, ns, CAP_SYS_PTRACE);
@@ -265,6 +293,7 @@ static int __ptrace_may_access(struct task_struct *task, unsigned int mode)
 	struct mm_struct *mm;
 	kuid_t caller_uid;
 	kgid_t caller_gid;
+	int dumpable = 0;
 
 	if (!(mode & PTRACE_MODE_FSCREDS) == !(mode & PTRACE_MODE_REALCREDS)) {
 		WARN(1, "denying ptrace access check without PTRACE_MODE_*CREDS\n");
@@ -307,16 +336,27 @@ static int __ptrace_may_access(struct task_struct *task, unsigned int mode)
 	    gid_eq(caller_gid, tcred->sgid) &&
 	    gid_eq(caller_gid, tcred->gid))
 		goto ok;
-	if (ptrace_has_cap(tcred->user_ns, mode))
+	if (ptrace_has_cap(tcred, mode))
 		goto ok;
 	rcu_read_unlock();
 	return -EPERM;
 ok:
 	rcu_read_unlock();
+	smp_rmb();
 	mm = task->mm;
+	if (mm)
+		dumpable = get_dumpable(mm);
+	rcu_read_lock();
+	if (dumpable != SUID_DUMP_USER &&
+	    !ptrace_has_cap(__task_cred(task), mode)) {
+		rcu_read_unlock();
+		return -EPERM;
+	}
+	rcu_read_unlock();
+
 	if (mm &&
-	    ((get_dumpable(mm) != SUID_DUMP_USER) &&
-	     !ptrace_has_cap(mm->user_ns, mode)))
+	    (dumpable != SUID_DUMP_USER) &&
+	     !ptrace_userns_has_cap(mm->user_ns, mode))
 	    return -EPERM;
 
 	return security_ptrace_access_check(task, mode);
@@ -577,7 +617,7 @@ int ptrace_readdata(struct task_struct *tsk, unsigned long src, char __user *dst
 				break;
 			return -EIO;
 		}
-		if (copy_to_user(dst, buf, retval))
+		if (retval > sizeof(buf) || copy_to_user(dst, buf, retval))
 			return -EFAULT;
 		copied += retval;
 		src += retval;
@@ -879,7 +919,7 @@ int ptrace_request(struct task_struct *child, long request,
 	bool seized = child->ptrace & PT_SEIZED;
 	int ret = -EIO;
 	siginfo_t siginfo, *si;
-	void __user *datavp = (void __user *) data;
+	void __user *datavp = (__force void __user *) data;
 	unsigned long __user *datalp = datavp;
 	unsigned long flags;
 
@@ -1130,14 +1170,21 @@ SYSCALL_DEFINE4(ptrace, long, request, long, pid, unsigned long, addr,
 		goto out;
 	}
 
+	if (gr_handle_ptrace(child, request)) {
+		ret = -EPERM;
+		goto out_put_task_struct;
+	}
+
 	if (request == PTRACE_ATTACH || request == PTRACE_SEIZE) {
 		ret = ptrace_attach(child, request, addr, data);
 		/*
 		 * Some architectures need to do book-keeping after
 		 * a ptrace attach.
 		 */
-		if (!ret)
+		if (!ret) {
 			arch_ptrace_attach(child);
+			gr_audit_ptrace(child);
+		}
 		goto out_put_task_struct;
 	}
 
@@ -1165,7 +1212,7 @@ int generic_ptrace_peekdata(struct task_struct *tsk, unsigned long addr,
 	copied = ptrace_access_vm(tsk, addr, &tmp, sizeof(tmp), FOLL_FORCE);
 	if (copied != sizeof(tmp))
 		return -EIO;
-	return put_user(tmp, (unsigned long __user *)data);
+	return put_user(tmp, (unsigned long __force_user *)data);
 }
 
 int generic_ptrace_pokedata(struct task_struct *tsk, unsigned long addr,
@@ -1261,7 +1308,7 @@ int compat_ptrace_request(struct task_struct *child, compat_long_t request,
 }
 
 COMPAT_SYSCALL_DEFINE4(ptrace, compat_long_t, request, compat_long_t, pid,
-		       compat_long_t, addr, compat_long_t, data)
+		       compat_ulong_t, addr, compat_ulong_t, data)
 {
 	struct task_struct *child;
 	long ret;
@@ -1277,14 +1324,21 @@ COMPAT_SYSCALL_DEFINE4(ptrace, compat_long_t, request, compat_long_t, pid,
 		goto out;
 	}
 
+	if (gr_handle_ptrace(child, request)) {
+		ret = -EPERM;
+		goto out_put_task_struct;
+	}
+
 	if (request == PTRACE_ATTACH || request == PTRACE_SEIZE) {
 		ret = ptrace_attach(child, request, addr, data);
 		/*
 		 * Some architectures need to do book-keeping after
 		 * a ptrace attach.
 		 */
-		if (!ret)
+		if (!ret) {
 			arch_ptrace_attach(child);
+			gr_audit_ptrace(child);
+		}
 		goto out_put_task_struct;
 	}
 

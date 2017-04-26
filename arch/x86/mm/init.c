@@ -4,6 +4,7 @@
 #include <linux/swap.h>
 #include <linux/memblock.h>
 #include <linux/bootmem.h>	/* for max_low_pfn */
+#include <linux/tboot.h>
 
 #include <asm/cacheflush.h>
 #include <asm/e820.h>
@@ -18,6 +19,7 @@
 #include <asm/dma.h>		/* for MAX_DMA_PFN */
 #include <asm/microcode.h>
 #include <asm/kaslr.h>
+#include <asm/bios_ebda.h>
 
 /*
  * We need to define the tracepoints somewhere, and tlb.c
@@ -633,7 +635,18 @@ void __init init_mem_mapping(void)
 	early_ioremap_page_table_range_init();
 #endif
 
+#ifdef CONFIG_PAX_PER_CPU_PGD
+	clone_pgd_range(get_cpu_pgd(0, kernel) + KERNEL_PGD_BOUNDARY,
+			swapper_pg_dir + KERNEL_PGD_BOUNDARY,
+			KERNEL_PGD_PTRS);
+	clone_pgd_range(get_cpu_pgd(0, user) + KERNEL_PGD_BOUNDARY,
+			swapper_pg_dir + KERNEL_PGD_BOUNDARY,
+			KERNEL_PGD_PTRS);
+	load_cr3(get_cpu_pgd(0, kernel));
+#else
 	load_cr3(swapper_pg_dir);
+#endif
+
 	__flush_tlb_all();
 
 	early_memtest(0, max_pfn_mapped << PAGE_SHIFT);
@@ -651,8 +664,40 @@ void __init init_mem_mapping(void)
  * Access has to be given to non-kernel-ram areas as well, these contain the
  * PCI mmio resources as well as potential bios/acpi data regions.
  */
+
+#ifdef CONFIG_GRKERNSEC_KMEM
+static unsigned int ebda_start __read_only;
+static unsigned int ebda_end __read_only;
+#endif
+
 int devmem_is_allowed(unsigned long pagenr)
 {
+#ifdef CONFIG_GRKERNSEC_KMEM
+	/* allow BDA */
+	if (!pagenr)
+		return 1;
+	/* allow EBDA */
+	if (pagenr >= ebda_start && pagenr < ebda_end)
+		return 1;
+	/* if tboot is in use, allow access to its hardcoded serial log range */
+	if (tboot_enabled() && ((0x60000 >> PAGE_SHIFT) <= pagenr) && (pagenr < (0x68000 >> PAGE_SHIFT)))
+		return 1;
+	if ((ISA_START_ADDRESS >> PAGE_SHIFT) <= pagenr && pagenr < (ISA_END_ADDRESS >> PAGE_SHIFT))
+		return 1;
+	/* throw out everything else below 1MB */
+	if (pagenr <= 256)
+		return 0;
+#else
+	if (!pagenr)
+		return 1;
+#ifdef CONFIG_VM86
+	if (pagenr < (ISA_START_ADDRESS >> PAGE_SHIFT))
+		return 1;
+#endif
+	if ((ISA_START_ADDRESS >> PAGE_SHIFT) <= pagenr && pagenr < (ISA_END_ADDRESS >> PAGE_SHIFT))
+		return 1;
+#endif
+
 	if (page_is_ram(pagenr)) {
 		/*
 		 * For disallowed memory regions in the low 1MB range,
@@ -718,8 +763,33 @@ void free_init_pages(char *what, unsigned long begin, unsigned long end)
 	}
 }
 
+#ifdef CONFIG_GRKERNSEC_KMEM
+static inline void gr_init_ebda(void)
+{
+	unsigned int ebda_addr;
+	unsigned int ebda_size = 0;
+
+	ebda_addr = get_bios_ebda();
+	if (ebda_addr) {
+		ebda_size = *(unsigned char *)phys_to_virt(ebda_addr);
+		ebda_size <<= 10;
+	}
+	if (ebda_addr && ebda_size) {
+		ebda_start = ebda_addr >> PAGE_SHIFT;
+		ebda_end = min((unsigned int)PAGE_ALIGN(ebda_addr + ebda_size), (unsigned int)0xa0000) >> PAGE_SHIFT;
+	} else {
+		ebda_start = 0x9f000 >> PAGE_SHIFT;
+		ebda_end = 0xa0000 >> PAGE_SHIFT;
+	}
+}
+#else
+static inline void gr_init_ebda(void) { }
+#endif
+
 void __ref free_initmem(void)
 {
+	gr_init_ebda();
+
 	e820_reallocate_tables();
 
 	free_init_pages("unused kernel",

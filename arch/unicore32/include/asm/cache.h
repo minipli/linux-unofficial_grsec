@@ -12,8 +12,10 @@
 #ifndef __UNICORE_CACHE_H__
 #define __UNICORE_CACHE_H__
 
-#define L1_CACHE_SHIFT		(5)
-#define L1_CACHE_BYTES		(1 << L1_CACHE_SHIFT)
+#include <linux/const.h>
+
+#define L1_CACHE_SHIFT		5
+#define L1_CACHE_BYTES		(_AC(1,UL) << L1_CACHE_SHIFT)
 
 /*
  * Memory returned by kmalloc() may be used for DMA, so we must make

@@ -36,7 +36,7 @@ static int rps_sock_flow_sysctl(struct ctl_table *table, int write,
 {
 	unsigned int orig_size, size;
 	int ret, i;
-	struct ctl_table tmp = {
+	ctl_table_no_const tmp = {
 		.data = &size,
 		.maxlen = sizeof(size),
 		.mode = table->mode
@@ -204,7 +204,7 @@ static int set_default_qdisc(struct ctl_table *table, int write,
 			     void __user *buffer, size_t *lenp, loff_t *ppos)
 {
 	char id[IFNAMSIZ];
-	struct ctl_table tbl = {
+	ctl_table_no_const tbl = {
 		.data = id,
 		.maxlen = IFNAMSIZ,
 	};
@@ -222,7 +222,7 @@ static int set_default_qdisc(struct ctl_table *table, int write,
 static int proc_do_rss_key(struct ctl_table *table, int write,
 			   void __user *buffer, size_t *lenp, loff_t *ppos)
 {
-	struct ctl_table fake_table;
+	ctl_table_no_const fake_table;
 	char buf[NETDEV_RSS_KEY_LEN * 3];
 
 	snprintf(buf, sizeof(buf), "%*phC", NETDEV_RSS_KEY_LEN, netdev_rss_key);
@@ -286,7 +286,7 @@ static struct ctl_table net_core_table[] = {
 		.mode		= 0444,
 		.proc_handler	= proc_do_rss_key,
 	},
-#ifdef CONFIG_BPF_JIT
+#if defined(CONFIG_BPF_JIT) && !defined(CONFIG_GRKERNSEC_BPF_HARDEN)
 	{
 		.procname	= "bpf_jit_enable",
 		.data		= &bpf_jit_enable,
@@ -428,13 +428,12 @@ static struct ctl_table netns_core_table[] = {
 
 static __net_init int sysctl_core_net_init(struct net *net)
 {
-	struct ctl_table *tbl;
+	ctl_table_no_const *tbl = NULL;
 
 	net->core.sysctl_somaxconn = SOMAXCONN;
 
-	tbl = netns_core_table;
 	if (!net_eq(net, &init_net)) {
-		tbl = kmemdup(tbl, sizeof(netns_core_table), GFP_KERNEL);
+		tbl = kmemdup(netns_core_table, sizeof(netns_core_table), GFP_KERNEL);
 		if (tbl == NULL)
 			goto err_dup;
 
@@ -444,17 +443,16 @@ static __net_init int sysctl_core_net_init(struct net *net)
 		if (net->user_ns != &init_user_ns) {
 			tbl[0].procname = NULL;
 		}
-	}
-
-	net->core.sysctl_hdr = register_net_sysctl(net, "net/core", tbl);
+		net->core.sysctl_hdr = register_net_sysctl(net, "net/core", tbl);
+	} else
+		net->core.sysctl_hdr = register_net_sysctl(net, "net/core", netns_core_table);
 	if (net->core.sysctl_hdr == NULL)
 		goto err_reg;
 
 	return 0;
 
 err_reg:
-	if (tbl != netns_core_table)
-		kfree(tbl);
+	kfree(tbl);
 err_dup:
 	return -ENOMEM;
 }
@@ -469,7 +467,7 @@ static __net_exit void sysctl_core_net_exit(struct net *net)
 	kfree(tbl);
 }
 
-static __net_initdata struct pernet_operations sysctl_core_ops = {
+static __net_initconst struct pernet_operations sysctl_core_ops = {
 	.init = sysctl_core_net_init,
 	.exit = sysctl_core_net_exit,
 };

@@ -256,7 +256,7 @@ int __init atalk_proc_init(void)
 	struct proc_dir_entry *p;
 	int rc = -ENOMEM;
 
-	atalk_proc_dir = proc_mkdir("atalk", init_net.proc_net);
+	atalk_proc_dir = proc_mkdir_restrict("atalk", init_net.proc_net);
 	if (!atalk_proc_dir)
 		goto out;
 

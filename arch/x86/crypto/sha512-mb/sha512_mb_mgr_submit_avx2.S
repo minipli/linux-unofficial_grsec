@@ -53,6 +53,7 @@
 
 #include <linux/linkage.h>
 #include <asm/frame.h>
+#include <asm/alternative-asm.h>
 #include "sha512_mb_mgr_datastruct.S"
 
 .extern sha512_x4_avx2
@@ -98,7 +99,7 @@
 # JOB* sha512_mb_mgr_submit_avx2(MB_MGR *state, JOB *job)
 # arg 1 : rcx : state
 # arg 2 : rdx : job
-ENTRY(sha512_mb_mgr_submit_avx2)
+RAP_ENTRY(sha512_mb_mgr_submit_avx2)
 	FRAME_BEGIN
 	push	%rbx
 	push	%r12
@@ -167,7 +168,7 @@ start_loop:
 
 	# "state" and "args" are the same address, arg1
 	# len is arg2
-	call    sha512_x4_avx2
+	pax_direct_call sha512_x4_avx2
 	# state and idx are intact
 
 len_is_0:
@@ -203,7 +204,7 @@ return:
 	pop	%r12
 	pop	%rbx
 	FRAME_END
-	ret
+	pax_ret sha512_mb_mgr_submit_avx2
 
 return_null:
 	xor     job_rax, job_rax

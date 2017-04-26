@@ -16,7 +16,7 @@ struct sock_diag_handler {
 	int (*dump)(struct sk_buff *skb, struct nlmsghdr *nlh);
 	int (*get_info)(struct sk_buff *skb, struct sock *sk);
 	int (*destroy)(struct sk_buff *skb, struct nlmsghdr *nlh);
-};
+} __do_const;
 
 int sock_diag_register(const struct sock_diag_handler *h);
 void sock_diag_unregister(const struct sock_diag_handler *h);

@@ -1699,7 +1699,7 @@ static int __init bcm_module_init(void)
 	}
 
 	/* create /proc/net/can-bcm directory */
-	proc_dir = proc_mkdir("can-bcm", init_net.proc_net);
+	proc_dir = proc_mkdir_restrict("can-bcm", init_net.proc_net);
 	return 0;
 }
 

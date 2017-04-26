@@ -111,7 +111,7 @@ static ssize_t key_tx_spec_write(struct file *file, const char __user *userbuf,
 		/* PN is a 48-bit counter */
 		if (pn >= (1ULL << 48))
 			return -ERANGE;
-		atomic64_set(&key->conf.tx_pn, pn);
+		atomic64_set_unchecked(&key->conf.tx_pn, pn);
 		return count;
 	default:
 		return 0;
@@ -132,7 +132,7 @@ static ssize_t key_tx_spec_read(struct file *file, char __user *userbuf,
 		len = scnprintf(buf, sizeof(buf), "\n");
 		break;
 	case WLAN_CIPHER_SUITE_TKIP:
-		pn = atomic64_read(&key->conf.tx_pn);
+		pn = atomic64_read_unchecked(&key->conf.tx_pn);
 		len = scnprintf(buf, sizeof(buf), "%08x %04x\n",
 				TKIP_PN_TO_IV32(pn),
 				TKIP_PN_TO_IV16(pn));
@@ -145,7 +145,7 @@ static ssize_t key_tx_spec_read(struct file *file, char __user *userbuf,
 	case WLAN_CIPHER_SUITE_BIP_GMAC_256:
 	case WLAN_CIPHER_SUITE_GCMP:
 	case WLAN_CIPHER_SUITE_GCMP_256:
-		pn = atomic64_read(&key->conf.tx_pn);
+		pn = atomic64_read_unchecked(&key->conf.tx_pn);
 		len = scnprintf(buf, sizeof(buf), "%02x%02x%02x%02x%02x%02x\n",
 				(u8)(pn >> 40), (u8)(pn >> 32), (u8)(pn >> 24),
 				(u8)(pn >> 16), (u8)(pn >> 8), (u8)pn);

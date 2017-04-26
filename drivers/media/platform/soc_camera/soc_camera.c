@@ -1723,7 +1723,7 @@ static int soc_camera_probe(struct soc_camera_host *ici,
 			goto eadd;
 
 		if (shd->module_name)
-			ret = request_module(shd->module_name);
+			ret = request_module("%s", shd->module_name);
 
 		ret = shd->add_device(icd);
 		if (ret < 0)

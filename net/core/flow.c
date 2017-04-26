@@ -65,7 +65,7 @@ static void flow_cache_new_hashrnd(unsigned long arg)
 static int flow_entry_valid(struct flow_cache_entry *fle,
 				struct netns_xfrm *xfrm)
 {
-	if (atomic_read(&xfrm->flow_cache_genid) != fle->genid)
+	if (atomic_read_unchecked(&xfrm->flow_cache_genid) != fle->genid)
 		return 0;
 	if (fle->object && !fle->object->ops->check(fle->object))
 		return 0;
@@ -251,7 +251,7 @@ flow_cache_lookup(struct net *net, const struct flowi *key, u16 family, u8 dir,
 			hlist_add_head(&fle->u.hlist, &fcp->hash_table[hash]);
 			fcp->hash_count++;
 		}
-	} else if (likely(fle->genid == atomic_read(&net->xfrm.flow_cache_genid))) {
+	} else if (likely(fle->genid == atomic_read_unchecked(&net->xfrm.flow_cache_genid))) {
 		flo = fle->object;
 		if (!flo)
 			goto ret_object;
@@ -272,7 +272,7 @@ nocache:
 	}
 	flo = resolver(net, key, family, dir, flo, ctx);
 	if (fle) {
-		fle->genid = atomic_read(&net->xfrm.flow_cache_genid);
+		fle->genid = atomic_read_unchecked(&net->xfrm.flow_cache_genid);
 		if (!IS_ERR(flo))
 			fle->object = flo;
 		else

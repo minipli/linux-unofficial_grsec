@@ -428,7 +428,7 @@ int dvb_register_device(struct dvb_adapter *adap, struct dvb_device **pdvbdev,
 			int demux_sink_pads)
 {
 	struct dvb_device *dvbdev;
-	struct file_operations *dvbdevfops;
+	file_operations_no_const *dvbdevfops;
 	struct device *clsdev;
 	int minor;
 	int id, ret;

@@ -332,7 +332,7 @@ static void arp_solicit(struct neighbour *neigh, struct sk_buff *skb)
 	u8 dst_ha[MAX_ADDR_LEN], *dst_hw = NULL;
 	struct net_device *dev = neigh->dev;
 	__be32 target = *(__be32 *)neigh->primary_key;
-	int probes = atomic_read(&neigh->probes);
+	int probes = atomic_read_unchecked(&neigh->probes);
 	struct in_device *in_dev;
 	struct dst_entry *dst = NULL;
 

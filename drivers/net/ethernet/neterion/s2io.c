@@ -8556,7 +8556,7 @@ static void lro_append_pkt(struct s2io_nic *sp, struct lro *lro,
  * this device has been detected.
  */
 static pci_ers_result_t s2io_io_error_detected(struct pci_dev *pdev,
-					       pci_channel_state_t state)
+					       enum pci_channel_state state)
 {
 	struct net_device *netdev = pci_get_drvdata(pdev);
 	struct s2io_nic *sp = netdev_priv(netdev);

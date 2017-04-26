@@ -1011,7 +1011,7 @@ static void cfhsi_aggregation_tout(unsigned long arg)
 	cfhsi_start_tx(cfhsi);
 }
 
-static int cfhsi_xmit(struct sk_buff *skb, struct net_device *dev)
+static netdev_tx_t cfhsi_xmit(struct sk_buff *skb, struct net_device *dev)
 {
 	struct cfhsi *cfhsi = NULL;
 	int start_xfer = 0;
@@ -1441,7 +1441,7 @@ err:
 	return -ENODEV;
 }
 
-static struct rtnl_link_ops caif_hsi_link_ops __read_mostly = {
+static struct rtnl_link_ops caif_hsi_link_ops = {
 	.kind		= "cfhsi",
 	.priv_size	= sizeof(struct cfhsi),
 	.setup		= cfhsi_setup,

@@ -214,8 +214,10 @@ int _snd_ctl_add_slave(struct snd_kcontrol *master, struct snd_kcontrol *slave,
  * Return: Zero if successful or a negative error code.
  */
 static inline int
-snd_ctl_add_slave(struct snd_kcontrol *master, struct snd_kcontrol *slave)
+snd_ctl_add_slave(void *_master, struct snd_kcontrol *slave)
 {
+	struct snd_kcontrol *master = _master;
+
 	return _snd_ctl_add_slave(master, slave, 0);
 }
 

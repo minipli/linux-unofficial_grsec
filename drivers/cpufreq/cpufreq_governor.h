@@ -171,7 +171,7 @@ void cpufreq_dbs_governor_limits(struct cpufreq_policy *policy);
 struct od_ops {
 	unsigned int (*powersave_bias_target)(struct cpufreq_policy *policy,
 			unsigned int freq_next, unsigned int relation);
-};
+} __no_const;
 
 unsigned int dbs_update(struct cpufreq_policy *policy);
 void od_register_powersave_bias_handler(unsigned int (*f)

@@ -712,14 +712,18 @@ static int __init dmi_init(void)
 	if (!dmi_table)
 		goto err_tables;
 
-	bin_attr_smbios_entry_point.size = smbios_entry_point_size;
-	bin_attr_smbios_entry_point.private = smbios_entry_point;
+	pax_open_kernel();
+	const_cast(bin_attr_smbios_entry_point.size) = smbios_entry_point_size;
+	const_cast(bin_attr_smbios_entry_point.private) = smbios_entry_point;
+	pax_close_kernel();
 	ret = sysfs_create_bin_file(tables_kobj, &bin_attr_smbios_entry_point);
 	if (ret)
 		goto err_unmap;
 
-	bin_attr_DMI.size = dmi_len;
-	bin_attr_DMI.private = dmi_table;
+	pax_open_kernel();
+	const_cast(bin_attr_DMI.size) = dmi_len;
+	const_cast(bin_attr_DMI.private) = dmi_table;
+	pax_close_kernel();
 	ret = sysfs_create_bin_file(tables_kobj, &bin_attr_DMI);
 	if (!ret)
 		return 0;

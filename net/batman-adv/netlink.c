@@ -141,7 +141,7 @@ batadv_netlink_mesh_info_put(struct sk_buff *msg, struct net_device *soft_iface)
 	    nla_put(msg, BATADV_ATTR_MESH_ADDRESS, ETH_ALEN,
 		    soft_iface->dev_addr) ||
 	    nla_put_u8(msg, BATADV_ATTR_TT_TTVN,
-		       (u8)atomic_read(&bat_priv->tt.vn)))
+		       (u8)atomic_read_unchecked(&bat_priv->tt.vn)))
 		goto out;
 
 #ifdef CONFIG_BATMAN_ADV_BLA

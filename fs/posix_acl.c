@@ -20,6 +20,7 @@
 #include <linux/xattr.h>
 #include <linux/export.h>
 #include <linux/user_namespace.h>
+#include <linux/grsecurity.h>
 
 static struct posix_acl **acl_by_type(struct inode *inode, int type)
 {
@@ -311,7 +312,7 @@ posix_acl_equiv_mode(const struct posix_acl *acl, umode_t *mode_p)
 		}
 	}
         if (mode_p)
-                *mode_p = (*mode_p & ~S_IRWXUGO) | mode;
+                *mode_p = ((*mode_p & ~S_IRWXUGO) | mode) & ~gr_acl_umask();
         return not_equiv;
 }
 EXPORT_SYMBOL(posix_acl_equiv_mode);
@@ -461,7 +462,7 @@ static int posix_acl_create_masq(struct posix_acl *acl, umode_t *mode_p)
 		mode &= (group_obj->e_perm << 3) | ~S_IRWXG;
 	}
 
-	*mode_p = (*mode_p & ~S_IRWXUGO) | mode;
+	*mode_p = ((*mode_p & ~S_IRWXUGO) | mode) & ~gr_acl_umask();
         return not_equiv;
 }
 
@@ -519,6 +520,8 @@ __posix_acl_create(struct posix_acl **acl, gfp_t gfp, umode_t *mode_p)
 	struct posix_acl *clone = posix_acl_clone(*acl, gfp);
 	int err = -ENOMEM;
 	if (clone) {
+		*mode_p &= ~gr_acl_umask();
+
 		err = posix_acl_create_masq(clone, mode_p);
 		if (err < 0) {
 			posix_acl_release(clone);
@@ -728,6 +731,7 @@ posix_acl_from_xattr(struct user_namespace *user_ns,
 	int count;
 	struct posix_acl *acl;
 	struct posix_acl_entry *acl_e;
+	umode_t umask = gr_acl_umask();
 
 	if (!value)
 		return NULL;
@@ -753,12 +757,18 @@ posix_acl_from_xattr(struct user_namespace *user_ns,
 
 		switch(acl_e->e_tag) {
 			case ACL_USER_OBJ:
+				acl_e->e_perm &= ~((umask & S_IRWXU) >> 6);
+				break;
 			case ACL_GROUP_OBJ:
 			case ACL_MASK:
+				acl_e->e_perm &= ~((umask & S_IRWXG) >> 3);
+				break;
 			case ACL_OTHER:
+				acl_e->e_perm &= ~(umask & S_IRWXO);
 				break;
 
 			case ACL_USER:
+				acl_e->e_perm &= ~((umask & S_IRWXU) >> 6);
 				acl_e->e_uid =
 					make_kuid(user_ns,
 						  le32_to_cpu(entry->e_id));
@@ -766,6 +776,7 @@ posix_acl_from_xattr(struct user_namespace *user_ns,
 					goto fail;
 				break;
 			case ACL_GROUP:
+				acl_e->e_perm &= ~((umask & S_IRWXG) >> 3);
 				acl_e->e_gid =
 					make_kgid(user_ns,
 						  le32_to_cpu(entry->e_id));

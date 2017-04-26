@@ -381,7 +381,7 @@ static int mt312_send_master_cmd(struct dvb_frontend *fe,
 }
 
 static int mt312_send_burst(struct dvb_frontend *fe,
-			    const enum fe_sec_mini_cmd c)
+			    enum fe_sec_mini_cmd c)
 {
 	struct mt312_state *state = fe->demodulator_priv;
 	const u8 mini_tab[2] = { 0x02, 0x03 };
@@ -405,7 +405,7 @@ static int mt312_send_burst(struct dvb_frontend *fe,
 }
 
 static int mt312_set_tone(struct dvb_frontend *fe,
-			  const enum fe_sec_tone_mode t)
+			  enum fe_sec_tone_mode t)
 {
 	struct mt312_state *state = fe->demodulator_priv;
 	const u8 tone_tab[2] = { 0x01, 0x00 };
@@ -429,7 +429,7 @@ static int mt312_set_tone(struct dvb_frontend *fe,
 }
 
 static int mt312_set_voltage(struct dvb_frontend *fe,
-			     const enum fe_sec_voltage v)
+			     enum fe_sec_voltage v)
 {
 	struct mt312_state *state = fe->demodulator_priv;
 	const u8 volt_tab[3] = { 0x00, 0x40, 0x00 };

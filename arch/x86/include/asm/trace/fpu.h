@@ -25,8 +25,8 @@ DECLARE_EVENT_CLASS(x86_fpu,
 		__entry->fpstate_active	= fpu->fpstate_active;
 		__entry->counter	= fpu->counter;
 		if (boot_cpu_has(X86_FEATURE_OSXSAVE)) {
-			__entry->xfeatures = fpu->state.xsave.header.xfeatures;
-			__entry->xcomp_bv  = fpu->state.xsave.header.xcomp_bv;
+			__entry->xfeatures = fpu->state->xsave.header.xfeatures;
+			__entry->xcomp_bv  = fpu->state->xsave.header.xcomp_bv;
 		}
 	),
 	TP_printk("x86/fpu: %p fpregs_active: %d fpstate_active: %d counter: %d xfeatures: %llx xcomp_bv: %llx",

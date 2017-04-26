@@ -65,7 +65,7 @@ struct cryptd_blkcipher_ctx {
 
 struct cryptd_blkcipher_request_ctx {
 	crypto_completion_t complete;
-};
+} __no_const;
 
 struct cryptd_hash_ctx {
 	atomic_t refcnt;
@@ -84,7 +84,7 @@ struct cryptd_aead_ctx {
 
 struct cryptd_aead_request_ctx {
 	crypto_completion_t complete;
-};
+} __no_const;
 
 static void cryptd_queue_worker(struct work_struct *work);
 

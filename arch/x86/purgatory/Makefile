@@ -10,6 +10,8 @@ targets += purgatory.ro
 
 KCOV_INSTRUMENT := n
 
+GCC_PLUGINS := n
+
 # Default KBUILD_CFLAGS can have -pg option set when FTRACE is enabled. That
 # in turn leaves some undefined symbols like __fentry__ in purgatory and not
 # sure how to relocate those. Like kexec-tools, use custom flags.

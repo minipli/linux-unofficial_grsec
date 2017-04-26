@@ -117,14 +117,14 @@ static const char *const rapl_domain_names[NR_RAPL_DOMAINS] __initconst = {
 #define RAPL_EVENT_MASK	0xFFULL
 
 #define DEFINE_RAPL_FORMAT_ATTR(_var, _name, _format)		\
-static ssize_t __rapl_##_var##_show(struct kobject *kobj,	\
-				struct kobj_attribute *attr,	\
+static ssize_t __rapl_##_var##_show(struct device *dev,		\
+				struct device_attribute *attr,	\
 				char *page)			\
 {								\
 	BUILD_BUG_ON(sizeof(_format) >= PAGE_SIZE);		\
 	return sprintf(page, _format "\n");			\
 }								\
-static struct kobj_attribute format_attr_##_var =		\
+static struct device_attribute format_attr_##_var =		\
 	__ATTR(_name, 0444, __rapl_##_var##_show, NULL)
 
 #define RAPL_CNTR_WIDTH 32
@@ -535,7 +535,7 @@ static struct attribute *rapl_events_knl_attr[] = {
 	NULL,
 };
 
-static struct attribute_group rapl_pmu_events_group = {
+static attribute_group_no_const rapl_pmu_events_group __read_only = {
 	.name = "events",
 	.attrs = NULL, /* patched at runtime */
 };

@@ -3016,11 +3016,11 @@ int snd_pcm_kernel_ioctl(struct snd_pcm_substream *substream,
 	switch (substream->stream) {
 	case SNDRV_PCM_STREAM_PLAYBACK:
 		result = snd_pcm_playback_ioctl1(NULL, substream, cmd,
-						 (void __user *)arg);
+						 (void __force_user *)arg);
 		break;
 	case SNDRV_PCM_STREAM_CAPTURE:
 		result = snd_pcm_capture_ioctl1(NULL, substream, cmd,
-						(void __user *)arg);
+						(void __force_user *)arg);
 		break;
 	default:
 		result = -EINVAL;

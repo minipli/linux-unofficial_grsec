@@ -26,6 +26,13 @@ struct hugetlb_cgroup;
 
 #ifdef CONFIG_CGROUP_HUGETLB
 
+enum {
+	RES_USAGE,
+	RES_LIMIT,
+	RES_MAX_USAGE,
+	RES_FAILCNT,
+};
+
 static inline struct hugetlb_cgroup *hugetlb_cgroup_from_page(struct page *page)
 {
 	VM_BUG_ON_PAGE(!PageHuge(page), page);
@@ -63,6 +70,10 @@ extern void hugetlb_cgroup_uncharge_cgroup(int idx, unsigned long nr_pages,
 extern void hugetlb_cgroup_file_init(void) __init;
 extern void hugetlb_cgroup_migrate(struct page *oldhpage,
 				   struct page *newhpage);
+
+ssize_t hugetlb_cgroup_reset(struct kernfs_open_file *of, char *buf, size_t nbytes, loff_t off);
+ssize_t hugetlb_cgroup_write(struct kernfs_open_file *of, char *buf, size_t nbytes, loff_t off);
+u64 hugetlb_cgroup_read_u64(struct cgroup_subsys_state *css, struct cftype *cft);
 
 #else
 static inline struct hugetlb_cgroup *hugetlb_cgroup_from_page(struct page *page)

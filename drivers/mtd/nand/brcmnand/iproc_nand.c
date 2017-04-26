@@ -130,9 +130,11 @@ static int iproc_nand_probe(struct platform_device *pdev)
 	if (IS_ERR(priv->ext_base))
 		return PTR_ERR(priv->ext_base);
 
+	pax_open_kernel();
 	soc->ctlrdy_ack = iproc_nand_intc_ack;
 	soc->ctlrdy_set_enabled = iproc_nand_intc_set;
 	soc->prepare_data_bus = iproc_nand_apb_access;
+	pax_close_kernel();
 
 	return brcmnand_probe(pdev, soc);
 }

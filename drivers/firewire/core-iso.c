@@ -162,7 +162,7 @@ size_t fw_iso_buffer_lookup(struct fw_iso_buffer *buffer, dma_addr_t completed)
 
 struct fw_iso_context *fw_iso_context_create(struct fw_card *card,
 		int type, int channel, int speed, size_t header_size,
-		fw_iso_callback_t callback, void *callback_data)
+		void *callback, void *callback_data)
 {
 	struct fw_iso_context *ctx;
 

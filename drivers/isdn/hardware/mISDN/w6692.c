@@ -101,7 +101,7 @@ _set_debug(struct w6692_hw *card)
 }
 
 static int
-set_debug(const char *val, struct kernel_param *kp)
+set_debug(const char *val, const struct kernel_param *kp)
 {
 	int ret;
 	struct w6692_hw *card;
@@ -819,8 +819,9 @@ w6692_irq(int intno, void *dev_id)
 }
 
 static void
-dbusy_timer_handler(struct dchannel *dch)
+dbusy_timer_handler(unsigned long _dch)
 {
+	struct dchannel *dch = (struct dchannel *)_dch;
 	struct w6692_hw	*card = dch->hw;
 	int		rbch, star;
 	u_long		flags;
@@ -852,7 +853,7 @@ static void initW6692(struct w6692_hw *card)
 {
 	u8	val;
 
-	card->dch.timer.function = (void *)dbusy_timer_handler;
+	card->dch.timer.function = dbusy_timer_handler;
 	card->dch.timer.data = (u_long)&card->dch;
 	init_timer(&card->dch.timer);
 	w6692_mode(&card->bc[0], ISDN_P_NONE);

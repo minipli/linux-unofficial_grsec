@@ -493,7 +493,7 @@ do {									\
 	bool __ret;							\
 	typeof(pcp1) __o1 = (o1), __n1 = (n1);				\
 	typeof(pcp2) __o2 = (o2), __n2 = (n2);				\
-	alternative_io("leaq %P1,%%rsi\n\tcall this_cpu_cmpxchg16b_emu\n\t", \
+	alternative_io("leaq %P1,%%rsi\n\t" PAX_DIRECT_CALL("this_cpu_cmpxchg16b_emu")"\n\t", \
 		       "cmpxchg16b " __percpu_arg(1) "\n\tsetz %0\n\t",	\
 		       X86_FEATURE_CX16,				\
 		       ASM_OUTPUT2("=a" (__ret), "+m" (pcp1),		\
@@ -501,6 +501,7 @@ do {									\
 		       "b" (__n1), "c" (__n2), "a" (__o1) : "rsi");	\
 	__ret;								\
 })
+bool this_cpu_cmpxchg16b_emu(void *, void*, long, long, long, long) __rap_hash;
 
 #define raw_cpu_cmpxchg_double_8	percpu_cmpxchg16b_double
 #define this_cpu_cmpxchg_double_8	percpu_cmpxchg16b_double

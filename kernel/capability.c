@@ -193,6 +193,9 @@ SYSCALL_DEFINE2(capget, cap_user_header_t, header, cap_user_data_t, dataptr)
 		 * before modification is attempted and the application
 		 * fails.
 		 */
+		if (tocopy > ARRAY_SIZE(kdata))
+			return -EFAULT;
+
 		if (copy_to_user(dataptr, kdata, tocopy
 				 * sizeof(struct __user_cap_data_struct))) {
 			return -EFAULT;
@@ -298,10 +301,11 @@ bool has_ns_capability(struct task_struct *t,
 	int ret;
 
 	rcu_read_lock();
-	ret = security_capable(__task_cred(t), ns, cap);
+	ret = security_capable(__task_cred(t), ns, cap) == 0 &&
+		gr_task_is_capable(t, __task_cred(t), cap);
 	rcu_read_unlock();
 
-	return (ret == 0);
+	return ret;
 }
 
 /**
@@ -338,10 +342,10 @@ bool has_ns_capability_noaudit(struct task_struct *t,
 	int ret;
 
 	rcu_read_lock();
-	ret = security_capable_noaudit(__task_cred(t), ns, cap);
+	ret = security_capable_noaudit(__task_cred(t), ns, cap) == 0 && gr_task_is_capable_nolog(t, __task_cred(t), cap);
 	rcu_read_unlock();
 
-	return (ret == 0);
+	return ret;
 }
 
 /**
@@ -370,9 +374,9 @@ static bool ns_capable_common(struct user_namespace *ns, int cap, bool audit)
 		BUG();
 	}
 
-	capable = audit ? security_capable(current_cred(), ns, cap) :
-			  security_capable_noaudit(current_cred(), ns, cap);
-	if (capable == 0) {
+	capable = audit ? (security_capable(current_cred(), ns, cap) == 0 && gr_is_capable(cap)) :
+			  (security_capable_noaudit(current_cred(), ns, cap) == 0 && gr_is_capable_nolog(cap)) ;
+	if (capable) {
 		current->flags |= PF_SUPERPRIV;
 		return true;
 	}
@@ -429,6 +433,13 @@ bool capable(int cap)
 	return ns_capable(&init_user_ns, cap);
 }
 EXPORT_SYMBOL(capable);
+
+bool capable_nolog(int cap)
+{
+	return ns_capable_noaudit(&init_user_ns, cap);
+}
+EXPORT_SYMBOL(capable_nolog);
+
 #endif /* CONFIG_MULTIUSER */
 
 /**
@@ -485,6 +496,14 @@ bool capable_wrt_inode_uidgid(const struct inode *inode, int cap)
 	return ns_capable(ns, cap) && privileged_wrt_inode_uidgid(ns, inode);
 }
 EXPORT_SYMBOL(capable_wrt_inode_uidgid);
+
+bool capable_wrt_inode_uidgid_nolog(const struct inode *inode, int cap)
+{
+	struct user_namespace *ns = current_user_ns();
+
+	return ns_capable_noaudit(ns, cap) && privileged_wrt_inode_uidgid(ns, inode);
+}
+EXPORT_SYMBOL(capable_wrt_inode_uidgid_nolog);
 
 /**
  * ptracer_capable - Determine if the ptracer holds CAP_SYS_PTRACE in the namespace

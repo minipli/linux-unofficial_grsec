@@ -284,22 +284,22 @@ static int gdp_node_dbg_show(struct seq_file *s, void *arg)
 	return 0;
 }
 
-static struct drm_info_list gdp0_debugfs_files[] = {
+static drm_info_list_no_const gdp0_debugfs_files[] __read_only = {
 	{ "gdp0", gdp_dbg_show, 0, NULL },
 	{ "gdp0_node", gdp_node_dbg_show, 0, NULL },
 };
 
-static struct drm_info_list gdp1_debugfs_files[] = {
+static drm_info_list_no_const gdp1_debugfs_files[] __read_only = {
 	{ "gdp1", gdp_dbg_show, 0, NULL },
 	{ "gdp1_node", gdp_node_dbg_show, 0, NULL },
 };
 
-static struct drm_info_list gdp2_debugfs_files[] = {
+static drm_info_list_no_const gdp2_debugfs_files[] __read_only = {
 	{ "gdp2", gdp_dbg_show, 0, NULL },
 	{ "gdp2_node", gdp_node_dbg_show, 0, NULL },
 };
 
-static struct drm_info_list gdp3_debugfs_files[] = {
+static drm_info_list_no_const gdp3_debugfs_files[] __read_only = {
 	{ "gdp3", gdp_dbg_show, 0, NULL },
 	{ "gdp3_node", gdp_node_dbg_show, 0, NULL },
 };
@@ -307,7 +307,7 @@ static struct drm_info_list gdp3_debugfs_files[] = {
 static int gdp_debugfs_init(struct sti_gdp *gdp, struct drm_minor *minor)
 {
 	unsigned int i;
-	struct drm_info_list *gdp_debugfs_files;
+	drm_info_list_no_const *gdp_debugfs_files;
 	int nb_files;
 
 	switch (gdp->plane.desc) {
@@ -331,8 +331,10 @@ static int gdp_debugfs_init(struct sti_gdp *gdp, struct drm_minor *minor)
 		return -EINVAL;
 	}
 
+	pax_open_kernel();
 	for (i = 0; i < nb_files; i++)
 		gdp_debugfs_files[i].data = gdp;
+	pax_close_kernel();
 
 	return drm_debugfs_create_files(gdp_debugfs_files,
 					nb_files,

@@ -383,7 +383,7 @@ struct drbd_epoch {
 	struct drbd_connection *connection;
 	struct list_head list;
 	unsigned int barrier_nr;
-	atomic_t epoch_size; /* increased on every request added. */
+	atomic_unchecked_t epoch_size; /* increased on every request added. */
 	atomic_t active;     /* increased on every req. added, and dec on every finished. */
 	unsigned long flags;
 };
@@ -595,8 +595,8 @@ struct drbd_md {
 	u32 flags;
 	u32 md_size_sect;
 
-	s32 al_offset;	/* signed relative sector offset to activity log */
-	s32 bm_offset;	/* signed relative sector offset to bitmap */
+	s32 al_offset __intentional_overflow(0);	/* signed relative sector offset to activity log */
+	s32 bm_offset __intentional_overflow(0);	/* signed relative sector offset to bitmap */
 
 	/* cached value of bdev->disk_conf->meta_dev_idx (see below) */
 	s32 meta_dev_idx;
@@ -960,7 +960,7 @@ struct drbd_device {
 	unsigned int al_tr_number;
 	int al_tr_cycle;
 	wait_queue_head_t seq_wait;
-	atomic_t packet_seq;
+	atomic_unchecked_t packet_seq;
 	unsigned int peer_seq;
 	spinlock_t peer_seq_lock;
 	unsigned long comm_bm_set; /* communicated number of set bits. */
@@ -969,8 +969,8 @@ struct drbd_device {
 	struct mutex own_state_mutex;
 	struct mutex *state_mutex; /* either own_state_mutex or first_peer_device(device)->connection->cstate_mutex */
 	char congestion_reason;  /* Why we where congested... */
-	atomic_t rs_sect_in; /* for incoming resync data rate, SyncTarget */
-	atomic_t rs_sect_ev; /* for submitted resync data rate, both */
+	atomic_unchecked_t rs_sect_in; /* for incoming resync data rate, SyncTarget */
+	atomic_unchecked_t rs_sect_ev; /* for submitted resync data rate, both */
 	int rs_last_sect_ev; /* counter to compare with */
 	int rs_last_events;  /* counter of read or write "events" (unit sectors)
 			      * on the lower level device when we last looked. */
@@ -1129,7 +1129,7 @@ extern int drbd_send_drequest_csum(struct drbd_peer_device *, sector_t sector,
 				   enum drbd_packet cmd);
 extern int drbd_send_ov_request(struct drbd_peer_device *, sector_t sector, int size);
 
-extern int drbd_send_bitmap(struct drbd_device *device);
+extern int drbd_send_bitmap(struct drbd_device *device) __intentional_overflow(-1);
 extern void drbd_send_sr_reply(struct drbd_peer_device *, enum drbd_state_rv retcode);
 extern void conn_send_sr_reply(struct drbd_connection *connection, enum drbd_state_rv retcode);
 extern int drbd_send_rs_deallocated(struct drbd_peer_device *, struct drbd_peer_request *);

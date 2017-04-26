@@ -1,0 +1,1206 @@
+#
+# grecurity configuration
+#
+menu "Memory Protections"
+depends on GRKERNSEC
+
+config GRKERNSEC_KMEM
+	bool "Deny reading/writing to /dev/kmem, /dev/mem, and /dev/port"
+	default y if GRKERNSEC_CONFIG_AUTO
+	select STRICT_DEVMEM if (X86 || ARM || TILE || S390)
+	help
+	  If you say Y here, /dev/kmem and /dev/mem won't be allowed to
+	  be written to or read from to modify or leak the contents of the running
+	  kernel.  /dev/port will also not be allowed to be opened, writing to
+	  /dev/cpu/*/msr will be prevented, and support for kexec will be removed.
+	  If you have module support disabled, enabling this will close up several
+	  ways that are currently used to insert malicious code into the running
+	  kernel.
+
+	  Even with this feature enabled, we still highly recommend that
+	  you use the RBAC system, as it is still possible for an attacker to
+	  modify the running kernel through other more obscure methods.
+
+	  Enabling this feature will prevent the "cpupower" and "powertop" tools
+	  from working and excludes debugfs from being compiled into the kernel.
+
+	  It is highly recommended that you say Y here if you meet all the
+	  conditions above.
+
+config GRKERNSEC_VM86
+	bool "Restrict VM86 mode"
+	default y if (GRKERNSEC_CONFIG_AUTO && GRKERNSEC_CONFIG_SERVER)
+	depends on X86_32
+
+	help
+	  If you say Y here, only processes with CAP_SYS_RAWIO will be able to
+	  make use of a special execution mode on 32bit x86 processors called
+	  Virtual 8086 (VM86) mode.  XFree86 may need vm86 mode for certain
+	  video cards and will still work with this option enabled.  The purpose
+	  of the option is to prevent exploitation of emulation errors in
+	  virtualization of vm86 mode like the one discovered in VMWare in 2009.
+	  Nearly all users should be able to enable this option.
+
+config GRKERNSEC_IO
+	bool "Disable privileged I/O"
+	default y if (GRKERNSEC_CONFIG_AUTO && GRKERNSEC_CONFIG_SERVER)
+	depends on X86
+	select RTC_CLASS
+	select RTC_INTF_DEV
+	select RTC_DRV_CMOS
+
+	help
+	  If you say Y here, all ioperm and iopl calls will return an error.
+	  Ioperm and iopl can be used to modify the running kernel.
+	  Unfortunately, some programs need this access to operate properly,
+	  the most notable of which are XFree86 and hwclock.  hwclock can be
+	  remedied by having RTC support in the kernel, so real-time 
+	  clock support is enabled if this option is enabled, to ensure 
+	  that hwclock operates correctly.  If hwclock still does not work,
+	  either update udev or symlink /dev/rtc to /dev/rtc0.
+
+	  If you're using XFree86 or a version of Xorg from 2012 or earlier,
+	  you may not be able to boot into a graphical environment with this
+	  option enabled.  In this case, you should use the RBAC system instead.
+
+config GRKERNSEC_BPF_HARDEN
+	bool "Harden BPF interpreter"
+	default y if GRKERNSEC_CONFIG_AUTO
+	help
+	  Unlike previous versions of grsecurity that hardened both the BPF
+	  interpreted code against corruption at rest as well as the JIT code
+	  against JIT-spray attacks and attacker-controlled immediate values
+	  for ROP, this feature will enforce disabling of the new eBPF JIT engine
+	  and will ensure the interpreted code is read-only at rest.  This feature
+	  may be removed at a later time when eBPF stabilizes to entirely revert
+	  back to the more secure pre-3.16 BPF interpreter/JIT.
+
+	  If you're using KERNEXEC, it's recommended that you enable this option
+	  to supplement the hardening of the kernel.
+  
+config GRKERNSEC_PERF_HARDEN
+	bool "Disable unprivileged PERF_EVENTS usage by default"
+	default y if GRKERNSEC_CONFIG_AUTO
+	depends on PERF_EVENTS
+	help
+	  If you say Y here, the range of acceptable values for the
+	  /proc/sys/kernel/perf_event_paranoid sysctl will be expanded to allow and
+	  default to a new value: 3.  When the sysctl is set to this value, no
+	  unprivileged use of the PERF_EVENTS syscall interface will be permitted.
+
+	  Though PERF_EVENTS can be used legitimately for performance monitoring
+	  and low-level application profiling, it is forced on regardless of
+	  configuration, has been at fault for several vulnerabilities, and
+	  creates new opportunities for side channels and other information leaks.
+
+	  This feature puts PERF_EVENTS into a secure default state and permits
+	  the administrator to change out of it temporarily if unprivileged
+	  application profiling is needed.
+
+config GRKERNSEC_RAND_THREADSTACK
+	bool "Insert random gaps between thread stacks"
+	default y if GRKERNSEC_CONFIG_AUTO
+	depends on PAX_RANDMMAP && !PPC
+	help
+	  If you say Y here, a random-sized gap will be enforced between allocated
+	  thread stacks.  Glibc's NPTL and other threading libraries that
+	  pass MAP_STACK to the kernel for thread stack allocation are supported.
+	  The implementation currently provides 8 bits of entropy for the gap.
+
+	  Many distributions do not compile threaded remote services with the
+	  -fstack-check argument to GCC, causing the variable-sized stack-based
+	  allocator, alloca(), to not probe the stack on allocation.  This
+	  permits an unbounded alloca() to skip over any guard page and potentially
+	  modify another thread's stack reliably.  An enforced random gap
+	  reduces the reliability of such an attack and increases the chance
+	  that such a read/write to another thread's stack instead lands in
+	  an unmapped area, causing a crash and triggering grsecurity's
+	  anti-bruteforcing logic.
+
+config GRKERNSEC_PROC_MEMMAP
+	bool "Harden ASLR against information leaks and entropy reduction"
+	default y if (GRKERNSEC_CONFIG_AUTO || PAX_NOEXEC || PAX_ASLR)
+	depends on PAX_NOEXEC || PAX_ASLR
+	help
+	  If you say Y here, the /proc/<pid>/maps and /proc/<pid>/stat files will
+	  give no information about the addresses of its mappings if
+	  PaX features that rely on random addresses are enabled on the task.
+	  In addition to sanitizing this information and disabling other
+	  dangerous sources of information, this option causes reads of sensitive
+	  /proc/<pid> entries where the file descriptor was opened in a different
+	  task than the one performing the read.  Such attempts are logged.
+	  This option also limits argv/env strings for suid/sgid binaries
+	  to 512KB to prevent a complete exhaustion of the stack entropy provided
+	  by ASLR.  Finally, it places an 8MB stack resource limit on suid/sgid
+	  binaries to prevent alternative mmap layouts from being abused.
+
+	  If you use PaX it is essential that you say Y here as it closes up
+	  several holes that make full ASLR useless locally.
+
+
+config GRKERNSEC_KSTACKOVERFLOW
+	bool "Prevent kernel stack overflows"
+	default y if GRKERNSEC_CONFIG_AUTO
+	depends on X86_64
+	help
+	  If you say Y here, the kernel's process stacks will be allocated
+	  with vmalloc instead of the kernel's default allocator.  This
+	  introduces guard pages that in combination with the alloca checking
+	  of the STACKLEAK feature and removal of thread_info from the kernel
+	  stack prevents all forms of kernel process stack overflow abuse.
+          Note that this is different from kernel stack buffer overflows.
+
+config GRKERNSEC_BRUTE
+	bool "Deter exploit bruteforcing"
+	default y if GRKERNSEC_CONFIG_AUTO
+	help
+	  If you say Y here, attempts to bruteforce exploits against forking
+	  daemons such as apache or sshd, as well as against suid/sgid binaries
+	  will be deterred.  When a child of a forking daemon is killed by PaX
+	  or crashes due to an illegal instruction or other suspicious signal,
+	  the parent process will be delayed 30 seconds upon every subsequent
+	  fork until the administrator is able to assess the situation and
+	  restart the daemon.
+	  In the suid/sgid case, the attempt is logged, the user has all their
+	  existing instances of the suid/sgid binary terminated and will
+	  be unable to execute any suid/sgid binaries for 15 minutes.
+
+	  It is recommended that you also enable signal logging in the auditing
+	  section so that logs are generated when a process triggers a suspicious
+	  signal.
+	  If the sysctl option is enabled, a sysctl option with name
+	  "deter_bruteforce" is created.
+
+config GRKERNSEC_MODHARDEN
+	bool "Harden module auto-loading"
+	default y if GRKERNSEC_CONFIG_AUTO
+	depends on MODULES
+	help
+	  If you say Y here, module auto-loading in response to use of some
+	  feature implemented by an unloaded module will be restricted to
+	  root users.  Enabling this option helps defend against attacks 
+	  by unprivileged users who abuse the auto-loading behavior to 
+	  cause a vulnerable module to load that is then exploited.
+
+	  If this option prevents a legitimate use of auto-loading for a 
+	  non-root user, the administrator can execute modprobe manually 
+	  with the exact name of the module mentioned in the alert log.
+	  Alternatively, the administrator can add the module to the list
+	  of modules loaded at boot by modifying init scripts.
+
+	  Modification of init scripts will most likely be needed on 
+	  Ubuntu servers with encrypted home directory support enabled,
+	  as the first non-root user logging in will cause the ecb(aes),
+	  ecb(aes)-all, cbc(aes), and cbc(aes)-all  modules to be loaded.
+
+config GRKERNSEC_HIDESYM
+	bool "Hide kernel symbols"
+	default y if GRKERNSEC_CONFIG_AUTO
+	select PAX_USERCOPY
+	help
+	  If you say Y here, getting information on loaded modules, and
+	  displaying all kernel symbols through a syscall will be restricted
+	  to users with CAP_SYS_MODULE.  For software compatibility reasons,
+	  /proc/kallsyms will be restricted to the root user.  The RBAC
+	  system can hide that entry even from root.
+
+	  This option also prevents leaking of kernel addresses through
+	  several /proc entries.
+
+	  Note that this option is only effective provided the following
+	  conditions are met:
+	  1) The kernel using grsecurity is not precompiled by some distribution
+	  2) You have also enabled GRKERNSEC_DMESG
+	  3) You are using the RBAC system and hiding other files such as your
+	     kernel image and System.map.  Alternatively, enabling this option
+	     causes the permissions on /boot, /lib/modules, and the kernel
+	     source directory to change at compile time to prevent 
+	     reading by non-root users.
+	  If the above conditions are met, this option will aid in providing a
+	  useful protection against local kernel exploitation of overflows
+	  and arbitrary read/write vulnerabilities.
+
+	  It is highly recommended that you enable GRKERNSEC_PERF_HARDEN
+	  in addition to this feature.
+
+config GRKERNSEC_RANDSTRUCT
+	bool "Randomize layout of sensitive kernel structures"
+	default y if GRKERNSEC_CONFIG_AUTO
+	depends on GCC_PLUGINS
+	select GRKERNSEC_HIDESYM
+	select MODVERSIONS if MODULES
+	help
+	  If you say Y here, the layouts of a number of sensitive kernel
+	  structures (task, fs, cred, etc) and all structures composed entirely
+	  of function pointers (aka "ops" structs) will be randomized at compile-time.
+	  This can introduce the requirement of an additional infoleak
+	  vulnerability for exploits targeting these structure types.
+
+	  Enabling this feature will introduce some performance impact, slightly
+	  increase memory usage, and prevent the use of forensic tools like
+	  Volatility against the system (unless the kernel source tree isn't
+	  cleaned after kernel installation).
+
+	  The seed used for compilation is located at tools/gcc/randomize_layout_seed.h.
+	  It remains after a make clean to allow for external modules to be compiled
+	  with the existing seed and will be removed by a make mrproper or
+	  make distclean.
+
+          Note that the implementation requires gcc 4.6.4. or newer.  You may need
+	  to install the supporting headers explicitly in addition to the normal
+	  gcc package.
+
+config GRKERNSEC_RANDSTRUCT_PERFORMANCE
+	bool "Use cacheline-aware structure randomization"
+	depends on GRKERNSEC_RANDSTRUCT
+	default y if GRKERNSEC_CONFIG_PRIORITY_PERF
+	help
+	  If you say Y here, the RANDSTRUCT randomization will make a best effort
+	  at restricting randomization to cacheline-sized groups of elements.  It
+	  will further not randomize bitfields in structures.  This reduces the
+	  performance hit of RANDSTRUCT at the cost of weakened randomization.
+
+config GRKERNSEC_KERN_LOCKOUT
+	bool "Active kernel exploit response"
+	default y if GRKERNSEC_CONFIG_AUTO
+	depends on X86 || ARM || PPC || SPARC
+	help
+	  If you say Y here, when a PaX alert is triggered due to suspicious
+	  activity in the kernel (from KERNEXEC/UDEREF/USERCOPY)
+	  or an OOPS occurs due to bad memory accesses, instead of just
+	  terminating the offending process (and potentially allowing
+	  a subsequent exploit from the same user), we will take one of two
+	  actions:
+	   If the user was root, we will panic the system
+	   If the user was non-root, we will log the attempt, terminate
+	   all processes owned by the user, then prevent them from creating
+	   any new processes until the system is restarted
+	  This deters repeated kernel exploitation/bruteforcing attempts
+	  and is useful for later forensics.
+
+config GRKERNSEC_OLD_ARM_USERLAND
+	bool "Old ARM userland compatibility"
+	depends on ARM && (CPU_V6 || CPU_V6K || CPU_V7)
+	help
+	  If you say Y here, stubs of executable code to perform such operations
+	  as "compare-exchange" will be placed at fixed locations in the ARM vector
+	  table.  This is unfortunately needed for old ARM userland meant to run
+	  across a wide range of processors.  Without this option enabled,
+	  the get_tls and data memory barrier stubs will be emulated by the kernel,
+	  which is enough for Linaro userlands or other userlands designed for v6
+	  and newer ARM CPUs.  It's recommended that you try without this option enabled
+	  first, and only enable it if your userland does not boot (it will likely fail
+	  at init time).
+
+endmenu
+menu "Role Based Access Control Options"
+depends on GRKERNSEC
+
+config GRKERNSEC_RBAC_DEBUG
+	bool
+
+config GRKERNSEC_NO_RBAC
+	bool "Disable RBAC system"
+	help
+	  If you say Y here, the /dev/grsec device will be removed from the kernel,
+	  preventing the RBAC system from being enabled.  You should only say Y
+	  here if you have no intention of using the RBAC system, so as to prevent
+	  an attacker with root access from misusing the RBAC system to hide files
+	  and processes when loadable module support and /dev/[k]mem have been
+	  locked down.
+
+config GRKERNSEC_ACL_HIDEKERN
+	bool "Hide kernel processes"
+	help
+	  If you say Y here, all kernel threads will be hidden to all
+	  processes but those whose subject has the "view hidden processes"
+	  flag.
+
+config GRKERNSEC_ACL_MAXTRIES
+	int "Maximum tries before password lockout"
+	default 3
+	help
+	  This option enforces the maximum number of times a user can attempt
+	  to authorize themselves with the grsecurity RBAC system before being
+	  denied the ability to attempt authorization again for a specified time.
+	  The lower the number, the harder it will be to brute-force a password.
+
+config GRKERNSEC_ACL_TIMEOUT
+	int "Time to wait after max password tries, in seconds"
+	default 30
+	help
+	  This option specifies the time the user must wait after attempting to
+	  authorize to the RBAC system with the maximum number of invalid
+	  passwords.  The higher the number, the harder it will be to brute-force
+	  a password.
+
+endmenu
+menu "Filesystem Protections"
+depends on GRKERNSEC
+
+config GRKERNSEC_PROC
+	bool "Proc restrictions"
+	default y if GRKERNSEC_CONFIG_AUTO
+	help
+	  If you say Y here, the permissions of the /proc filesystem
+	  will be altered to enhance system security and privacy.  You MUST
+  	  choose either a user only restriction or a user and group restriction.
+	  Depending upon the option you choose, you can either restrict users to
+	  see only the processes they themselves run, or choose a group that can
+	  view all processes and files normally restricted to root if you choose
+	  the "restrict to user only" option.  NOTE: If you're running identd or
+	  ntpd as a non-root user, you will have to run it as the group you
+	  specify here.
+
+config GRKERNSEC_PROC_USER
+	bool "Restrict /proc to user only"
+	depends on GRKERNSEC_PROC
+	help
+	  If you say Y here, non-root users will only be able to view their own
+	  processes, and restricts them from viewing network-related information,
+	  and viewing kernel symbol and module information.
+
+config GRKERNSEC_PROC_USERGROUP
+	bool "Allow special group"
+	default y if GRKERNSEC_CONFIG_AUTO
+	depends on GRKERNSEC_PROC && !GRKERNSEC_PROC_USER
+	help
+	  If you say Y here, you will be able to select a group that will be
+	  able to view all processes and network-related information.  If you've
+	  enabled GRKERNSEC_HIDESYM, kernel and symbol information may still
+	  remain hidden.  This option is useful if you want to run identd as
+	  a non-root user.  The group you select may also be chosen at boot time
+	  via "grsec_proc_gid=" on the kernel commandline.
+
+config GRKERNSEC_PROC_GID
+	int "GID for special group"
+	depends on GRKERNSEC_PROC_USERGROUP
+	default 1001
+
+config GRKERNSEC_PROC_ADD
+	bool "Additional restrictions"
+	default y if GRKERNSEC_CONFIG_AUTO
+	depends on GRKERNSEC_PROC_USER || GRKERNSEC_PROC_USERGROUP
+	help
+	  If you say Y here, additional restrictions will be placed on
+	  /proc that keep normal users from viewing device information and 
+	  slabinfo information that could be useful for exploits.
+
+config GRKERNSEC_LINK
+	bool "Linking restrictions"
+	default y if GRKERNSEC_CONFIG_AUTO
+	help
+	  If you say Y here, /tmp race exploits will be prevented, since users
+	  will no longer be able to follow symlinks owned by other users in
+	  world-writable +t directories (e.g. /tmp), unless the owner of the
+	  symlink is the owner of the directory. users will also not be
+	  able to hardlink to files they do not own.  If the sysctl option is
+	  enabled, a sysctl option with name "linking_restrictions" is created.
+
+config GRKERNSEC_SYMLINKOWN
+	bool "Kernel-enforced SymlinksIfOwnerMatch"
+	default y if GRKERNSEC_CONFIG_AUTO && GRKERNSEC_CONFIG_SERVER
+	help
+	  Apache's SymlinksIfOwnerMatch option has an inherent race condition
+	  that prevents it from being used as a security feature.  As Apache
+	  verifies the symlink by performing a stat() against the target of
+	  the symlink before it is followed, an attacker can setup a symlink
+	  to point to a same-owned file, then replace the symlink with one
+	  that targets another user's file just after Apache "validates" the
+	  symlink -- a classic TOCTOU race.  If you say Y here, a complete,
+	  race-free replacement for Apache's "SymlinksIfOwnerMatch" option
+	  will be in place for the group you specify. If the sysctl option
+	  is enabled, a sysctl option with name "enforce_symlinksifowner" is
+	  created.
+
+config GRKERNSEC_SYMLINKOWN_GID
+	int "GID for users with kernel-enforced SymlinksIfOwnerMatch"
+	depends on GRKERNSEC_SYMLINKOWN
+	default 1006
+	help
+	  Setting this GID determines what group kernel-enforced
+	  SymlinksIfOwnerMatch will be enabled for.  If the sysctl option
+	  is enabled, a sysctl option with name "symlinkown_gid" is created.
+
+config GRKERNSEC_FIFO
+	bool "FIFO restrictions"
+	default y if GRKERNSEC_CONFIG_AUTO
+	help
+	  If you say Y here, users will not be able to write to FIFOs they don't
+	  own in world-writable +t directories (e.g. /tmp), unless the owner of
+	  the FIFO is the same owner of the directory it's held in.  If the sysctl
+	  option is enabled, a sysctl option with name "fifo_restrictions" is
+	  created.
+
+config GRKERNSEC_SYSFS_RESTRICT
+	bool "Sysfs/debugfs restriction"
+	default y if (GRKERNSEC_CONFIG_AUTO && GRKERNSEC_CONFIG_SERVER)
+	depends on SYSFS
+	help
+	  If you say Y here, sysfs (the pseudo-filesystem mounted at /sys) and
+	  any filesystem normally mounted under it (e.g. debugfs) will be
+	  mostly accessible only by root.  These filesystems generally provide access
+	  to hardware and debug information that isn't appropriate for unprivileged
+	  users of the system.  Sysfs and debugfs have also become a large source
+	  of new vulnerabilities, ranging from infoleaks to local compromise.
+	  There has been very little oversight with an eye toward security involved
+	  in adding new exporters of information to these filesystems, so their
+	  use is discouraged.
+	  For reasons of compatibility, a few directories have been whitelisted
+	  for access by non-root users:
+	  /sys/fs/selinux
+	  /sys/fs/fuse
+	  /sys/devices/system/cpu
+
+config GRKERNSEC_ROFS
+	bool "Runtime read-only mount protection"
+	depends on SYSCTL
+	help
+	  If you say Y here, a sysctl option with name "romount_protect" will
+	  be created.  By setting this option to 1 at runtime, filesystems
+	  will be protected in the following ways:
+	  * No new writable mounts will be allowed
+	  * Existing read-only mounts won't be able to be remounted read/write
+	  * Write operations will be denied on all block devices
+	  This option acts independently of grsec_lock: once it is set to 1,
+	  it cannot be turned off.  Therefore, please be mindful of the resulting
+	  behavior if this option is enabled in an init script on a read-only
+	  filesystem.
+	  Also be aware that as with other root-focused features, GRKERNSEC_KMEM
+	  and GRKERNSEC_IO should be enabled and module loading disabled via
+	  config or at runtime.
+	  This feature is mainly intended for secure embedded systems.
+	  
+
+config GRKERNSEC_DEVICE_SIDECHANNEL
+	bool "Eliminate stat/notify-based device sidechannels"
+	default y if GRKERNSEC_CONFIG_AUTO
+	help
+	  If you say Y here, timing analyses on block or character
+	  devices like /dev/ptmx using stat or inotify/dnotify/fanotify
+	  will be thwarted for unprivileged users.  If a process without
+	  CAP_MKNOD stats such a device, the last access and last modify times
+	  will match the device's create time.  No access or modify events
+	  will be triggered through inotify/dnotify/fanotify for such devices.
+	  This feature will prevent attacks that may at a minimum
+	  allow an attacker to determine the administrator's password length.
+
+config GRKERNSEC_CHROOT
+	bool "Chroot jail restrictions"
+	default y if GRKERNSEC_CONFIG_AUTO
+	help
+	  If you say Y here, you will be able to choose several options that will
+	  make breaking out of a chrooted jail much more difficult.  If you
+	  encounter no software incompatibilities with the following options, it
+	  is recommended that you enable each one.
+
+	  Note that the chroot restrictions are not intended to apply to "chroots"
+	  to directories that are simple bind mounts of the global root filesystem.
+	  For several other reasons, a user shouldn't expect any significant
+	  security by performing such a chroot.
+
+config GRKERNSEC_CHROOT_MOUNT
+	bool "Deny mounts"
+	default y if GRKERNSEC_CONFIG_AUTO
+	depends on GRKERNSEC_CHROOT
+	help
+	  If you say Y here, processes inside a chroot will not be able to
+	  mount or remount filesystems.  If the sysctl option is enabled, a
+	  sysctl option with name "chroot_deny_mount" is created.
+
+config GRKERNSEC_CHROOT_DOUBLE
+	bool "Deny double-chroots"
+	default y if GRKERNSEC_CONFIG_AUTO
+	depends on GRKERNSEC_CHROOT
+	help
+	  If you say Y here, processes inside a chroot will not be able to chroot
+	  again outside the chroot.  This is a widely used method of breaking
+	  out of a chroot jail and should not be allowed.  If the sysctl 
+	  option is enabled, a sysctl option with name 
+	  "chroot_deny_chroot" is created.
+
+config GRKERNSEC_CHROOT_PIVOT
+	bool "Deny pivot_root in chroot"
+	default y if GRKERNSEC_CONFIG_AUTO
+	depends on GRKERNSEC_CHROOT
+	help
+	  If you say Y here, processes inside a chroot will not be able to use
+	  a function called pivot_root() that was introduced in Linux 2.3.41.  It
+	  works similar to chroot in that it changes the root filesystem.  This
+	  function could be misused in a chrooted process to attempt to break out
+	  of the chroot, and therefore should not be allowed.  If the sysctl
+	  option is enabled, a sysctl option with name "chroot_deny_pivot" is
+	  created.
+
+config GRKERNSEC_CHROOT_CHDIR
+	bool "Enforce chdir(\"/\") on all chroots"
+	default y if GRKERNSEC_CONFIG_AUTO
+	depends on GRKERNSEC_CHROOT
+	help
+	  If you say Y here, the current working directory of all newly-chrooted
+	  applications will be set to the the root directory of the chroot.
+	  The man page on chroot(2) states:
+	  Note that this call does not change  the  current  working
+	  directory,  so  that `.' can be outside the tree rooted at
+	  `/'.  In particular, the  super-user  can  escape  from  a
+	  `chroot jail' by doing `mkdir foo; chroot foo; cd ..'.
+
+	  It is recommended that you say Y here, since it's not known to break
+	  any software.  If the sysctl option is enabled, a sysctl option with
+	  name "chroot_enforce_chdir" is created.
+
+config GRKERNSEC_CHROOT_CHMOD
+	bool "Deny (f)chmod +s"
+	default y if GRKERNSEC_CONFIG_AUTO
+	depends on GRKERNSEC_CHROOT
+	help
+	  If you say Y here, processes inside a chroot will not be able to chmod
+	  or fchmod files to make them have suid or sgid bits.  This protects
+	  against another published method of breaking a chroot.  If the sysctl
+	  option is enabled, a sysctl option with name "chroot_deny_chmod" is
+	  created.
+
+config GRKERNSEC_CHROOT_FCHDIR
+	bool "Deny fchdir and fhandle out of chroot"
+	default y if GRKERNSEC_CONFIG_AUTO
+	depends on GRKERNSEC_CHROOT
+	help
+	  If you say Y here, a well-known method of breaking chroots by fchdir'ing
+	  to a file descriptor of the chrooting process that points to a directory
+	  outside the filesystem will be stopped.  This option also prevents use of
+	  the recently-created syscall for opening files by a guessable "file handle"
+	  inside a chroot, as well as accessing relative paths outside of a
+	  directory passed in via file descriptor with openat and similar syscalls.
+	  If the sysctl option is enabled, a sysctl option with name "chroot_deny_fchdir"
+	  is created.
+
+config GRKERNSEC_CHROOT_MKNOD
+	bool "Deny mknod"
+	default y if GRKERNSEC_CONFIG_AUTO
+	depends on GRKERNSEC_CHROOT
+	help
+	  If you say Y here, processes inside a chroot will not be allowed to
+	  mknod.  The problem with using mknod inside a chroot is that it
+	  would allow an attacker to create a device entry that is the same
+	  as one on the physical root of your system, which could range from
+	  anything from the console device to a device for your harddrive (which
+	  they could then use to wipe the drive or steal data).  It is recommended
+	  that you say Y here, unless you run into software incompatibilities.
+	  If the sysctl option is enabled, a sysctl option with name
+	  "chroot_deny_mknod" is created.
+
+config GRKERNSEC_CHROOT_SHMAT
+	bool "Deny shmat() out of chroot"
+	default y if GRKERNSEC_CONFIG_AUTO
+	depends on GRKERNSEC_CHROOT
+	help
+	  If you say Y here, processes inside a chroot will not be able to attach
+	  to shared memory segments that were created outside of the chroot jail.
+	  It is recommended that you say Y here.  If the sysctl option is enabled,
+	  a sysctl option with name "chroot_deny_shmat" is created.
+
+config GRKERNSEC_CHROOT_UNIX
+	bool "Deny access to abstract AF_UNIX sockets out of chroot"
+	default y if GRKERNSEC_CONFIG_AUTO
+	depends on GRKERNSEC_CHROOT
+	help
+	  If you say Y here, processes inside a chroot will not be able to
+	  connect to abstract (meaning not belonging to a filesystem) Unix
+	  domain sockets that were bound outside of a chroot.  It is recommended
+	  that you say Y here.  If the sysctl option is enabled, a sysctl option
+	  with name "chroot_deny_unix" is created.
+
+config GRKERNSEC_CHROOT_FINDTASK
+	bool "Protect outside processes"
+	default y if GRKERNSEC_CONFIG_AUTO
+	depends on GRKERNSEC_CHROOT
+	help
+	  If you say Y here, processes inside a chroot will not be able to
+	  kill, send signals with fcntl, ptrace, capget, getpgid, setpgid, 
+	  getsid, or view any process outside of the chroot.  If the sysctl
+	  option is enabled, a sysctl option with name "chroot_findtask" is
+	  created.
+
+config GRKERNSEC_CHROOT_NICE
+	bool "Restrict priority changes"
+	default y if GRKERNSEC_CONFIG_AUTO
+	depends on GRKERNSEC_CHROOT
+	help
+	  If you say Y here, processes inside a chroot will not be able to raise
+	  the priority of processes in the chroot, or alter the priority of
+	  processes outside the chroot.  This provides more security than simply
+	  removing CAP_SYS_NICE from the process' capability set.  If the
+	  sysctl option is enabled, a sysctl option with name "chroot_restrict_nice"
+	  is created.
+
+config GRKERNSEC_CHROOT_SYSCTL
+	bool "Deny sysctl writes"
+	default y if GRKERNSEC_CONFIG_AUTO
+	depends on GRKERNSEC_CHROOT
+	help
+	  If you say Y here, an attacker in a chroot will not be able to
+	  write to sysctl entries, either by sysctl(2) or through a /proc
+	  interface.  It is strongly recommended that you say Y here. If the
+	  sysctl option is enabled, a sysctl option with name
+	  "chroot_deny_sysctl" is created.
+
+config GRKERNSEC_CHROOT_RENAME
+	bool "Deny bad renames"
+	default y if GRKERNSEC_CONFIG_AUTO
+	depends on GRKERNSEC_CHROOT
+	help
+	  If you say Y here, an attacker in a chroot will not be able to
+	  abuse the ability to create double chroots to break out of the
+	  chroot by exploiting a race condition between a rename of a directory
+	  within a chroot against an open of a symlink with relative path
+	  components.  This feature will likewise prevent an accomplice outside
+	  a chroot from enabling a user inside the chroot to break out and make
+	  use of their credentials on the global filesystem.  Enabling this
+	  feature is essential to prevent root users from breaking out of a
+	  chroot. If the sysctl option is enabled, a sysctl option with name
+	  "chroot_deny_bad_rename" is created.
+
+config GRKERNSEC_CHROOT_CAPS
+	bool "Capability restrictions"
+	default y if GRKERNSEC_CONFIG_AUTO
+	depends on GRKERNSEC_CHROOT
+	help
+	  If you say Y here, the capabilities on all processes within a
+	  chroot jail will be lowered to stop module insertion, raw i/o,
+	  system and net admin tasks, rebooting the system, modifying immutable
+	  files, modifying IPC owned by another, and changing the system time.
+	  This is left an option because it can break some apps.  Disable this
+	  if your chrooted apps are having problems performing those kinds of
+	  tasks.  If the sysctl option is enabled, a sysctl option with
+	  name "chroot_caps" is created.
+
+config GRKERNSEC_CHROOT_INITRD
+	bool "Exempt initrd tasks from restrictions"
+	default y if GRKERNSEC_CONFIG_AUTO
+	depends on GRKERNSEC_CHROOT && BLK_DEV_INITRD
+	help
+	  If you say Y here, tasks started prior to init will be exempted from
+	  grsecurity's chroot restrictions.  This option is mainly meant to
+	  resolve Plymouth's performing privileged operations unnecessarily
+	  in a chroot.
+
+endmenu
+menu "Kernel Auditing"
+depends on GRKERNSEC
+
+config GRKERNSEC_AUDIT_GROUP
+	bool "Single group for auditing"
+	help
+	  If you say Y here, the exec and chdir logging features will only operate
+	  on a group you specify.  This option is recommended if you only want to
+	  watch certain users instead of having a large amount of logs from the
+	  entire system.  If the sysctl option is enabled, a sysctl option with
+	  name "audit_group" is created.
+
+config GRKERNSEC_AUDIT_GID
+	int "GID for auditing"
+	depends on GRKERNSEC_AUDIT_GROUP
+	default 1007
+
+config GRKERNSEC_EXECLOG
+	bool "Exec logging"
+	help
+	  If you say Y here, all execve() calls will be logged (since the
+	  other exec*() calls are frontends to execve(), all execution
+	  will be logged).  Useful for shell-servers that like to keep track
+	  of their users.  If the sysctl option is enabled, a sysctl option with
+	  name "exec_logging" is created.
+	  WARNING: This option when enabled will produce a LOT of logs, especially
+	  on an active system.
+
+config GRKERNSEC_RESLOG
+	bool "Resource logging"
+	default y if GRKERNSEC_CONFIG_AUTO
+	help
+	  If you say Y here, all attempts to overstep resource limits will
+	  be logged with the resource name, the requested size, and the current
+	  limit.  It is highly recommended that you say Y here.  If the sysctl
+	  option is enabled, a sysctl option with name "resource_logging" is
+	  created.  If the RBAC system is enabled, the sysctl value is ignored.
+
+config GRKERNSEC_CHROOT_EXECLOG
+	bool "Log execs within chroot"
+	help
+	  If you say Y here, all executions inside a chroot jail will be logged
+	  to syslog.  This can cause a large amount of logs if certain
+	  applications (eg. djb's daemontools) are installed on the system, and
+	  is therefore left as an option.  If the sysctl option is enabled, a
+	  sysctl option with name "chroot_execlog" is created.
+
+config GRKERNSEC_AUDIT_PTRACE
+	bool "Ptrace logging"
+	help
+	  If you say Y here, all attempts to attach to a process via ptrace
+	  will be logged.  If the sysctl option is enabled, a sysctl option
+	  with name "audit_ptrace" is created.
+
+config GRKERNSEC_AUDIT_CHDIR
+	bool "Chdir logging"
+	help
+	  If you say Y here, all chdir() calls will be logged.  If the sysctl
+ 	  option is enabled, a sysctl option with name "audit_chdir" is created.
+
+config GRKERNSEC_AUDIT_MOUNT
+	bool "(Un)Mount logging"
+	help
+	  If you say Y here, all mounts and unmounts will be logged.  If the
+	  sysctl option is enabled, a sysctl option with name "audit_mount" is
+	  created.
+
+config GRKERNSEC_SIGNAL
+	bool "Signal logging"
+	default y if GRKERNSEC_CONFIG_AUTO
+	help
+	  If you say Y here, certain important signals will be logged, such as
+	  SIGSEGV, which will as a result inform you of when a error in a program
+	  occurred, which in some cases could mean a possible exploit attempt.
+	  If the sysctl option is enabled, a sysctl option with name
+	  "signal_logging" is created.
+
+config GRKERNSEC_FORKFAIL
+	bool "Fork failure logging"
+	help
+	  If you say Y here, all failed fork() attempts will be logged.
+	  This could suggest a fork bomb, or someone attempting to overstep
+	  their process limit.  If the sysctl option is enabled, a sysctl option
+	  with name "forkfail_logging" is created.
+
+config GRKERNSEC_TIME
+	bool "Time change logging"
+	default y if GRKERNSEC_CONFIG_AUTO
+	help
+	  If you say Y here, any changes of the system clock will be logged.
+	  If the sysctl option is enabled, a sysctl option with name
+	  "timechange_logging" is created.
+
+config GRKERNSEC_PROC_IPADDR
+	bool "/proc/<pid>/ipaddr support"
+	default y if GRKERNSEC_CONFIG_AUTO
+	help
+	  If you say Y here, a new entry will be added to each /proc/<pid>
+	  directory that contains the IP address of the person using the task.
+	  The IP is carried across local TCP and AF_UNIX stream sockets.
+	  This information can be useful for IDS/IPSes to perform remote response
+	  to a local attack.  The entry is readable by only the owner of the
+	  process (and root if he has CAP_DAC_OVERRIDE, which can be removed via
+	  the RBAC system), and thus does not create privacy concerns.
+
+config GRKERNSEC_RWXMAP_LOG
+	bool 'Denied RWX mmap/mprotect logging'
+	default y if GRKERNSEC_CONFIG_AUTO
+	depends on PAX_MPROTECT && !PAX_EMUPLT && !PAX_EMUSIGRT
+	help
+	  If you say Y here, calls to mmap() and mprotect() with explicit
+	  usage of PROT_WRITE and PROT_EXEC together will be logged when
+	  denied by the PAX_MPROTECT feature.  This feature will also
+	  log other problematic scenarios that can occur when PAX_MPROTECT
+	  is enabled on a binary, like textrels and PT_GNU_STACK.  If the 
+          sysctl option is enabled, a sysctl option with name "rwxmap_logging"
+	  is created.
+
+endmenu
+
+menu "Executable Protections"
+depends on GRKERNSEC
+
+config GRKERNSEC_DMESG
+	bool "Dmesg(8) restriction"
+	default y if GRKERNSEC_CONFIG_AUTO
+	help
+	  If you say Y here, non-root users will not be able to use dmesg(8)
+	  to view the contents of the kernel's circular log buffer.
+	  The kernel's log buffer often contains kernel addresses and other
+	  identifying information useful to an attacker in fingerprinting a
+	  system for a targeted exploit.
+	  If the sysctl option is enabled, a sysctl option with name "dmesg" is
+	  created.
+
+config GRKERNSEC_HARDEN_PTRACE
+	bool "Deter ptrace-based process snooping"
+	default y if GRKERNSEC_CONFIG_AUTO
+	help
+	  If you say Y here, TTY sniffers and other malicious monitoring
+	  programs implemented through ptrace will be defeated.  If you
+	  have been using the RBAC system, this option has already been
+	  enabled for several years for all users, with the ability to make
+	  fine-grained exceptions.
+
+	  This option only affects the ability of non-root users to ptrace
+	  processes that are not a descendent of the ptracing process.
+	  This means that strace ./binary and gdb ./binary will still work,
+	  but attaching to arbitrary processes will not.  If the sysctl
+	  option is enabled, a sysctl option with name "harden_ptrace" is
+	  created.
+
+config GRKERNSEC_PTRACE_READEXEC
+	bool "Require read access to ptrace sensitive binaries"
+	default y if GRKERNSEC_CONFIG_AUTO
+	help
+	  If you say Y here, unprivileged users will not be able to ptrace unreadable
+	  binaries.  This option is useful in environments that
+	  remove the read bits (e.g. file mode 4711) from suid binaries to
+	  prevent infoleaking of their contents.  This option adds
+	  consistency to the use of that file mode, as the binary could normally
+	  be read out when run without privileges while ptracing.
+
+	  If the sysctl option is enabled, a sysctl option with name "ptrace_readexec"
+	  is created.
+
+config GRKERNSEC_SETXID
+	bool "Enforce consistent multithreaded privileges"
+	default y if GRKERNSEC_CONFIG_AUTO
+	depends on (X86 || SPARC64 || PPC || ARM || MIPS)
+	help
+	  If you say Y here, a change from a root uid to a non-root uid
+	  in a multithreaded application will cause the resulting uids,
+	  gids, supplementary groups, and capabilities in that thread
+	  to be propagated to the other threads of the process.  In most
+	  cases this is unnecessary, as glibc will emulate this behavior
+	  on behalf of the application.  Other libcs do not act in the
+	  same way, allowing the other threads of the process to continue
+	  running with root privileges.  If the sysctl option is enabled,
+	  a sysctl option with name "consistent_setxid" is created.
+
+config GRKERNSEC_HARDEN_IPC
+	bool "Disallow access to overly-permissive IPC objects"
+	default y if GRKERNSEC_CONFIG_AUTO
+	depends on SYSVIPC
+	help
+	  If you say Y here, access to overly-permissive IPC objects (shared
+	  memory, message queues, and semaphores) will be denied for processes
+	  given the following criteria beyond normal permission checks:
+	  1) If the IPC object is world-accessible and the euid doesn't match
+	     that of the creator or current uid for the IPC object
+	  2) If the IPC object is group-accessible and the egid doesn't
+	     match that of the creator or current gid for the IPC object
+	  It's a common error to grant too much permission to these objects,
+	  with impact ranging from denial of service and information leaking to
+	  privilege escalation.  This feature was developed in response to
+	  research by Tim Brown:
+	  http://labs.portcullis.co.uk/whitepapers/memory-squatting-attacks-on-system-v-shared-memory/
+	  who found hundreds of such insecure usages.  Processes with
+	  CAP_IPC_OWNER are still permitted to access these IPC objects.
+	  If the sysctl option is enabled, a sysctl option with name
+	  "harden_ipc" is created.
+
+config GRKERNSEC_HARDEN_TTY
+	bool "Disallow unprivileged use of command injection"
+	default y if GRKERNSEC_CONFIG_AUTO
+	help
+	  If you say Y here, the ability to use the TIOCSTI ioctl for
+	  terminal command injection will be denied for unprivileged users.
+	  There are very few legitimate uses for this functionality and it
+	  has made vulnerabilities in several 'su'-like programs possible in
+	  the past.  Even without these vulnerabilities, it provides an
+	  attacker with an easy mechanism to move laterally among other
+	  processes within the same user's compromised session.
+	  By default, Linux allows unprivileged use of command injection as
+	  long as the injection is being performed into the same tty session.
+	  This feature makes that case the same as attempting to inject into
+	  another session, making any TIOCSTI use require CAP_SYS_ADMIN.
+	  If the sysctl option is enabled, a sysctl option with name
+	  "harden_tty" is created.
+
+config GRKERNSEC_TPE
+	bool "Trusted Path Execution (TPE)"
+	default y if GRKERNSEC_CONFIG_AUTO && GRKERNSEC_CONFIG_SERVER
+	help
+	  If you say Y here, you will be able to choose a gid to add to the
+	  supplementary groups of users you want to mark as "untrusted."
+	  These users will not be able to execute any files that are not in
+	  root-owned directories writable only by root.  If the sysctl option
+	  is enabled, a sysctl option with name "tpe" is created.
+
+config GRKERNSEC_TPE_ALL
+	bool "Partially restrict all non-root users"
+	depends on GRKERNSEC_TPE
+	help
+	  If you say Y here, all non-root users will be covered under
+	  a weaker TPE restriction.  This is separate from, and in addition to,
+	  the main TPE options that you have selected elsewhere.  Thus, if a
+	  "trusted" GID is chosen, this restriction applies to even that GID.
+	  Under this restriction, all non-root users will only be allowed to
+	  execute files in directories they own that are not group or
+	  world-writable, or in directories owned by root and writable only by
+	  root.  If the sysctl option is enabled, a sysctl option with name
+	  "tpe_restrict_all" is created.
+
+config GRKERNSEC_TPE_INVERT
+	bool "Invert GID option"
+	depends on GRKERNSEC_TPE
+	help
+	  If you say Y here, the group you specify in the TPE configuration will
+	  decide what group TPE restrictions will be *disabled* for.  This
+	  option is useful if you want TPE restrictions to be applied to most
+	  users on the system.  If the sysctl option is enabled, a sysctl option
+	  with name "tpe_invert" is created.  Unlike other sysctl options, this
+	  entry will default to on for backward-compatibility.
+
+config GRKERNSEC_TPE_GID
+	int
+	default GRKERNSEC_TPE_UNTRUSTED_GID if (GRKERNSEC_TPE && !GRKERNSEC_TPE_INVERT)
+	default GRKERNSEC_TPE_TRUSTED_GID if (GRKERNSEC_TPE && GRKERNSEC_TPE_INVERT)
+	
+config GRKERNSEC_TPE_UNTRUSTED_GID
+	int "GID for TPE-untrusted users"
+	depends on GRKERNSEC_TPE && !GRKERNSEC_TPE_INVERT
+	default 1005
+	help
+	  Setting this GID determines what group TPE restrictions will be
+	  *enabled* for.  If the sysctl option is enabled, a sysctl option
+	  with name "tpe_gid" is created.
+
+config GRKERNSEC_TPE_TRUSTED_GID
+	int "GID for TPE-trusted users"
+	depends on GRKERNSEC_TPE && GRKERNSEC_TPE_INVERT
+	default 1005
+	help
+	  Setting this GID determines what group TPE restrictions will be
+	  *disabled* for.  If the sysctl option is enabled, a sysctl option
+	  with name "tpe_gid" is created.
+
+endmenu
+menu "Network Protections"
+depends on GRKERNSEC
+
+config GRKERNSEC_BLACKHOLE
+	bool "TCP/UDP blackhole and LAST_ACK DoS prevention"
+	default y if GRKERNSEC_CONFIG_AUTO
+	depends on NET
+	help
+	  If you say Y here, neither TCP resets nor ICMP
+	  destination-unreachable packets will be sent in response to packets
+	  sent to ports for which no associated listening process exists.
+	  It will also prevent the sending of ICMP protocol unreachable packets
+	  in response to packets with unknown protocols.
+	  This feature supports both IPV4 and IPV6 and exempts the 
+	  loopback interface from blackholing.  Enabling this feature 
+	  makes a host more resilient to DoS attacks and reduces network
+	  visibility against scanners.
+
+	  The blackhole feature as-implemented is equivalent to the FreeBSD
+	  blackhole feature, as it prevents RST responses to all packets, not
+	  just SYNs.  Under most application behavior this causes no
+	  problems, but applications (like haproxy) may not close certain
+	  connections in a way that cleanly terminates them on the remote
+	  end, leaving the remote host in LAST_ACK state.  Because of this
+	  side-effect and to prevent intentional LAST_ACK DoSes, this
+	  feature also adds automatic mitigation against such attacks.
+	  The mitigation drastically reduces the amount of time a socket
+	  can spend in LAST_ACK state.  If you're using haproxy and not
+	  all servers it connects to have this option enabled, consider
+	  disabling this feature on the haproxy host.
+
+	  If the sysctl option is enabled, two sysctl options with names
+	  "ip_blackhole" and "lastack_retries" will be created.
+	  While "ip_blackhole" takes the standard zero/non-zero on/off
+	  toggle, "lastack_retries" uses the same kinds of values as
+	  "tcp_retries1" and "tcp_retries2".  The default value of 4
+	  prevents a socket from lasting more than 45 seconds in LAST_ACK
+	  state.
+
+config GRKERNSEC_NO_SIMULT_CONNECT
+	bool "Disable TCP Simultaneous Connect"
+	default y if GRKERNSEC_CONFIG_AUTO
+	depends on NET
+	help
+	  If you say Y here, a feature by Willy Tarreau will be enabled that
+	  removes a weakness in Linux's strict implementation of TCP that
+	  allows two clients to connect to each other without either entering
+	  a listening state.  The weakness allows an attacker to easily prevent
+	  a client from connecting to a known server provided the source port
+	  for the connection is guessed correctly.
+
+	  As the weakness could be used to prevent an antivirus or IPS from
+	  fetching updates, or prevent an SSL gateway from fetching a CRL,
+	  it should be eliminated by enabling this option.  Though Linux is
+	  one of few operating systems supporting simultaneous connect, it
+	  has no legitimate use in practice and is rarely supported by firewalls.
+	
+config GRKERNSEC_SOCKET
+	bool "Socket restrictions"
+	depends on NET
+	help
+	  If you say Y here, you will be able to choose from several options.
+	  If you assign a GID on your system and add it to the supplementary
+	  groups of users you want to restrict socket access to, this patch
+	  will perform up to three things, based on the option(s) you choose.
+
+config GRKERNSEC_SOCKET_ALL
+	bool "Deny any sockets to group"
+	depends on GRKERNSEC_SOCKET
+	help
+	  If you say Y here, you will be able to choose a GID of whose users will
+	  be unable to connect to other hosts from your machine or run server
+	  applications from your machine.  If the sysctl option is enabled, a
+	  sysctl option with name "socket_all" is created.
+
+config GRKERNSEC_SOCKET_ALL_GID
+	int "GID to deny all sockets for"
+	depends on GRKERNSEC_SOCKET_ALL
+	default 1004
+	help
+	  Here you can choose the GID to disable socket access for. Remember to
+	  add the users you want socket access disabled for to the GID
+	  specified here.  If the sysctl option is enabled, a sysctl option
+	  with name "socket_all_gid" is created.
+
+config GRKERNSEC_SOCKET_CLIENT
+	bool "Deny client sockets to group"
+	depends on GRKERNSEC_SOCKET
+	help
+	  If you say Y here, you will be able to choose a GID of whose users will
+	  be unable to connect to other hosts from your machine, but will be
+	  able to run servers.  If this option is enabled, all users in the group
+	  you specify will have to use passive mode when initiating ftp transfers
+	  from the shell on your machine.  If the sysctl option is enabled, a
+	  sysctl option with name "socket_client" is created.
+
+config GRKERNSEC_SOCKET_CLIENT_GID
+	int "GID to deny client sockets for"
+	depends on GRKERNSEC_SOCKET_CLIENT
+	default 1003
+	help
+	  Here you can choose the GID to disable client socket access for.
+	  Remember to add the users you want client socket access disabled for to
+	  the GID specified here.  If the sysctl option is enabled, a sysctl
+	  option with name "socket_client_gid" is created.
+
+config GRKERNSEC_SOCKET_SERVER
+	bool "Deny server sockets to group"
+	depends on GRKERNSEC_SOCKET
+	help
+	  If you say Y here, you will be able to choose a GID of whose users will
+	  be unable to run server applications from your machine.  If the sysctl
+	  option is enabled, a sysctl option with name "socket_server" is created.
+
+config GRKERNSEC_SOCKET_SERVER_GID
+	int "GID to deny server sockets for"
+	depends on GRKERNSEC_SOCKET_SERVER
+	default 1002
+	help
+	  Here you can choose the GID to disable server socket access for.
+	  Remember to add the users you want server socket access disabled for to
+	  the GID specified here.  If the sysctl option is enabled, a sysctl
+	  option with name "socket_server_gid" is created.
+
+endmenu
+
+menu "Physical Protections"
+depends on GRKERNSEC
+
+config GRKERNSEC_DENYUSB
+	bool "Deny new USB connections after toggle"
+	default y if GRKERNSEC_CONFIG_AUTO
+	depends on SYSCTL && USB_SUPPORT
+	help
+	  If you say Y here, a new sysctl option with name "deny_new_usb"
+	  will be created.  Setting its value to 1 will prevent any new
+	  USB devices from being recognized by the OS.  Any attempted USB
+	  device insertion will be logged.  This option is intended to be
+	  used against custom USB devices designed to exploit vulnerabilities
+	  in various USB device drivers.
+
+	  For greatest effectiveness, this sysctl should be set after any
+	  relevant init scripts.  This option is safe to enable in distros
+	  as each user can choose whether or not to toggle the sysctl.
+
+config GRKERNSEC_DENYUSB_FORCE
+	bool "Reject all USB devices not connected at boot"
+	select USB
+	depends on GRKERNSEC_DENYUSB
+	help
+	  If you say Y here, a variant of GRKERNSEC_DENYUSB will be enabled
+	  that doesn't involve a sysctl entry.  This option should only be
+	  enabled if you're sure you want to deny all new USB connections
+	  at runtime and don't want to modify init scripts.  This should not
+	  be enabled by distros.  It forces the core USB code to be built
+	  into the kernel image so that all devices connected at boot time
+	  can be recognized and new USB device connections can be prevented
+	  prior to init running.
+
+endmenu
+
+menu "Sysctl Support"
+depends on GRKERNSEC && SYSCTL
+
+config GRKERNSEC_SYSCTL
+	bool "Sysctl support"
+	default y if GRKERNSEC_CONFIG_AUTO
+	help
+	  If you say Y here, you will be able to change the options that
+	  grsecurity runs with at bootup, without having to recompile your
+	  kernel.  You can echo values to files in /proc/sys/kernel/grsecurity
+	  to enable (1) or disable (0) various features.  All the sysctl entries
+	  are mutable until the "grsec_lock" entry is set to a non-zero value.
+	  All features enabled in the kernel configuration are disabled at boot
+	  if you do not say Y to the "Turn on features by default" option.
+	  All options should be set at startup, and the grsec_lock entry should
+	  be set to a non-zero value after all the options are set.
+	  *THIS IS EXTREMELY IMPORTANT*
+
+config GRKERNSEC_SYSCTL_DISTRO
+	bool "Extra sysctl support for distro makers (READ HELP)"
+	depends on GRKERNSEC_SYSCTL && GRKERNSEC_IO
+	help
+	  If you say Y here, additional sysctl options will be created
+	  for features that affect processes running as root.  Therefore,
+	  it is critical when using this option that the grsec_lock entry be
+	  enabled after boot.  Only distros with prebuilt kernel packages
+	  with this option enabled that can ensure grsec_lock is enabled
+	  after boot should use this option.
+	  *Failure to set grsec_lock after boot makes all grsec features
+	  this option covers useless*
+
+	  Currently this option creates the following sysctl entries:
+	  "Disable Privileged I/O": "disable_priv_io"	
+
+config GRKERNSEC_SYSCTL_ON
+	bool "Turn on features by default"
+	default y if GRKERNSEC_CONFIG_AUTO
+	depends on GRKERNSEC_SYSCTL
+	help
+	  If you say Y here, instead of having all features enabled in the
+	  kernel configuration disabled at boot time, the features will be
+	  enabled at boot time.  It is recommended you say Y here unless
+	  there is some reason you would want all sysctl-tunable features to
+	  be disabled by default.  As mentioned elsewhere, it is important
+	  to enable the grsec_lock entry once you have finished modifying
+	  the sysctl entries.
+
+endmenu
+menu "Logging Options"
+depends on GRKERNSEC
+
+config GRKERNSEC_FLOODTIME
+	int "Seconds in between log messages (minimum)"
+	default 10
+	help
+	  This option allows you to enforce the number of seconds between
+	  grsecurity log messages.  The default should be suitable for most
+	  people, however, if you choose to change it, choose a value small enough
+	  to allow informative logs to be produced, but large enough to
+	  prevent flooding.
+
+	  Setting both this value and GRKERNSEC_FLOODBURST to 0 will disable
+	  any rate limiting on grsecurity log messages.
+
+config GRKERNSEC_FLOODBURST
+	int "Number of messages in a burst (maximum)"
+	default 6
+	help
+	  This option allows you to choose the maximum number of messages allowed
+	  within the flood time interval you chose in a separate option.  The
+	  default should be suitable for most people, however if you find that
+	  many of your logs are being interpreted as flooding, you may want to
+	  raise this value.
+
+	  Setting both this value and GRKERNSEC_FLOODTIME to 0 will disable
+	  any rate limiting on grsecurity log messages.
+
+endmenu

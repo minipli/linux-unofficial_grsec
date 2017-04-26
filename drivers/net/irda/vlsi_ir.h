@@ -671,7 +671,7 @@ struct vlsi_ring {
 	unsigned		len;
 	unsigned		size;
 	unsigned		mask;
-	atomic_t		head, tail;
+	atomic_unchecked_t	head, tail;
 	struct ring_descr	*rd;
 };
 
@@ -681,13 +681,13 @@ static inline struct ring_descr *ring_last(struct vlsi_ring *r)
 {
 	int t;
 
-	t = atomic_read(&r->tail) & r->mask;
-	return (((t+1) & r->mask) == (atomic_read(&r->head) & r->mask)) ? NULL : &r->rd[t];
+	t = atomic_read_unchecked(&r->tail) & r->mask;
+	return (((t+1) & r->mask) == (atomic_read_unchecked(&r->head) & r->mask)) ? NULL : &r->rd[t];
 }
 
 static inline struct ring_descr *ring_put(struct vlsi_ring *r)
 {
-	atomic_inc(&r->tail);
+	atomic_inc_unchecked(&r->tail);
 	return ring_last(r);
 }
 
@@ -695,13 +695,13 @@ static inline struct ring_descr *ring_first(struct vlsi_ring *r)
 {
 	int h;
 
-	h = atomic_read(&r->head) & r->mask;
-	return (h == (atomic_read(&r->tail) & r->mask)) ? NULL : &r->rd[h];
+	h = atomic_read_unchecked(&r->head) & r->mask;
+	return (h == (atomic_read_unchecked(&r->tail) & r->mask)) ? NULL : &r->rd[h];
 }
 
 static inline struct ring_descr *ring_get(struct vlsi_ring *r)
 {
-	atomic_inc(&r->head);
+	atomic_inc_unchecked(&r->head);
 	return ring_first(r);
 }
 

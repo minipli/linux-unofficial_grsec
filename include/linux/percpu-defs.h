@@ -173,6 +173,15 @@
 	DEFINE_PER_CPU_SECTION(type, name, "..read_mostly")
 
 /*
+ * Declaration/definition used for per-CPU variables that must be read only.
+ */
+#define DECLARE_PER_CPU_READ_ONLY(type, name)			\
+	DECLARE_PER_CPU_SECTION(type, name, "..read_only")
+
+#define DEFINE_PER_CPU_READ_ONLY(type, name)				\
+	DEFINE_PER_CPU_SECTION(type, name, "..read_only")
+
+/*
  * Intermodule exports for per-CPU variables.  sparse forgets about
  * address space across EXPORT_SYMBOL(), change EXPORT_SYMBOL() to
  * noop if __CHECKER__.

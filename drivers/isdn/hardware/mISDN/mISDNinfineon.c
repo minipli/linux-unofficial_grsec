@@ -244,7 +244,7 @@ _set_debug(struct inf_hw *card)
 }
 
 static int
-set_debug(const char *val, struct kernel_param *kp)
+set_debug(const char *val, const struct kernel_param *kp)
 {
 	int ret;
 	struct inf_hw *card;
@@ -586,9 +586,10 @@ reset_inf(struct inf_hw *hw)
 }
 
 static int
-inf_ctrl(struct inf_hw *hw, u32 cmd, u_long arg)
+inf_ctrl(struct ipac_hw *_hw, u32 cmd, u_long arg)
 {
 	int ret = 0;
+	struct inf_hw *hw = container_of(_hw, struct inf_hw, ipac);
 
 	switch (cmd) {
 	case HW_RESET_REQ:
@@ -915,7 +916,7 @@ setup_instance(struct inf_hw *card)
 	spin_lock_init(&card->lock);
 	card->ipac.isac.hwlock = &card->lock;
 	card->ipac.hwlock = &card->lock;
-	card->ipac.ctrl = (void *)&inf_ctrl;
+	card->ipac.ctrl = &inf_ctrl;
 
 	err = setup_io(card);
 	if (err)

@@ -30,7 +30,7 @@ static void *get_ipc(struct ctl_table *table)
 static int proc_ipc_dointvec(struct ctl_table *table, int write,
 	void __user *buffer, size_t *lenp, loff_t *ppos)
 {
-	struct ctl_table ipc_table;
+	ctl_table_no_const ipc_table;
 
 	memcpy(&ipc_table, table, sizeof(ipc_table));
 	ipc_table.data = get_ipc(table);
@@ -41,7 +41,7 @@ static int proc_ipc_dointvec(struct ctl_table *table, int write,
 static int proc_ipc_dointvec_minmax(struct ctl_table *table, int write,
 	void __user *buffer, size_t *lenp, loff_t *ppos)
 {
-	struct ctl_table ipc_table;
+	ctl_table_no_const ipc_table;
 
 	memcpy(&ipc_table, table, sizeof(ipc_table));
 	ipc_table.data = get_ipc(table);
@@ -65,7 +65,7 @@ static int proc_ipc_dointvec_minmax_orphans(struct ctl_table *table, int write,
 static int proc_ipc_doulongvec_minmax(struct ctl_table *table, int write,
 	void __user *buffer, size_t *lenp, loff_t *ppos)
 {
-	struct ctl_table ipc_table;
+	ctl_table_no_const ipc_table;
 	memcpy(&ipc_table, table, sizeof(ipc_table));
 	ipc_table.data = get_ipc(table);
 
@@ -76,7 +76,7 @@ static int proc_ipc_doulongvec_minmax(struct ctl_table *table, int write,
 static int proc_ipc_auto_msgmni(struct ctl_table *table, int write,
 	void __user *buffer, size_t *lenp, loff_t *ppos)
 {
-	struct ctl_table ipc_table;
+	ctl_table_no_const ipc_table;
 	int dummy = 0;
 
 	memcpy(&ipc_table, table, sizeof(ipc_table));
@@ -99,6 +99,8 @@ static int proc_ipc_auto_msgmni(struct ctl_table *table, int write,
 static int zero;
 static int one = 1;
 static int int_max = INT_MAX;
+static unsigned long long_zero = 0;
+static unsigned long long_max = LONG_MAX;
 
 static struct ctl_table ipc_kern_table[] = {
 	{
@@ -107,6 +109,8 @@ static struct ctl_table ipc_kern_table[] = {
 		.maxlen		= sizeof(init_ipc_ns.shm_ctlmax),
 		.mode		= 0644,
 		.proc_handler	= proc_ipc_doulongvec_minmax,
+		.extra1		= &long_zero,
+		.extra2		= &long_max,
 	},
 	{
 		.procname	= "shmall",
@@ -114,6 +118,8 @@ static struct ctl_table ipc_kern_table[] = {
 		.maxlen		= sizeof(init_ipc_ns.shm_ctlall),
 		.mode		= 0644,
 		.proc_handler	= proc_ipc_doulongvec_minmax,
+		.extra1		= &long_zero,
+		.extra2		= &long_max,
 	},
 	{
 		.procname	= "shmmni",

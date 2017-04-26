@@ -126,11 +126,10 @@ ENTRY(wakeup_start)
 	lgdtl	pmode_gdt
 
 	/* This really couldn't... */
-	movl	pmode_entry, %eax
 	movl	pmode_cr0, %ecx
 	movl	%ecx, %cr0
-	ljmpl	$__KERNEL_CS, $pa_startup_32
-	/* -> jmp *%eax in trampoline_32.S */
+
+	ljmpl	*pmode_entry
 #else
 	jmp	trampoline_start
 #endif

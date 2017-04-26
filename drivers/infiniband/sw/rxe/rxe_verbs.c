@@ -757,7 +757,7 @@ static int init_send_wqe(struct rxe_qp *qp, struct ib_send_wr *ibwr,
 	wqe->dma.cur_sge	= 0;
 	wqe->dma.sge_offset	= 0;
 	wqe->state		= wqe_state_posted;
-	wqe->ssn		= atomic_add_return(1, &qp->ssn);
+	wqe->ssn		= atomic_add_return_unchecked(1, &qp->ssn);
 
 	return 0;
 }

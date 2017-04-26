@@ -29,6 +29,7 @@
  */
 
 #include <linux/linkage.h>
+#include <asm/alternative-asm.h>
 
 #define CTX	%rdi	// arg1
 #define BUF	%rsi	// arg2
@@ -71,13 +72,14 @@
  * param: function's name
  */
 .macro SHA1_VECTOR_ASM  name
-	ENTRY(\name)
+ALIGN
+	RAP_ENTRY(\name)
 
 	push	%rbx
 	push	%rbp
-	push	%r12
+	push	%r14
 
-	mov	%rsp, %r12
+	mov	%rsp, %r14
 	sub	$64, %rsp		# allocate workspace
 	and	$~15, %rsp		# align stack
 
@@ -99,12 +101,12 @@
 	xor	%rax, %rax
 	rep stosq
 
-	mov	%r12, %rsp		# deallocate workspace
+	mov	%r14, %rsp		# deallocate workspace
 
-	pop	%r12
+	pop	%r14
 	pop	%rbp
 	pop	%rbx
-	ret
+	pax_ret \name
 
 	ENDPROC(\name)
 .endm

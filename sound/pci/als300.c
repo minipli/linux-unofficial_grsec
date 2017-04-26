@@ -647,7 +647,7 @@ static int snd_als300_create(struct snd_card *card,
 			     struct snd_als300 **rchip)
 {
 	struct snd_als300 *chip;
-	void *irq_handler;
+	irq_handler_t irq_handler;
 	int err;
 
 	static struct snd_device_ops ops = {

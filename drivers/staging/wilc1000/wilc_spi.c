@@ -19,6 +19,7 @@
 #include <linux/of_gpio.h>
 
 #include <linux/string.h>
+#include <linux/netdevice.h>
 #include "wilc_wlan_if.h"
 #include "wilc_wlan.h"
 #include "wilc_wfi_netdevice.h"

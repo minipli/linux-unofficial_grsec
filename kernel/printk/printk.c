@@ -588,7 +588,7 @@ static int log_store(int facility, int level,
 	return msg->text_len;
 }
 
-int dmesg_restrict = IS_ENABLED(CONFIG_SECURITY_DMESG_RESTRICT);
+int dmesg_restrict __read_only = IS_ENABLED(CONFIG_SECURITY_DMESG_RESTRICT);
 
 static int syslog_action_restricted(int type)
 {
@@ -610,6 +610,11 @@ int check_syslog_permissions(int type, int source)
 	 */
 	if (source == SYSLOG_FROM_PROC && type != SYSLOG_ACTION_OPEN)
 		goto ok;
+
+#ifdef CONFIG_GRKERNSEC_DMESG
+	if (grsec_enable_dmesg && !capable(CAP_SYSLOG) && !capable_nolog(CAP_SYS_ADMIN))
+		return -EPERM;
+#endif
 
 	if (syslog_action_restricted(type)) {
 		if (capable(CAP_SYSLOG))

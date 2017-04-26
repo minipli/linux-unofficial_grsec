@@ -26,6 +26,16 @@
  * after mark_rodata_ro() has been called). These are effectively read-only,
  * but may get written to during init, so can't live in .rodata (via "const").
  */
+#ifdef CONFIG_PAX_KERNEXEC
+# ifdef __ro_after_init
+#  error KERNEXEC requires __read_only
+# endif
+# define __read_only __attribute__((__section__(".data..read_only")))
+# define __ro_after_init __read_only
+#else
+# define __read_only __read_mostly
+#endif
+
 #ifndef __ro_after_init
 #define __ro_after_init __attribute__((__section__(".data..ro_after_init")))
 #endif

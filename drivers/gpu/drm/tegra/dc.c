@@ -1675,7 +1675,7 @@ static int tegra_dc_debugfs_init(struct tegra_dc *dc, struct drm_minor *minor)
 	}
 
 	for (i = 0; i < ARRAY_SIZE(debugfs_files); i++)
-		dc->debugfs_files[i].data = dc;
+		const_cast(dc->debugfs_files[i].data) = dc;
 
 	err = drm_debugfs_create_files(dc->debugfs_files,
 				       ARRAY_SIZE(debugfs_files),

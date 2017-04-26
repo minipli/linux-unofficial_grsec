@@ -8,6 +8,7 @@
 #include <linux/fs_struct.h>
 #include <linux/fsnotify.h>
 #include <linux/personality.h>
+#include <linux/grsecurity.h>
 #include <asm/uaccess.h>
 #include "internal.h"
 #include "mount.h"
@@ -67,8 +68,7 @@ static long do_sys_name_to_handle(struct path *path,
 	} else
 		retval = 0;
 	/* copy the mount id */
-	if (copy_to_user(mnt_id, &real_mount(path->mnt)->mnt_id,
-			 sizeof(*mnt_id)) ||
+	if (put_user(real_mount(path->mnt)->mnt_id, mnt_id) ||
 	    copy_to_user(ufh, handle,
 			 sizeof(struct file_handle) + handle_bytes))
 		retval = -EFAULT;
@@ -175,7 +175,7 @@ static int handle_to_path(int mountdirfd, struct file_handle __user *ufh,
 	 * the directory. Ideally we would like CAP_DAC_SEARCH.
 	 * But we don't have that
 	 */
-	if (!capable(CAP_DAC_READ_SEARCH)) {
+	if (!capable(CAP_DAC_READ_SEARCH) || !gr_chroot_fhandle()) {
 		retval = -EPERM;
 		goto out_err;
 	}
@@ -197,7 +197,7 @@ static int handle_to_path(int mountdirfd, struct file_handle __user *ufh,
 	/* copy the full handle */
 	*handle = f_handle;
 	if (copy_from_user(&handle->f_handle,
-			   &ufh->f_handle,
+			   ufh->f_handle,
 			   f_handle.handle_bytes)) {
 		retval = -EFAULT;
 		goto out_handle;

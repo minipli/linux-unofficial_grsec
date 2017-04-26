@@ -7,6 +7,7 @@
 #ifndef __ARCH_BLACKFIN_CACHE_H
 #define __ARCH_BLACKFIN_CACHE_H
 
+#include <linux/const.h>
 #include <linux/linkage.h>	/* for asmlinkage */
 
 /*
@@ -14,7 +15,7 @@
  * Blackfin loads 32 bytes for cache
  */
 #define L1_CACHE_SHIFT	5
-#define L1_CACHE_BYTES	(1 << L1_CACHE_SHIFT)
+#define L1_CACHE_BYTES	(_AC(1,UL) << L1_CACHE_SHIFT)
 #define SMP_CACHE_BYTES	L1_CACHE_BYTES
 
 #define ARCH_DMA_MINALIGN	L1_CACHE_BYTES

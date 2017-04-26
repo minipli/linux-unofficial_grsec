@@ -23,6 +23,7 @@
 
 #include <asm/sections.h>
 #include <asm/uaccess.h>
+#include <asm/setup.h>
 
 /*
  * mutex protecting text section modification (dynamic code patching).
@@ -41,10 +42,22 @@ u32 __initdata __visible main_extable_sort_needed = 1;
 /* Sort the kernel's built-in exception table */
 void __init sort_main_extable(void)
 {
-	if (main_extable_sort_needed && __stop___ex_table > __start___ex_table) {
+	struct exception_table_entry *start = __start___ex_table;
+
+	if (main_extable_sort_needed && __stop___ex_table > start) {
 		pr_notice("Sorting __ex_table...\n");
-		sort_extable(__start___ex_table, __stop___ex_table);
+		sort_extable(start, __stop___ex_table);
 	}
+
+#if defined(CONFIG_X86_32) && defined(CONFIG_PAX_KERNEXEC)
+	while (start < __stop___ex_table) {
+		start->insn -= kaslr_offset();
+		start->fixup -= kaslr_offset();
+		start->handler -= kaslr_offset();
+		start++;
+	}
+#endif
+
 }
 
 /* Given an address, look for it in the exception tables. */

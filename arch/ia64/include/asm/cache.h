@@ -1,6 +1,7 @@
 #ifndef _ASM_IA64_CACHE_H
 #define _ASM_IA64_CACHE_H
 
+#include <linux/const.h>
 
 /*
  * Copyright (C) 1998-2000 Hewlett-Packard Co
@@ -9,7 +10,7 @@
 
 /* Bytes per L1 (data) cache line.  */
 #define L1_CACHE_SHIFT		CONFIG_IA64_L1_CACHE_SHIFT
-#define L1_CACHE_BYTES		(1 << L1_CACHE_SHIFT)
+#define L1_CACHE_BYTES		(_AC(1,UL) << L1_CACHE_SHIFT)
 
 #ifdef CONFIG_SMP
 # define SMP_CACHE_SHIFT	L1_CACHE_SHIFT

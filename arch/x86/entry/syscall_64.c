@@ -6,7 +6,11 @@
 #include <asm/asm-offsets.h>
 #include <asm/syscall.h>
 
+#ifdef CONFIG_PAX_RAP
+#define __SYSCALL_64_QUAL_(sym) rap_##sym
+#else
 #define __SYSCALL_64_QUAL_(sym) sym
+#endif
 #define __SYSCALL_64_QUAL_ptregs(sym) ptregs_##sym
 
 #define __SYSCALL_64(nr, sym, qual) extern asmlinkage long __SYSCALL_64_QUAL_##qual(sym)(unsigned long, unsigned long, unsigned long, unsigned long, unsigned long, unsigned long);

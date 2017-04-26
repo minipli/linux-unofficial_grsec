@@ -38,7 +38,72 @@ int hugepages_treat_as_movable;
 
 int hugetlb_max_hstate __read_mostly;
 unsigned int default_hstate_idx;
-struct hstate hstates[HUGE_MAX_HSTATE];
+
+#ifdef CONFIG_CGROUP_HUGETLB
+static struct cftype hugetlb_files[HUGE_MAX_HSTATE][5] = {
+# define MEMFILE_PRIVATE(x, val)	(((x) << 16) | (val))
+# define CFTYPE_INIT(idx) \
+	{ /* Add the limit file */					\
+	  [0] = { .private = MEMFILE_PRIVATE(idx, RES_LIMIT),		\
+		  .read_u64 = hugetlb_cgroup_read_u64,			\
+		  .write = hugetlb_cgroup_write, },			\
+	  /* Add the usage file */					\
+	  [1] = { .private = MEMFILE_PRIVATE(idx, RES_USAGE),		\
+		  .read_u64 = hugetlb_cgroup_read_u64, },		\
+	  /* Add the MAX usage file */					\
+	  [2] = { .private = MEMFILE_PRIVATE(idx, RES_MAX_USAGE),	\
+		  .write = hugetlb_cgroup_reset,			\
+		  .read_u64 = hugetlb_cgroup_read_u64, },		\
+	  /* Add the failcntfile */					\
+	  [3] = { .private = MEMFILE_PRIVATE(idx, RES_FAILCNT),		\
+		  .write = hugetlb_cgroup_reset,			\
+		  .read_u64 = hugetlb_cgroup_read_u64, },		\
+	  [4] = { /* NULL terminator */ },				\
+	}
+
+# if HUGE_MAX_HSTATE > 0
+	[0] = CFTYPE_INIT(0),
+# endif
+# if HUGE_MAX_HSTATE > 1
+	[1] = CFTYPE_INIT(1),
+# endif
+# if HUGE_MAX_HSTATE > 2
+	[2] = CFTYPE_INIT(2),
+# endif
+# if HUGE_MAX_HSTATE > 3
+	[3] = CFTYPE_INIT(3),
+# endif
+# if HUGE_MAX_HSTATE > 4
+#  error PaX: add more initializers...
+# endif
+
+# undef CFTYPE_INIT
+};
+#endif
+
+struct hstate hstates[HUGE_MAX_HSTATE] = {
+#ifdef CONFIG_CGROUP_HUGETLB
+# define HSTATE_INIT(idx) [idx] = { .cgroup_files = &hugetlb_files[idx] }
+
+# if HUGE_MAX_HSTATE > 0
+	HSTATE_INIT(0),
+# endif
+# if HUGE_MAX_HSTATE > 1
+	HSTATE_INIT(1),
+# endif
+# if HUGE_MAX_HSTATE > 2
+	HSTATE_INIT(2),
+# endif
+# if HUGE_MAX_HSTATE > 3
+	HSTATE_INIT(3),
+# endif
+# if HUGE_MAX_HSTATE > 4
+#  error PaX: add more initializers...
+# endif
+
+# undef HSTATE_INIT
+#endif
+};
 /*
  * Minimum page order among possible hugepage sizes, set to a proper value
  * at boot time.
@@ -2913,6 +2978,7 @@ static int hugetlb_sysctl_handler_common(bool obey_mempolicy,
 			 struct ctl_table *table, int write,
 			 void __user *buffer, size_t *length, loff_t *ppos)
 {
+	ctl_table_no_const t;
 	struct hstate *h = &default_hstate;
 	unsigned long tmp = h->max_huge_pages;
 	int ret;
@@ -2920,9 +2986,10 @@ static int hugetlb_sysctl_handler_common(bool obey_mempolicy,
 	if (!hugepages_supported())
 		return -EOPNOTSUPP;
 
-	table->data = &tmp;
-	table->maxlen = sizeof(unsigned long);
-	ret = proc_doulongvec_minmax(table, write, buffer, length, ppos);
+	t = *table;
+	t.data = &tmp;
+	t.maxlen = sizeof(unsigned long);
+	ret = proc_doulongvec_minmax(&t, write, buffer, length, ppos);
 	if (ret)
 		goto out;
 
@@ -2957,6 +3024,7 @@ int hugetlb_overcommit_handler(struct ctl_table *table, int write,
 	struct hstate *h = &default_hstate;
 	unsigned long tmp;
 	int ret;
+	ctl_table_no_const hugetlb_table;
 
 	if (!hugepages_supported())
 		return -EOPNOTSUPP;
@@ -2966,9 +3034,10 @@ int hugetlb_overcommit_handler(struct ctl_table *table, int write,
 	if (write && hstate_is_gigantic(h))
 		return -EINVAL;
 
-	table->data = &tmp;
-	table->maxlen = sizeof(unsigned long);
-	ret = proc_doulongvec_minmax(table, write, buffer, length, ppos);
+	hugetlb_table = *table;
+	hugetlb_table.data = &tmp;
+	hugetlb_table.maxlen = sizeof(unsigned long);
+	ret = proc_doulongvec_minmax(&hugetlb_table, write, buffer, length, ppos);
 	if (ret)
 		goto out;
 
@@ -3462,6 +3531,27 @@ static void unmap_ref_private(struct mm_struct *mm, struct vm_area_struct *vma,
 	i_mmap_unlock_write(mapping);
 }
 
+#ifdef CONFIG_PAX_SEGMEXEC
+static void pax_mirror_huge_pte(struct vm_area_struct *vma, unsigned long address, struct page *page_m)
+{
+	struct mm_struct *mm = vma->vm_mm;
+	struct vm_area_struct *vma_m;
+	unsigned long address_m;
+	pte_t *ptep_m;
+
+	vma_m = pax_find_mirror_vma(vma);
+	if (!vma_m)
+		return;
+
+	BUG_ON(address >= SEGMEXEC_TASK_SIZE);
+	address_m = address + SEGMEXEC_TASK_SIZE;
+	ptep_m = huge_pte_offset(mm, address_m & HPAGE_MASK);
+	get_page(page_m);
+	hugepage_add_anon_rmap(page_m, vma_m, address_m);
+	set_huge_pte_at(mm, address_m, ptep_m, make_huge_pte(vma_m, page_m, 0));
+}
+#endif
+
 /*
  * Hugetlb_cow() should be called with page lock of the original hugepage held.
  * Called with hugetlb_instantiation_mutex held and pte_page locked so we
@@ -3577,6 +3667,11 @@ retry_avoidcopy:
 				make_huge_pte(vma, new_page, 1));
 		page_remove_rmap(old_page, true);
 		hugepage_add_new_anon_rmap(new_page, vma, address);
+
+#ifdef CONFIG_PAX_SEGMEXEC
+		pax_mirror_huge_pte(vma, address, new_page);
+#endif
+
 		/* Make the old page be freed below */
 		new_page = old_page;
 	}
@@ -3751,6 +3846,10 @@ retry:
 				&& (vma->vm_flags & VM_SHARED)));
 	set_huge_pte_at(mm, address, ptep, new_pte);
 
+#ifdef CONFIG_PAX_SEGMEXEC
+	pax_mirror_huge_pte(vma, address, page);
+#endif
+
 	hugetlb_count_add(pages_per_huge_page(h), mm);
 	if ((flags & FAULT_FLAG_WRITE) && !(vma->vm_flags & VM_SHARED)) {
 		/* Optimization, do the COW without a second fault */
@@ -3820,6 +3919,10 @@ int hugetlb_fault(struct mm_struct *mm, struct vm_area_struct *vma,
 	struct address_space *mapping;
 	int need_wait_lock = 0;
 
+#ifdef CONFIG_PAX_SEGMEXEC
+	struct vm_area_struct *vma_m;
+#endif
+
 	address &= huge_page_mask(h);
 
 	ptep = huge_pte_offset(mm, address);
@@ -3836,6 +3939,26 @@ int hugetlb_fault(struct mm_struct *mm, struct vm_area_struct *vma,
 		if (!ptep)
 			return VM_FAULT_OOM;
 	}
+
+#ifdef CONFIG_PAX_SEGMEXEC
+	vma_m = pax_find_mirror_vma(vma);
+	if (vma_m) {
+		unsigned long address_m;
+
+		if (vma->vm_start > vma_m->vm_start) {
+			address_m = address;
+			address -= SEGMEXEC_TASK_SIZE;
+			vma = vma_m;
+			h = hstate_vma(vma);
+		} else
+			address_m = address + SEGMEXEC_TASK_SIZE;
+
+		if (!huge_pte_alloc(mm, address_m, huge_page_size(h)))
+			return VM_FAULT_OOM;
+		address_m &= HPAGE_MASK;
+		unmap_hugepage_range(vma, address_m, address_m + HPAGE_SIZE, NULL);
+	}
+#endif
 
 	mapping = vma->vm_file->f_mapping;
 	idx = vma_hugecache_offset(h, vma, address);

@@ -68,7 +68,7 @@ static ssize_t status_show_vhci(int pdev_nr, char *out)
 		if (vdev->ud.status == VDEV_ST_USED) {
 			out += sprintf(out, "%03u %08x ",
 					    vdev->speed, vdev->devid);
-			out += sprintf(out, "%16p %s",
+			out += sprintf(out, "%16pK %s",
 					    vdev->ud.tcp_socket,
 					    dev_name(&vdev->udev->dev));
 
@@ -383,7 +383,7 @@ static void finish_status_attrs(void)
 	kfree(status_attrs);
 }
 
-struct attribute_group vhci_attr_group = {
+attribute_group_no_const vhci_attr_group = {
 	.attrs = NULL,
 };
 

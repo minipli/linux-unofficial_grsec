@@ -202,7 +202,7 @@ struct net_proto_family {
 	int		(*create)(struct net *net, struct socket *sock,
 				  int protocol, int kern);
 	struct module	*owner;
-};
+} __do_const;
 
 struct iovec;
 struct kvec;

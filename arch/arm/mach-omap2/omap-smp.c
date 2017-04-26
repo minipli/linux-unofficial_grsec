@@ -19,6 +19,7 @@
 #include <linux/device.h>
 #include <linux/smp.h>
 #include <linux/io.h>
+#include <linux/irq.h>
 #include <linux/irqchip/arm-gic.h>
 
 #include <asm/smp_scu.h>

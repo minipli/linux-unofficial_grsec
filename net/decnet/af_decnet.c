@@ -1524,7 +1524,12 @@ static int __dn_getsockopt(struct socket *sock, int level,int optname, char __us
 	struct linkinfo_dn link;
 	unsigned int r_len;
 	void *r_data = NULL;
-	unsigned int val;
+	struct optdata_dn opt;
+	struct accessdata_dn acc;
+	u8 mode;
+	int val;
+	unsigned long window;
+	unsigned char rem;
 
 	if(get_user(r_len , optlen))
 		return -EFAULT;
@@ -1533,25 +1538,29 @@ static int __dn_getsockopt(struct socket *sock, int level,int optname, char __us
 	case DSO_CONDATA:
 		if (r_len > sizeof(struct optdata_dn))
 			r_len = sizeof(struct optdata_dn);
-		r_data = &scp->conndata_in;
+		opt = scp->conndata_in;
+		r_data = &opt;
 		break;
 
 	case DSO_DISDATA:
 		if (r_len > sizeof(struct optdata_dn))
 			r_len = sizeof(struct optdata_dn);
-		r_data = &scp->discdata_in;
+		opt = scp->discdata_in;
+		r_data = &opt;
 		break;
 
 	case DSO_CONACCESS:
 		if (r_len > sizeof(struct accessdata_dn))
 			r_len = sizeof(struct accessdata_dn);
-		r_data = &scp->accessdata;
+		acc = scp->accessdata;
+		r_data = &acc;
 		break;
 
 	case DSO_ACCEPTMODE:
 		if (r_len > sizeof(unsigned char))
 			r_len = sizeof(unsigned char);
-		r_data = &scp->accept_mode;
+		mode = scp->accept_mode;
+		r_data = &mode;
 		break;
 
 	case DSO_LINKINFO:
@@ -1601,7 +1610,8 @@ static int __dn_getsockopt(struct socket *sock, int level,int optname, char __us
 	case DSO_MAXWINDOW:
 		if (r_len > sizeof(unsigned long))
 			r_len = sizeof(unsigned long);
-		r_data = &scp->max_window;
+		window = scp->max_window;
+		r_data = &window;
 		break;
 
 	case DSO_NODELAY:
@@ -1621,13 +1631,15 @@ static int __dn_getsockopt(struct socket *sock, int level,int optname, char __us
 	case DSO_SERVICES:
 		if (r_len > sizeof(unsigned char))
 			r_len = sizeof(unsigned char);
-		r_data = &scp->services_rem;
+		rem = scp->services_rem;
+		r_data = &rem;
 		break;
 
 	case DSO_INFO:
 		if (r_len > sizeof(unsigned char))
 			r_len = sizeof(unsigned char);
-		r_data = &scp->info_rem;
+		rem = scp->info_rem;
+		r_data = &rem;
 		break;
 	}
 

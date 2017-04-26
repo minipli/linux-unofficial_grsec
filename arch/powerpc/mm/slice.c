@@ -105,7 +105,7 @@ static int slice_area_is_free(struct mm_struct *mm, unsigned long addr,
 	if ((mm->task_size - len) < addr)
 		return 0;
 	vma = find_vma(mm, addr);
-	return (!vma || (addr + len) <= vma->vm_start);
+	return check_heap_stack_gap(vma, addr, len, 0);
 }
 
 static int slice_low_has_vma(struct mm_struct *mm, unsigned long slice)
@@ -276,6 +276,12 @@ static unsigned long slice_find_area_bottomup(struct mm_struct *mm,
 	info.align_offset = 0;
 
 	addr = TASK_UNMAPPED_BASE;
+
+#ifdef CONFIG_PAX_RANDMMAP
+	if (mm->pax_flags & MF_PAX_RANDMMAP)
+		addr += mm->delta_mmap;
+#endif
+
 	while (addr < TASK_SIZE) {
 		info.low_limit = addr;
 		if (!slice_scan_available(addr, available, 1, &addr))
@@ -409,6 +415,11 @@ unsigned long slice_get_unmapped_area(unsigned long addr, unsigned long len,
 		return -EINVAL;
 	if (fixed && addr > (mm->task_size - len))
 		return -ENOMEM;
+
+#ifdef CONFIG_PAX_RANDMMAP
+	if (!fixed && (mm->pax_flags & MF_PAX_RANDMMAP))
+		addr = 0;
+#endif
 
 	/* If hint, make sure it matches our alignment restrictions */
 	if (!fixed && addr) {
@@ -555,10 +566,10 @@ unsigned long arch_get_unmapped_area(struct file *filp,
 }
 
 unsigned long arch_get_unmapped_area_topdown(struct file *filp,
-					     const unsigned long addr0,
-					     const unsigned long len,
-					     const unsigned long pgoff,
-					     const unsigned long flags)
+					     unsigned long addr0,
+					     unsigned long len,
+					     unsigned long pgoff,
+					     unsigned long flags)
 {
 	return slice_get_unmapped_area(addr0, len, flags,
 				       current->mm->context.user_psize, 1);

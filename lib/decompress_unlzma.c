@@ -39,10 +39,10 @@
 
 #define	MIN(a, b) (((a) < (b)) ? (a) : (b))
 
-static long long INIT read_int(unsigned char *ptr, int size)
+static unsigned long long INIT read_int(unsigned char *ptr, int size)
 {
 	int i;
-	long long ret = 0;
+	unsigned long long ret = 0;
 
 	for (i = 0; i < size; i++)
 		ret = (ret << 8) | ptr[size-i-1];

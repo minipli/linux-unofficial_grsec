@@ -44,12 +44,12 @@ static char rcd_decode_str[CPER_REC_LEN];
  */
 u64 cper_next_record_id(void)
 {
-	static atomic64_t seq;
+	static atomic64_unchecked_t seq;
 
-	if (!atomic64_read(&seq))
-		atomic64_set(&seq, ((u64)get_seconds()) << 32);
+	if (!atomic64_read_unchecked(&seq))
+		atomic64_set_unchecked(&seq, ((u64)get_seconds()) << 32);
 
-	return atomic64_inc_return(&seq);
+	return atomic64_inc_return_unchecked(&seq);
 }
 EXPORT_SYMBOL_GPL(cper_next_record_id);
 

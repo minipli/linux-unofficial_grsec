@@ -669,6 +669,7 @@ static inline int netlbl_skbuff_getattr(const struct sk_buff *skb,
 	return -ENOSYS;
 }
 static inline void netlbl_skbuff_err(struct sk_buff *skb,
+				     u16 family,
 				     int error,
 				     int gateway)
 {

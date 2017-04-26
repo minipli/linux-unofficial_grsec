@@ -365,7 +365,7 @@ void amdtp_dot_midi_trigger(struct amdtp_stream *s, unsigned int port,
 	struct amdtp_dot *p = s->protocol;
 
 	if (port < p->midi_ports)
-		ACCESS_ONCE(p->midi[port]) = midi;
+		ACCESS_ONCE_RW(p->midi[port]) = midi;
 }
 
 static unsigned int process_tx_data_blocks(struct amdtp_stream *s,

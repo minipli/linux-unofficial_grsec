@@ -555,10 +555,11 @@ static void journal_write_endio(struct bio *bio)
 	closure_put(&w->c->journal.io);
 }
 
-static void journal_write(struct closure *);
+static void journal_write(struct work_struct *);
 
-static void journal_write_done(struct closure *cl)
+static void journal_write_done(struct work_struct *work)
 {
+	struct closure *cl = container_of(work, struct closure, work);
 	struct journal *j = container_of(cl, struct journal, io);
 	struct journal_write *w = (j->cur == j->w)
 		? &j->w[1]
@@ -568,17 +569,19 @@ static void journal_write_done(struct closure *cl)
 	continue_at_nobarrier(cl, journal_write, system_wq);
 }
 
-static void journal_write_unlock(struct closure *cl)
+static void journal_write_unlock(struct work_struct *work)
 {
+	struct closure *cl = container_of(work, struct closure, work);
 	struct cache_set *c = container_of(cl, struct cache_set, journal.io);
 
 	c->journal.io_in_flight = 0;
 	spin_unlock(&c->journal.lock);
 }
 
-static void journal_write_unlocked(struct closure *cl)
+static void journal_write_unlocked(struct work_struct *work)
 	__releases(c->journal.lock)
 {
+	struct closure *cl = container_of(work, struct closure, work);
 	struct cache_set *c = container_of(cl, struct cache_set, journal.io);
 	struct cache *ca;
 	struct journal_write *w = c->journal.cur;
@@ -621,7 +624,7 @@ static void journal_write_unlocked(struct closure *cl)
 		ca = PTR_CACHE(c, k, i);
 		bio = &ca->journal.bio;
 
-		atomic_long_add(sectors, &ca->meta_sectors_written);
+		atomic_long_add_unchecked(sectors, &ca->meta_sectors_written);
 
 		bio_reset(bio);
 		bio->bi_iter.bi_sector	= PTR_OFFSET(k, i);
@@ -654,12 +657,13 @@ static void journal_write_unlocked(struct closure *cl)
 	continue_at(cl, journal_write_done, NULL);
 }
 
-static void journal_write(struct closure *cl)
+static void journal_write(struct work_struct *work)
 {
+	struct closure *cl = container_of(work, struct closure, work);
 	struct cache_set *c = container_of(cl, struct cache_set, journal.io);
 
 	spin_lock(&c->journal.lock);
-	journal_write_unlocked(cl);
+	journal_write_unlocked(&cl->work);
 }
 
 static void journal_try_write(struct cache_set *c)

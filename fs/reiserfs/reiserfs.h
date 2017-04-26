@@ -580,7 +580,7 @@ struct reiserfs_sb_info {
 	/* Comment? -Hans */
 	wait_queue_head_t s_wait;
 	/* increased by one every time the  tree gets re-balanced */
-	atomic_t s_generation_counter;
+	atomic_unchecked_t s_generation_counter;
 
 	/* File system properties. Currently holds on-disk FS format */
 	unsigned long s_properties;
@@ -2300,7 +2300,7 @@ static inline loff_t max_reiserfs_offset(struct inode *inode)
 #define REISERFS_USER_MEM		1	/* user memory mode */
 
 #define fs_generation(s) (REISERFS_SB(s)->s_generation_counter)
-#define get_generation(s) atomic_read (&fs_generation(s))
+#define get_generation(s) atomic_read_unchecked (&fs_generation(s))
 #define FILESYSTEM_CHANGED_TB(tb)  (get_generation((tb)->tb_sb) != (tb)->fs_gen)
 #define __fs_changed(gen,s) (gen != get_generation (s))
 #define fs_changed(gen,s)		\

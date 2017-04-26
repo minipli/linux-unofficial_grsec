@@ -114,7 +114,7 @@ static int show_super(struct seq_file *m, void *unused)
 		   "SMALL_TAILS " : "NO_TAILS ",
 		   replay_only(sb) ? "REPLAY_ONLY " : "",
 		   convert_reiserfs(sb) ? "CONV " : "",
-		   atomic_read(&r->s_generation_counter),
+		   atomic_read_unchecked(&r->s_generation_counter),
 		   SF(s_disk_reads), SF(s_disk_writes), SF(s_fix_nodes),
 		   SF(s_do_balance), SF(s_unneeded_left_neighbor),
 		   SF(s_good_search_by_key_reada), SF(s_bmaps),

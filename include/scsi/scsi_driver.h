@@ -14,7 +14,7 @@ struct scsi_driver {
 	void (*rescan)(struct device *);
 	int (*init_command)(struct scsi_cmnd *);
 	void (*uninit_command)(struct scsi_cmnd *);
-	int (*done)(struct scsi_cmnd *);
+	unsigned int (*done)(struct scsi_cmnd *);
 	int (*eh_action)(struct scsi_cmnd *, int);
 };
 #define to_scsi_driver(drv) \

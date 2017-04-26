@@ -122,9 +122,9 @@ typedef struct drm_mga_private {
 	u32 clear_cmd;
 	u32 maccess;
 
-	atomic_t vbl_received;          /**< Number of vblanks received. */
+	atomic_unchecked_t vbl_received;          /**< Number of vblanks received. */
 	wait_queue_head_t fence_queue;
-	atomic_t last_fence_retired;
+	atomic_unchecked_t last_fence_retired;
 	u32 next_fence_to_post;
 
 	unsigned int fb_cpp;
@@ -152,7 +152,7 @@ typedef struct drm_mga_private {
 } drm_mga_private_t;
 
 extern const struct drm_ioctl_desc mga_ioctls[];
-extern int mga_max_ioctl;
+extern const int mga_max_ioctl;
 
 				/* mga_dma.c */
 extern int mga_dma_bootstrap(struct drm_device *dev, void *data,

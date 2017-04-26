@@ -144,7 +144,7 @@ static void	bfa_fcs_rport_sm_fc4_off_delete(struct bfa_fcs_rport_s *rport,
 static void	bfa_fcs_rport_sm_delete_pending(struct bfa_fcs_rport_s *rport,
 						enum rport_event event);
 
-static struct bfa_sm_table_s rport_sm_table[] = {
+static struct rport_sm_table_s rport_sm_table[] = {
 	{BFA_SM(bfa_fcs_rport_sm_uninit), BFA_RPORT_UNINIT},
 	{BFA_SM(bfa_fcs_rport_sm_plogi_sending), BFA_RPORT_PLOGI},
 	{BFA_SM(bfa_fcs_rport_sm_plogiacc_sending), BFA_RPORT_ONLINE},
@@ -2980,7 +2980,7 @@ bfa_fcs_rport_send_ls_rjt(struct bfa_fcs_rport_s *rport, struct fchs_s *rx_fchs,
 int
 bfa_fcs_rport_get_state(struct bfa_fcs_rport_s *rport)
 {
-	return bfa_sm_to_state(rport_sm_table, rport->sm);
+	return rport_sm_to_state(rport_sm_table, rport->sm);
 }
 
 

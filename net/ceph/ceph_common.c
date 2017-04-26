@@ -5,7 +5,7 @@
 #include <linux/fs.h>
 #include <linux/inet.h>
 #include <linux/in6.h>
-#include <linux/key.h>
+#include <linux/key-type.h>
 #include <keys/ceph-type.h>
 #include <linux/module.h>
 #include <linux/mount.h>

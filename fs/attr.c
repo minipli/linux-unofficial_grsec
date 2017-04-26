@@ -115,6 +115,10 @@ int inode_newsize_ok(const struct inode *inode, loff_t offset)
 		unsigned long limit;
 
 		limit = rlimit(RLIMIT_FSIZE);
+		if (offset > ULONG_MAX)
+			gr_learn_resource(current, RLIMIT_FSIZE, ULONG_MAX, 1);
+		else if (offset > 0)
+			gr_learn_resource(current, RLIMIT_FSIZE, (unsigned long)offset, 1);
 		if (limit != RLIM_INFINITY && offset > limit)
 			goto out_sig;
 		if (offset > inode->i_sb->s_maxbytes)

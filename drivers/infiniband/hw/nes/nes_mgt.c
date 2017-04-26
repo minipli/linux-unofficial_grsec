@@ -40,8 +40,8 @@
 #include "nes.h"
 #include "nes_mgt.h"
 
-atomic_t pau_qps_created;
-atomic_t pau_qps_destroyed;
+atomic_unchecked_t pau_qps_created;
+atomic_unchecked_t pau_qps_destroyed;
 
 static void nes_replenish_mgt_rq(struct nes_vnic_mgt *mgtvnic)
 {
@@ -621,7 +621,7 @@ void nes_destroy_pau_qp(struct nes_device *nesdev, struct nes_qp *nesqp)
 {
 	struct sk_buff *skb;
 	unsigned long flags;
-	atomic_inc(&pau_qps_destroyed);
+	atomic_inc_unchecked(&pau_qps_destroyed);
 
 	/* Free packets that have not yet been forwarded */
 	/* Lock is acquired by skb_dequeue when removing the skb */
@@ -810,7 +810,7 @@ static void nes_mgt_ce_handler(struct nes_device *nesdev, struct nes_hw_nic_cq *
 					cq->cq_vbase[head].cqe_words[NES_NIC_CQE_HASH_RCVNXT]);
 				skb_queue_head_init(&nesqp->pau_list);
 				spin_lock_init(&nesqp->pau_lock);
-				atomic_inc(&pau_qps_created);
+				atomic_inc_unchecked(&pau_qps_created);
 				nes_change_quad_hash(nesdev, mgtvnic->nesvnic, nesqp);
 			}
 

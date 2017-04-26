@@ -39,6 +39,12 @@ pgd_populate(struct mm_struct *mm, pgd_t * pgd_entry, pud_t * pud)
 	pgd_val(*pgd_entry) = __pa(pud);
 }
 
+static inline void
+pgd_populate_kernel(struct mm_struct *mm, pgd_t * pgd_entry, pud_t * pud)
+{
+	pgd_populate(mm, pgd_entry, pud);
+}
+
 static inline pud_t *pud_alloc_one(struct mm_struct *mm, unsigned long addr)
 {
 	return quicklist_alloc(0, GFP_KERNEL, NULL);
@@ -55,6 +61,12 @@ static inline void
 pud_populate(struct mm_struct *mm, pud_t * pud_entry, pmd_t * pmd)
 {
 	pud_val(*pud_entry) = __pa(pmd);
+}
+
+static inline void
+pud_populate_kernel(struct mm_struct *mm, pud_t * pud_entry, pmd_t * pmd)
+{
+	pud_populate(mm, pud_entry, pmd);
 }
 
 static inline pmd_t *pmd_alloc_one(struct mm_struct *mm, unsigned long addr)

@@ -482,7 +482,7 @@ MODULE_PARM_DESC(hot_add, "If set attempt memory hot_add");
 
 module_param(pressure_report_delay, uint, (S_IRUGO | S_IWUSR));
 MODULE_PARM_DESC(pressure_report_delay, "Delay in secs in reporting pressure");
-static atomic_t trans_id = ATOMIC_INIT(0);
+static atomic_unchecked_t trans_id = ATOMIC_INIT(0);
 
 static int dm_ring_size = (5 * PAGE_SIZE);
 
@@ -1010,7 +1010,7 @@ static void hot_add_req(struct work_struct *dummy)
 		pr_info("Memory hot add failed\n");
 
 	dm->state = DM_INITIALIZED;
-	resp.hdr.trans_id = atomic_inc_return(&trans_id);
+	resp.hdr.trans_id = atomic_inc_return_unchecked(&trans_id);
 	vmbus_sendpacket(dm->dev->channel, &resp,
 			sizeof(struct dm_hot_add_response),
 			(unsigned long)NULL,
@@ -1089,7 +1089,7 @@ static void post_status(struct hv_dynmem_device *dm)
 	memset(&status, 0, sizeof(struct dm_status));
 	status.hdr.type = DM_STATUS_REPORT;
 	status.hdr.size = sizeof(struct dm_status);
-	status.hdr.trans_id = atomic_inc_return(&trans_id);
+	status.hdr.trans_id = atomic_inc_return_unchecked(&trans_id);
 
 	/*
 	 * The host expects the guest to report free and committed memory.
@@ -1113,7 +1113,7 @@ static void post_status(struct hv_dynmem_device *dm)
 	 * send the status. This can happen if we were interrupted
 	 * after we picked our transaction ID.
 	 */
-	if (status.hdr.trans_id != atomic_read(&trans_id))
+	if (status.hdr.trans_id != atomic_read_unchecked(&trans_id))
 		return;
 
 	/*
@@ -1257,7 +1257,7 @@ static void balloon_up(struct work_struct *dummy)
 		 */
 
 		do {
-			bl_resp->hdr.trans_id = atomic_inc_return(&trans_id);
+			bl_resp->hdr.trans_id = atomic_inc_return_unchecked(&trans_id);
 			ret = vmbus_sendpacket(dm_device.dev->channel,
 						bl_resp,
 						bl_resp->hdr.size,
@@ -1303,7 +1303,7 @@ static void balloon_down(struct hv_dynmem_device *dm,
 
 	memset(&resp, 0, sizeof(struct dm_unballoon_response));
 	resp.hdr.type = DM_UNBALLOON_RESPONSE;
-	resp.hdr.trans_id = atomic_inc_return(&trans_id);
+	resp.hdr.trans_id = atomic_inc_return_unchecked(&trans_id);
 	resp.hdr.size = sizeof(struct dm_unballoon_response);
 
 	vmbus_sendpacket(dm_device.dev->channel, &resp,
@@ -1363,7 +1363,7 @@ static void version_resp(struct hv_dynmem_device *dm,
 	memset(&version_req, 0, sizeof(struct dm_version_request));
 	version_req.hdr.type = DM_VERSION_REQUEST;
 	version_req.hdr.size = sizeof(struct dm_version_request);
-	version_req.hdr.trans_id = atomic_inc_return(&trans_id);
+	version_req.hdr.trans_id = atomic_inc_return_unchecked(&trans_id);
 	version_req.version.version = dm->next_version;
 
 	/*
@@ -1550,7 +1550,7 @@ static int balloon_probe(struct hv_device *dev,
 	memset(&version_req, 0, sizeof(struct dm_version_request));
 	version_req.hdr.type = DM_VERSION_REQUEST;
 	version_req.hdr.size = sizeof(struct dm_version_request);
-	version_req.hdr.trans_id = atomic_inc_return(&trans_id);
+	version_req.hdr.trans_id = atomic_inc_return_unchecked(&trans_id);
 	version_req.version.version = DYNMEM_PROTOCOL_VERSION_WIN10;
 	version_req.is_last_attempt = 0;
 
@@ -1581,7 +1581,7 @@ static int balloon_probe(struct hv_device *dev,
 	memset(&cap_msg, 0, sizeof(struct dm_capabilities));
 	cap_msg.hdr.type = DM_CAPABILITIES_REPORT;
 	cap_msg.hdr.size = sizeof(struct dm_capabilities);
-	cap_msg.hdr.trans_id = atomic_inc_return(&trans_id);
+	cap_msg.hdr.trans_id = atomic_inc_return_unchecked(&trans_id);
 
 	cap_msg.caps.cap_bits.balloon = 1;
 	cap_msg.caps.cap_bits.hot_add = 1;

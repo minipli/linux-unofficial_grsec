@@ -63,7 +63,7 @@ struct tegra_dsi {
 	struct clk *clk_lp;
 	struct clk *clk;
 
-	struct drm_info_list *debugfs_files;
+	drm_info_list_no_const *debugfs_files;
 	struct drm_minor *minor;
 	struct dentry *debugfs;
 

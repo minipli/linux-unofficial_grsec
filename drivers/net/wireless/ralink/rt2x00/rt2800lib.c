@@ -83,7 +83,7 @@ static inline bool rt2800_is_305x_soc(struct rt2x00_dev *rt2x00dev)
 }
 
 static void rt2800_bbp_write(struct rt2x00_dev *rt2x00dev,
-			     const unsigned int word, const u8 value)
+			     const unsigned int word, u8 value)
 {
 	u32 reg;
 
@@ -140,7 +140,7 @@ static void rt2800_bbp_read(struct rt2x00_dev *rt2x00dev,
 }
 
 static void rt2800_rfcsr_write(struct rt2x00_dev *rt2x00dev,
-			       const unsigned int word, const u8 value)
+			       const unsigned int word, u8 value)
 {
 	u32 reg;
 
@@ -195,7 +195,7 @@ static void rt2800_rfcsr_read(struct rt2x00_dev *rt2x00dev,
 }
 
 static void rt2800_rf_write(struct rt2x00_dev *rt2x00dev,
-			    const unsigned int word, const u32 value)
+			    const unsigned int word, u32 value)
 {
 	u32 reg;
 

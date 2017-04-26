@@ -42,7 +42,7 @@ static int fetch_stats(struct atm_dev *dev,struct sonet_stats __user *arg,int ze
 	struct sonet_stats tmp;
  	int error = 0;
 
-	atomic_add(GET(HECCT),&PRIV(dev)->sonet_stats.uncorr_hcs);
+	atomic_add_unchecked(GET(HECCT),&PRIV(dev)->sonet_stats.uncorr_hcs);
 	sonet_copy_stats(&PRIV(dev)->sonet_stats,&tmp);
 	if (arg) error = copy_to_user(arg,&tmp,sizeof(tmp));
 	if (zero && !error) {
@@ -161,9 +161,9 @@ static int uPD98402_ioctl(struct atm_dev *dev,unsigned int cmd,void __user *arg)
 
 
 #define ADD_LIMITED(s,v) \
-    { atomic_add(GET(v),&PRIV(dev)->sonet_stats.s); \
-    if (atomic_read(&PRIV(dev)->sonet_stats.s) < 0) \
-	atomic_set(&PRIV(dev)->sonet_stats.s,INT_MAX); }
+    { atomic_add_unchecked(GET(v),&PRIV(dev)->sonet_stats.s); \
+    if (atomic_read_unchecked(&PRIV(dev)->sonet_stats.s) < 0) \
+	atomic_set_unchecked(&PRIV(dev)->sonet_stats.s,INT_MAX); }
 
 
 static void stat_event(struct atm_dev *dev)
@@ -194,7 +194,7 @@ static void uPD98402_int(struct atm_dev *dev)
 		if (reason & uPD98402_INT_PFM) stat_event(dev);
 		if (reason & uPD98402_INT_PCO) {
 			(void) GET(PCOCR); /* clear interrupt cause */
-			atomic_add(GET(HECCT),
+			atomic_add_unchecked(GET(HECCT),
 			    &PRIV(dev)->sonet_stats.uncorr_hcs);
 		}
 		if ((reason & uPD98402_INT_RFO) && 
@@ -222,9 +222,9 @@ static int uPD98402_start(struct atm_dev *dev)
 	PUT(~(uPD98402_INT_PFM | uPD98402_INT_ALM | uPD98402_INT_RFO |
 	  uPD98402_INT_LOS),PIMR); /* enable them */
 	(void) fetch_stats(dev,NULL,1); /* clear kernel counters */
-	atomic_set(&PRIV(dev)->sonet_stats.corr_hcs,-1);
-	atomic_set(&PRIV(dev)->sonet_stats.tx_cells,-1);
-	atomic_set(&PRIV(dev)->sonet_stats.rx_cells,-1);
+	atomic_set_unchecked(&PRIV(dev)->sonet_stats.corr_hcs,-1);
+	atomic_set_unchecked(&PRIV(dev)->sonet_stats.tx_cells,-1);
+	atomic_set_unchecked(&PRIV(dev)->sonet_stats.rx_cells,-1);
 	return 0;
 }
 

@@ -252,12 +252,67 @@ static void free_thread_stack(struct task_struct *tsk)
 
 void thread_stack_cache_init(void)
 {
-	thread_stack_cache = kmem_cache_create("thread_stack", THREAD_SIZE,
-					      THREAD_SIZE, 0, NULL);
+	thread_stack_cache = kmem_cache_create_usercopy("thread_stack", THREAD_SIZE,
+					      THREAD_SIZE, 0, 0, THREAD_SIZE, NULL);
 	BUG_ON(thread_stack_cache == NULL);
 }
 # endif
 #endif
+
+#ifdef CONFIG_GRKERNSEC_KSTACKOVERFLOW
+static inline unsigned long *gr_alloc_thread_stack_node(struct task_struct *tsk,
+						  int node, void **lowmem_stack)
+{
+	struct page *pages[THREAD_SIZE / PAGE_SIZE];
+	void *ret = NULL;
+	unsigned int i;
+
+	*lowmem_stack = alloc_thread_stack_node(tsk, node);
+	if (*lowmem_stack == NULL)
+		goto out;
+
+	for (i = 0; i < THREAD_SIZE / PAGE_SIZE; i++)
+		pages[i] = virt_to_page(*lowmem_stack + (i * PAGE_SIZE));
+
+	/* use VM_IOREMAP to gain THREAD_SIZE alignment */
+	ret = vmap(pages, THREAD_SIZE / PAGE_SIZE, VM_IOREMAP, PAGE_KERNEL);
+	if (ret == NULL) {
+		free_thread_stack(*lowmem_stack);
+		*lowmem_stack = NULL;
+	} else
+		populate_stack(ret, THREAD_SIZE);
+
+out:
+	return ret;
+}
+
+static inline void gr_free_thread_stack(struct task_struct *tsk)
+{
+	unmap_process_stacks(tsk);
+}
+#else
+static inline unsigned long *gr_alloc_thread_stack_node(struct task_struct *tsk,
+						  int node, void **lowmem_stack)
+{
+	return alloc_thread_stack_node(tsk, node);
+}
+static inline void gr_free_thread_stack(struct task_struct *tsk)
+{
+	free_thread_stack(tsk);
+}
+#endif
+
+const void *gr_convert_stack_address_to_lowmem(const void *buf)
+{
+#ifdef CONFIG_GRKERNSEC_KSTACKOVERFLOW
+	if (object_starts_on_stack(buf))
+		return buf - current->stack + current->lowmem_stack;
+	else if (object_starts_on_irq_stack(buf))
+		return buf - (const void *)__this_cpu_read(irq_stack_ptr) + (const void *)__this_cpu_read(irq_stack_ptr_lowmem);
+#endif
+	return buf;
+}
+EXPORT_SYMBOL_GPL(gr_convert_stack_address_to_lowmem);
 
 /* SLAB cache for signal_struct structures (tsk->signal) */
 static struct kmem_cache *signal_cachep;
@@ -279,7 +334,6 @@ static struct kmem_cache *mm_cachep;
 
 static void account_kernel_stack(struct task_struct *tsk, int account)
 {
-	void *stack = task_stack_page(tsk);
 	struct vm_struct *vm = task_stack_vm_area(tsk);
 
 	BUILD_BUG_ON(IS_ENABLED(CONFIG_VMAP_STACK) && PAGE_SIZE % 1024 != 0);
@@ -303,8 +357,12 @@ static void account_kernel_stack(struct task_struct *tsk, int account)
 		 * All stack pages are in the same zone and belong to the
 		 * same memcg.
 		 */
+#ifdef CONFIG_GRKERNSEC_KSTACKOVERFLOW
+		struct page *first_page = virt_to_page(tsk->lowmem_stack);
+#else
+		void *stack = task_stack_page(tsk);
 		struct page *first_page = virt_to_page(stack);
-
+#endif
 		mod_zone_page_state(page_zone(first_page), NR_KERNEL_STACK_KB,
 				    THREAD_SIZE / 1024 * account);
 
@@ -320,7 +378,7 @@ static void release_task_stack(struct task_struct *tsk)
 
 	account_kernel_stack(tsk, -1);
 	arch_release_thread_stack(tsk->stack);
-	free_thread_stack(tsk);
+	gr_free_thread_stack(tsk);
 	tsk->stack = NULL;
 #ifdef CONFIG_VMAP_STACK
 	tsk->stack_vm_area = NULL;
@@ -422,7 +480,7 @@ static void set_max_threads(unsigned int max_threads_suggested)
 
 #ifdef CONFIG_ARCH_WANTS_DYNAMIC_TASK_STRUCT
 /* Initialized by the architecture: */
-int arch_task_struct_size __read_mostly;
+size_t arch_task_struct_size __read_mostly;
 #endif
 
 void __init fork_init(void)
@@ -433,9 +491,14 @@ void __init fork_init(void)
 #define ARCH_MIN_TASKALIGN	L1_CACHE_BYTES
 #endif
 	/* create a slab on which task_structs can be allocated */
-	task_struct_cachep = kmem_cache_create("task_struct",
+	task_struct_cachep = kmem_cache_create_usercopy("task_struct",
 			arch_task_struct_size, ARCH_MIN_TASKALIGN,
-			SLAB_PANIC|SLAB_NOTRACK|SLAB_ACCOUNT, NULL);
+			SLAB_PANIC|SLAB_NOTRACK|SLAB_ACCOUNT,
+			offsetof(struct task_struct, blocked),
+			offsetof(struct task_struct, saved_sigmask) -
+			  offsetof(struct task_struct, blocked) +
+			  sizeof(init_task.saved_sigmask),
+			NULL);
 #endif
 
 	/* do the arch specific task caches init */
@@ -473,6 +536,7 @@ static struct task_struct *dup_task_struct(struct task_struct *orig, int node)
 	struct task_struct *tsk;
 	unsigned long *stack;
 	struct vm_struct *stack_vm_area;
+	void *lowmem_stack;
 	int err;
 
 	if (node == NUMA_NO_NODE)
@@ -481,7 +545,7 @@ static struct task_struct *dup_task_struct(struct task_struct *orig, int node)
 	if (!tsk)
 		return NULL;
 
-	stack = alloc_thread_stack_node(tsk, node);
+	stack = gr_alloc_thread_stack_node(tsk, node, &lowmem_stack);
 	if (!stack)
 		goto free_tsk;
 
@@ -495,6 +559,9 @@ static struct task_struct *dup_task_struct(struct task_struct *orig, int node)
 	 * functions again.
 	 */
 	tsk->stack = stack;
+#ifdef CONFIG_GRKERNSEC_KSTACKOVERFLOW
+	tsk->lowmem_stack = lowmem_stack;
+#endif
 #ifdef CONFIG_VMAP_STACK
 	tsk->stack_vm_area = stack_vm_area;
 #endif
@@ -521,7 +588,7 @@ static struct task_struct *dup_task_struct(struct task_struct *orig, int node)
 	set_task_stack_end_magic(tsk);
 
 #ifdef CONFIG_CC_STACKPROTECTOR
-	tsk->stack_canary = get_random_int();
+	tsk->stack_canary = pax_get_random_long();
 #endif
 
 	/*
@@ -543,20 +610,86 @@ static struct task_struct *dup_task_struct(struct task_struct *orig, int node)
 	return tsk;
 
 free_stack:
-	free_thread_stack(tsk);
+	gr_free_thread_stack(tsk);
 free_tsk:
 	free_task_struct(tsk);
 	return NULL;
 }
 
 #ifdef CONFIG_MMU
+static struct vm_area_struct *dup_vma(struct mm_struct *mm, struct mm_struct *oldmm, struct vm_area_struct *mpnt)
+{
+	struct vm_area_struct *tmp;
+	unsigned long charge;
+	struct file *file;
+	int retval;
+
+	charge = 0;
+	if (mpnt->vm_flags & VM_ACCOUNT) {
+		unsigned long len = vma_pages(mpnt);
+
+		if (security_vm_enough_memory_mm(oldmm, len)) /* sic */
+			goto fail_nomem;
+		charge = len;
+	}
+	tmp = kmem_cache_alloc(vm_area_cachep, GFP_KERNEL);
+	if (!tmp)
+		goto fail_nomem;
+	*tmp = *mpnt;
+	tmp->vm_mm = mm;
+	INIT_LIST_HEAD(&tmp->anon_vma_chain);
+	retval = vma_dup_policy(mpnt, tmp);
+	if (retval)
+		goto fail_nomem_policy;
+	if (anon_vma_fork(tmp, mpnt))
+		goto fail_nomem_anon_vma_fork;
+	tmp->vm_flags &= ~(VM_LOCKED|VM_LOCKONFAULT|VM_UFFD_MISSING|VM_UFFD_WP);
+	tmp->vm_next = tmp->vm_prev = NULL;
+	tmp->vm_mirror = NULL;
+	tmp->vm_userfaultfd_ctx = NULL_VM_UFFD_CTX;
+	file = tmp->vm_file;
+	if (file) {
+		struct inode *inode = file_inode(file);
+		struct address_space *mapping = file->f_mapping;
+
+		get_file(file);
+		if (tmp->vm_flags & VM_DENYWRITE)
+			atomic_dec(&inode->i_writecount);
+		i_mmap_lock_write(mapping);
+		if (tmp->vm_flags & VM_SHARED)
+			atomic_inc(&mapping->i_mmap_writable);
+		flush_dcache_mmap_lock(mapping);
+		/* insert tmp into the share list, just after mpnt */
+		vma_interval_tree_insert_after(tmp, mpnt, &mapping->i_mmap);
+		flush_dcache_mmap_unlock(mapping);
+		i_mmap_unlock_write(mapping);
+	}
+
+	/*
+	 * Clear hugetlb-related page reserves for children. This only
+	 * affects MAP_PRIVATE mappings. Faults generated by the child
+	 * are not guaranteed to succeed, even if read-only
+	 */
+	if (is_vm_hugetlb_page(tmp))
+		reset_vma_resv_huge_pages(tmp);
+
+	return tmp;
+
+fail_nomem_anon_vma_fork:
+	mpol_put(vma_policy(tmp));
+fail_nomem_policy:
+	kmem_cache_free(vm_area_cachep, tmp);
+fail_nomem:
+	vm_unacct_memory(charge);
+	return NULL;
+}
+
 static __latent_entropy int dup_mmap(struct mm_struct *mm,
 					struct mm_struct *oldmm)
 {
 	struct vm_area_struct *mpnt, *tmp, *prev, **pprev;
 	struct rb_node **rb_link, *rb_parent;
 	int retval;
-	unsigned long charge;
 
 	uprobe_start_dup_mmap();
 	if (down_write_killable(&oldmm->mmap_sem)) {
@@ -590,52 +723,14 @@ static __latent_entropy int dup_mmap(struct mm_struct *mm,
 
 	prev = NULL;
 	for (mpnt = oldmm->mmap; mpnt; mpnt = mpnt->vm_next) {
-		struct file *file;
-
 		if (mpnt->vm_flags & VM_DONTCOPY) {
 			vm_stat_account(mm, mpnt->vm_flags, -vma_pages(mpnt));
 			continue;
 		}
-		charge = 0;
-		if (mpnt->vm_flags & VM_ACCOUNT) {
-			unsigned long len = vma_pages(mpnt);
-
-			if (security_vm_enough_memory_mm(oldmm, len)) /* sic */
-				goto fail_nomem;
-			charge = len;
-		}
-		tmp = kmem_cache_alloc(vm_area_cachep, GFP_KERNEL);
-		if (!tmp)
-			goto fail_nomem;
-		*tmp = *mpnt;
-		INIT_LIST_HEAD(&tmp->anon_vma_chain);
-		retval = vma_dup_policy(mpnt, tmp);
-		if (retval)
-			goto fail_nomem_policy;
-		tmp->vm_mm = mm;
-		if (anon_vma_fork(tmp, mpnt))
-			goto fail_nomem_anon_vma_fork;
-		tmp->vm_flags &=
-			~(VM_LOCKED|VM_LOCKONFAULT|VM_UFFD_MISSING|VM_UFFD_WP);
-		tmp->vm_next = tmp->vm_prev = NULL;
-		tmp->vm_userfaultfd_ctx = NULL_VM_UFFD_CTX;
-		file = tmp->vm_file;
-		if (file) {
-			struct inode *inode = file_inode(file);
-			struct address_space *mapping = file->f_mapping;
-
-			get_file(file);
-			if (tmp->vm_flags & VM_DENYWRITE)
-				atomic_dec(&inode->i_writecount);
-			i_mmap_lock_write(mapping);
-			if (tmp->vm_flags & VM_SHARED)
-				atomic_inc(&mapping->i_mmap_writable);
-			flush_dcache_mmap_lock(mapping);
-			/* insert tmp into the share list, just after mpnt */
-			vma_interval_tree_insert_after(tmp, mpnt,
-					&mapping->i_mmap);
-			flush_dcache_mmap_unlock(mapping);
-			i_mmap_unlock_write(mapping);
+		tmp = dup_vma(mm, oldmm, mpnt);
+		if (!tmp) {
+			retval = -ENOMEM;
+			goto out;
 		}
 
 		/*
@@ -667,6 +762,38 @@ static __latent_entropy int dup_mmap(struct mm_struct *mm,
 		if (retval)
 			goto out;
 	}
+
+#ifdef CONFIG_PAX_SEGMEXEC
+	if (oldmm->pax_flags & MF_PAX_SEGMEXEC) {
+		struct vm_area_struct *mpnt_m;
+
+		for (mpnt = oldmm->mmap, mpnt_m = mm->mmap; mpnt; mpnt = mpnt->vm_next) {
+			if (mpnt->vm_flags & VM_DONTCOPY)
+				continue;
+
+			BUG_ON(!mpnt_m || mpnt_m->vm_mirror || mpnt->vm_mm != oldmm || mpnt_m->vm_mm != mm);
+
+			if (!mpnt->vm_mirror) {
+				mpnt_m = mpnt_m->vm_next;
+				continue;
+			}
+
+			if (mpnt->vm_end <= SEGMEXEC_TASK_SIZE) {
+				BUG_ON(mpnt->vm_mirror->vm_mirror != mpnt);
+				mpnt->vm_mirror = mpnt_m;
+			} else {
+				BUG_ON(mpnt->vm_mirror->vm_mirror == mpnt || mpnt->vm_mirror->vm_mirror->vm_mm != mm);
+				mpnt_m->vm_mirror = mpnt->vm_mirror->vm_mirror;
+				mpnt_m->vm_mirror->vm_mirror = mpnt_m;
+				mpnt->vm_mirror->vm_mirror = mpnt;
+			}
+
+			mpnt_m = mpnt_m->vm_next;
+		}
+		BUG_ON(mpnt_m);
+	}
+#endif
+
 	/* a new mm has just been created */
 	arch_dup_mmap(oldmm, mm);
 	retval = 0;
@@ -677,14 +804,6 @@ out:
 fail_uprobe_end:
 	uprobe_end_dup_mmap();
 	return retval;
-fail_nomem_anon_vma_fork:
-	mpol_put(vma_policy(tmp));
-fail_nomem_policy:
-	kmem_cache_free(vm_area_cachep, tmp);
-fail_nomem:
-	retval = -ENOMEM;
-	vm_unacct_memory(charge);
-	goto out;
 }
 
 static inline int mm_alloc_pgd(struct mm_struct *mm)
@@ -1009,8 +1128,8 @@ struct mm_struct *mm_access(struct task_struct *task, unsigned int mode)
 		return ERR_PTR(err);
 
 	mm = get_task_mm(task);
-	if (mm && mm != current->mm &&
-			!ptrace_may_access(task, mode)) {
+	if (mm && ((mm != current->mm && !ptrace_may_access(task, mode)) ||
+		  ((mode & PTRACE_MODE_ATTACH) && (gr_handle_proc_ptrace(task) || gr_acl_handle_procpidmem(task))))) {
 		mmput(mm);
 		mm = ERR_PTR(-EACCES);
 	}
@@ -1209,13 +1328,20 @@ static int copy_fs(unsigned long clone_flags, struct task_struct *tsk)
 			spin_unlock(&fs->lock);
 			return -EAGAIN;
 		}
-		fs->users++;
+		atomic_inc(&fs->users);
 		spin_unlock(&fs->lock);
 		return 0;
 	}
 	tsk->fs = copy_fs_struct(fs);
 	if (!tsk->fs)
 		return -ENOMEM;
+	/* Carry through gr_chroot_dentry and is_chrooted instead
+	   of recomputing it here.  Already copied when the task struct
+	   is duplicated.  This allows pivot_root to not be treated as
+	   a chroot
+	*/
+	//gr_set_chroot_entries(tsk, &tsk->fs->root);
+
 	return 0;
 }
 
@@ -1521,6 +1647,9 @@ static __latent_entropy struct task_struct *copy_process(
 	DEBUG_LOCKS_WARN_ON(!p->softirqs_enabled);
 #endif
 	retval = -EAGAIN;
+
+	gr_learn_resource(p, RLIMIT_NPROC, atomic_read(&p->real_cred->user->processes), 0);
+
 	if (atomic_read(&p->real_cred->user->processes) >=
 			task_rlimit(p, RLIMIT_NPROC)) {
 		if (p->real_cred->user != INIT_USER &&
@@ -1779,6 +1908,16 @@ static __latent_entropy struct task_struct *copy_process(
 		goto bad_fork_cancel_cgroup;
 	}
 
+	/* synchronizes with gr_set_acls()
+	   we need to call this past the point of no return for fork()
+	*/
+	gr_copy_label(p);
+
+#ifdef CONFIG_GRKERNSEC_SETXID
+	if (p->delayed_cred)
+		get_cred(p->delayed_cred);
+#endif
+
 	if (likely(p->pid)) {
 		ptrace_init_task(p, (clone_flags & CLONE_PTRACE) || trace);
 
@@ -1872,6 +2011,8 @@ bad_fork_free:
 	put_task_stack(p);
 	free_task(p);
 fork_out:
+	gr_log_forkfail(retval);
+
 	return ERR_PTR(retval);
 }
 
@@ -1951,6 +2092,8 @@ long _do_fork(unsigned long clone_flags,
 
 		if (clone_flags & CLONE_PARENT_SETTID)
 			put_user(nr, parent_tidptr);
+
+		gr_handle_brute_check();
 
 		if (clone_flags & CLONE_VFORK) {
 			p->vfork_done = &vfork;
@@ -2084,11 +2227,12 @@ void __init proc_caches_init(void)
 	 * maximum number of CPU's we can ever have.  The cpumask_allocation
 	 * is at the end of the structure, exactly for that reason.
 	 */
-	mm_cachep = kmem_cache_create("mm_struct",
+	mm_cachep = kmem_cache_create_usercopy("mm_struct",
 			sizeof(struct mm_struct), ARCH_MIN_MMSTRUCT_ALIGN,
 			SLAB_HWCACHE_ALIGN|SLAB_PANIC|SLAB_NOTRACK|SLAB_ACCOUNT,
+			offsetof(struct mm_struct, saved_auxv), sizeof(init_mm.saved_auxv),
 			NULL);
-	vm_area_cachep = KMEM_CACHE(vm_area_struct, SLAB_PANIC|SLAB_ACCOUNT);
+	vm_area_cachep = KMEM_CACHE(vm_area_struct, SLAB_PANIC|SLAB_ACCOUNT|SLAB_NO_SANITIZE);
 	mmap_init();
 	nsproxy_cache_init();
 }
@@ -2136,7 +2280,7 @@ static int unshare_fs(unsigned long unshare_flags, struct fs_struct **new_fsp)
 		return 0;
 
 	/* don't need lock here; in the worst case we'll do useless copy */
-	if (fs->users == 1)
+	if (atomic_read(&fs->users) == 1)
 		return 0;
 
 	*new_fsp = copy_fs_struct(fs);
@@ -2249,7 +2393,8 @@ SYSCALL_DEFINE1(unshare, unsigned long, unshare_flags)
 			fs = current->fs;
 			spin_lock(&fs->lock);
 			current->fs = new_fs;
-			if (--fs->users)
+			gr_set_chroot_entries(current, &current->fs->root);
+			if (atomic_dec_return(&fs->users))
 				new_fs = NULL;
 			else
 				new_fs = fs;
@@ -2313,7 +2458,7 @@ int unshare_files(struct files_struct **displaced)
 int sysctl_max_threads(struct ctl_table *table, int write,
 		       void __user *buffer, size_t *lenp, loff_t *ppos)
 {
-	struct ctl_table t;
+	ctl_table_no_const t;
 	int ret;
 	int threads = max_threads;
 	int min = MIN_THREADS;

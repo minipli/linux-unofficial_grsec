@@ -174,11 +174,9 @@ static const struct attribute_group *pt_attr_groups[] = {
 
 static int __init pt_pmu_hw_init(void)
 {
-	struct dev_ext_attribute *de_attrs;
-	struct attribute **attrs;
-	size_t size;
+	static struct dev_ext_attribute de_attrs[ARRAY_SIZE(pt_caps)];
+	static struct attribute *attrs[ARRAY_SIZE(pt_caps)];
 	u64 reg;
-	int ret;
 	long i;
 
 	rdmsrl(MSR_PLATFORM_INFO, reg);
@@ -209,8 +207,6 @@ static int __init pt_pmu_hw_init(void)
 			pt_pmu.vmx = true;
 	}
 
-	attrs = NULL;
-
 	for (i = 0; i < PT_CPUID_LEAVES; i++) {
 		cpuid_count(20, i,
 			    &pt_pmu.caps[CR_EAX + i*PT_CPUID_REGS_NUM],
@@ -219,39 +215,25 @@ static int __init pt_pmu_hw_init(void)
 			    &pt_pmu.caps[CR_EDX + i*PT_CPUID_REGS_NUM]);
 	}
 
-	ret = -ENOMEM;
-	size = sizeof(struct attribute *) * (ARRAY_SIZE(pt_caps)+1);
-	attrs = kzalloc(size, GFP_KERNEL);
-	if (!attrs)
-		goto fail;
-
-	size = sizeof(struct dev_ext_attribute) * (ARRAY_SIZE(pt_caps)+1);
-	de_attrs = kzalloc(size, GFP_KERNEL);
-	if (!de_attrs)
-		goto fail;
-
+	pax_open_kernel();
 	for (i = 0; i < ARRAY_SIZE(pt_caps); i++) {
-		struct dev_ext_attribute *de_attr = de_attrs + i;
+		struct dev_ext_attribute *de_attr = &de_attrs[i];
 
-		de_attr->attr.attr.name = pt_caps[i].name;
+		const_cast(de_attr->attr.attr.name) = pt_caps[i].name;
 
 		sysfs_attr_init(&de_attr->attr.attr);
 
-		de_attr->attr.attr.mode		= S_IRUGO;
-		de_attr->attr.show		= pt_cap_show;
-		de_attr->var			= (void *)i;
+		const_cast(de_attr->attr.attr.mode)	= S_IRUGO;
+		const_cast(de_attr->attr.show)		= pt_cap_show;
+		const_cast(de_attr->var)		= (void *)i;
 
 		attrs[i] = &de_attr->attr.attr;
 	}
 
-	pt_cap_group.attrs = attrs;
+	const_cast(pt_cap_group.attrs) = attrs;
+	pax_close_kernel();
 
 	return 0;
-
-fail:
-	kfree(attrs);
-
-	return ret;
 }
 
 #define RTIT_CTL_CYC_PSB (RTIT_CTL_CYCLEACC	| \

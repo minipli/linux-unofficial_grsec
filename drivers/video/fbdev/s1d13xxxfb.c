@@ -880,8 +880,10 @@ static int s1d13xxxfb_probe(struct platform_device *pdev)
 
 	switch(prod_id) {
 	case S1D13506_PROD_ID:	/* activate acceleration */
-		s1d13xxxfb_fbops.fb_fillrect = s1d13xxxfb_bitblt_solidfill;
-		s1d13xxxfb_fbops.fb_copyarea = s1d13xxxfb_bitblt_copyarea;
+		pax_open_kernel();
+		const_cast(s1d13xxxfb_fbops.fb_fillrect) = s1d13xxxfb_bitblt_solidfill;
+		const_cast(s1d13xxxfb_fbops.fb_copyarea) = s1d13xxxfb_bitblt_copyarea;
+		pax_close_kernel();
 		info->flags = FBINFO_DEFAULT | FBINFO_HWACCEL_YPAN |
 			FBINFO_HWACCEL_FILLRECT | FBINFO_HWACCEL_COPYAREA;
 		break;

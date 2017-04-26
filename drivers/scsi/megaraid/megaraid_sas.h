@@ -2048,7 +2048,7 @@ struct megasas_instance {
 	s8 init_id;
 
 	u16 max_num_sge;
-	u16 max_fw_cmds;
+	u16 max_fw_cmds __intentional_overflow(-1);
 	u16 max_mfi_cmds;
 	u16 max_scsi_cmds;
 	u16 ldio_threshold;

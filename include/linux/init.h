@@ -101,6 +101,12 @@
 #define __REFDATA        .section       ".ref.data", "aw"
 #define __REFCONST       .section       ".ref.rodata", "a"
 
+#ifdef CONFIG_PAX_KERNEXEC
+#define __READ_ONLY	.section	".data..read_only","a",%progbits
+#else
+#define __READ_ONLY	.section	".data..mostly","aw",%progbits
+#endif
+
 #ifndef __ASSEMBLY__
 /*
  * Used for initialization calls..

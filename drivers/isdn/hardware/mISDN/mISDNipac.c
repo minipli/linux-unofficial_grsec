@@ -727,8 +727,9 @@ isac_release(struct isac_hw *isac)
 }
 
 static void
-dbusy_timer_handler(struct isac_hw *isac)
+dbusy_timer_handler(unsigned long _isac)
 {
+	struct isac_hw *isac = (struct isac_hw *)_isac;
 	int rbch, star;
 	u_long flags;
 
@@ -796,7 +797,7 @@ isac_init(struct isac_hw *isac)
 	}
 	isac->mon_tx = NULL;
 	isac->mon_rx = NULL;
-	isac->dch.timer.function = (void *) dbusy_timer_handler;
+	isac->dch.timer.function = dbusy_timer_handler;
 	isac->dch.timer.data = (long)isac;
 	init_timer(&isac->dch.timer);
 	isac->mocr = 0xaa;

@@ -114,8 +114,3 @@ unsigned long get_wchan(struct task_struct *task)
 
 	return task_pt_regs(task)->cp0_epc;
 }
-
-unsigned long arch_align_stack(unsigned long sp)
-{
-	return sp;
-}

@@ -18124,7 +18124,7 @@ static void tg3_shutdown(struct pci_dev *pdev)
  * this device has been detected.
  */
 static pci_ers_result_t tg3_io_error_detected(struct pci_dev *pdev,
-					      pci_channel_state_t state)
+					      enum pci_channel_state state)
 {
 	struct net_device *netdev = pci_get_drvdata(pdev);
 	struct tg3 *tp = netdev_priv(netdev);

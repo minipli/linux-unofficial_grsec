@@ -46,10 +46,10 @@ static int csio_rnode_init(struct csio_rnode *, struct csio_lnode *);
 static void csio_rnode_exit(struct csio_rnode *);
 
 /* Static machine forward declarations */
-static void csio_rns_uninit(struct csio_rnode *, enum csio_rn_ev);
-static void csio_rns_ready(struct csio_rnode *, enum csio_rn_ev);
-static void csio_rns_offline(struct csio_rnode *, enum csio_rn_ev);
-static void csio_rns_disappeared(struct csio_rnode *, enum csio_rn_ev);
+static void csio_rns_uninit(struct csio_sm *, uint32_t);
+static void csio_rns_ready(struct csio_sm *, uint32_t);
+static void csio_rns_offline(struct csio_sm *, uint32_t);
+static void csio_rns_disappeared(struct csio_sm *, uint32_t);
 
 /* RNF event mapping */
 static enum csio_rn_ev fwevt_to_rnevt[] = {
@@ -88,13 +88,13 @@ static enum csio_rn_ev fwevt_to_rnevt[] = {
 int
 csio_is_rnode_ready(struct csio_rnode *rn)
 {
-	return csio_match_state(rn, csio_rns_ready);
+	return csio_match_state(&rn->sm, csio_rns_ready);
 }
 
 static int
 csio_is_rnode_uninit(struct csio_rnode *rn)
 {
-	return csio_match_state(rn, csio_rns_uninit);
+	return csio_match_state(&rn->sm, csio_rns_uninit);
 }
 
 static int
@@ -601,8 +601,10 @@ __csio_unreg_rnode(struct csio_rnode *rn)
  *
  */
 static void
-csio_rns_uninit(struct csio_rnode *rn, enum csio_rn_ev evt)
+csio_rns_uninit(struct csio_sm *_rn, uint32_t _evt)
 {
+	struct csio_rnode *rn = container_of(_rn, struct csio_rnode, sm);
+	enum csio_rn_ev evt = _evt;
 	struct csio_lnode *ln = csio_rnode_to_lnode(rn);
 	int ret = 0;
 
@@ -641,8 +643,10 @@ csio_rns_uninit(struct csio_rnode *rn, enum csio_rn_ev evt)
  *
  */
 static void
-csio_rns_ready(struct csio_rnode *rn, enum csio_rn_ev evt)
+csio_rns_ready(struct csio_sm *_rn, uint32_t _evt)
 {
+	struct csio_rnode *rn = container_of(_rn, struct csio_rnode, sm);
+	enum csio_rn_ev evt = _evt;
 	struct csio_lnode *ln = csio_rnode_to_lnode(rn);
 	int ret = 0;
 
@@ -726,8 +730,10 @@ csio_rns_ready(struct csio_rnode *rn, enum csio_rn_ev evt)
  *
  */
 static void
-csio_rns_offline(struct csio_rnode *rn, enum csio_rn_ev evt)
+csio_rns_offline(struct csio_sm *_rn, uint32_t _evt)
 {
+	struct csio_rnode *rn = container_of(_rn, struct csio_rnode, sm);
+	enum csio_rn_ev evt = _evt;
 	struct csio_lnode *ln = csio_rnode_to_lnode(rn);
 	int ret = 0;
 
@@ -785,8 +791,10 @@ csio_rns_offline(struct csio_rnode *rn, enum csio_rn_ev evt)
  *
  */
 static void
-csio_rns_disappeared(struct csio_rnode *rn, enum csio_rn_ev evt)
+csio_rns_disappeared(struct csio_sm *_rn, uint32_t _evt)
 {
+	struct csio_rnode *rn = container_of(_rn, struct csio_rnode, sm);
+	enum csio_rn_ev evt = _evt;
 	struct csio_lnode *ln = csio_rnode_to_lnode(rn);
 	int ret = 0;
 

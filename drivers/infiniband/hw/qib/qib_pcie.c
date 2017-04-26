@@ -622,7 +622,7 @@ static void qib_tune_pcie_caps(struct qib_devdata *dd)
  * PCI error infrastructure, registered via pci
  */
 static pci_ers_result_t
-qib_pci_error_detected(struct pci_dev *pdev, pci_channel_state_t state)
+qib_pci_error_detected(struct pci_dev *pdev, enum pci_channel_state state)
 {
 	struct qib_devdata *dd = pci_get_drvdata(pdev);
 	pci_ers_result_t ret = PCI_ERS_RESULT_RECOVERED;

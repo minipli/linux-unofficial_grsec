@@ -72,9 +72,17 @@ static void shm_destroy(struct ipc_namespace *ns, struct shmid_kernel *shp);
 static int sysvipc_shm_proc_show(struct seq_file *s, void *it);
 #endif
 
+#ifdef CONFIG_GRKERNSEC
+extern int gr_handle_shmat(const pid_t shm_cprid, const pid_t shm_lapid,
+			   const u64 shm_createtime, const kuid_t cuid,
+			   const int shmid);
+extern int gr_chroot_shmat(const pid_t shm_cprid, const pid_t shm_lapid,
+			   const u64 shm_createtime);
+#endif
+
 void shm_init_ns(struct ipc_namespace *ns)
 {
-	ns->shm_ctlmax = SHMMAX;
+	ns->shm_ctlmax = BITS_PER_LONG == 32 ? SHMMAX : LONG_MAX;
 	ns->shm_ctlall = SHMALL;
 	ns->shm_ctlmni = SHMMNI;
 	ns->shm_rmid_forced = 0;
@@ -590,6 +598,9 @@ static int newseg(struct ipc_namespace *ns, struct ipc_params *params)
 	shp->shm_lprid = 0;
 	shp->shm_atim = shp->shm_dtim = 0;
 	shp->shm_ctim = get_seconds();
+#ifdef CONFIG_GRKERNSEC
+	shp->shm_createtime = ktime_get_ns();
+#endif
 	shp->shm_segsz = size;
 	shp->shm_nattch = 0;
 	shp->shm_file = file;
@@ -1138,6 +1149,12 @@ long do_shmat(int shmid, char __user *shmaddr, int shmflg,
 		f_mode = FMODE_READ | FMODE_WRITE;
 	}
 	if (shmflg & SHM_EXEC) {
+
+#ifdef CONFIG_PAX_MPROTECT
+		if (current->mm->pax_flags & MF_PAX_MPROTECT)
+			goto out;
+#endif
+
 		prot |= PROT_EXEC;
 		acc_mode |= S_IXUGO;
 	}
@@ -1162,6 +1179,15 @@ long do_shmat(int shmid, char __user *shmaddr, int shmflg,
 	if (err)
 		goto out_unlock;
 
+#ifdef CONFIG_GRKERNSEC
+	if (!gr_handle_shmat(shp->shm_cprid, shp->shm_lapid, shp->shm_createtime,
+			     shp->shm_perm.cuid, shmid) ||
+	    !gr_chroot_shmat(shp->shm_cprid, shp->shm_lapid, shp->shm_createtime)) {
+		err = -EACCES;
+		goto out_unlock;
+	}
+#endif
+
 	ipc_lock_object(&shp->shm_perm);
 
 	/* check if shm_destroy() is tearing down shp */
@@ -1174,6 +1200,9 @@ long do_shmat(int shmid, char __user *shmaddr, int shmflg,
 	path = shp->shm_file->f_path;
 	path_get(&path);
 	shp->shm_nattch++;
+#ifdef CONFIG_GRKERNSEC
+	shp->shm_lapid = current->pid;
+#endif
 	size = i_size_read(d_inode(path.dentry));
 	ipc_unlock_object(&shp->shm_perm);
 	rcu_read_unlock();
@@ -1377,7 +1406,8 @@ SYSCALL_DEFINE1(shmdt, char __user *, shmaddr)
 static int sysvipc_shm_proc_show(struct seq_file *s, void *it)
 {
 	struct user_namespace *user_ns = seq_user_ns(s);
-	struct shmid_kernel *shp = it;
+	struct kern_ipc_perm *perm = it;
+	struct shmid_kernel *shp = container_of(perm, struct shmid_kernel, shm_perm);
 	unsigned long rss = 0, swp = 0;
 
 	shm_add_rss_swap(shp, &rss, &swp);

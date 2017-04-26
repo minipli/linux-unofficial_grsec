@@ -65,13 +65,13 @@ struct tipc_nl_compat_cmd_dump {
 	int (*header)(struct tipc_nl_compat_msg *);
 	int (*dumpit)(struct sk_buff *, struct netlink_callback *);
 	int (*format)(struct tipc_nl_compat_msg *msg, struct nlattr **attrs);
-};
+} __no_const;
 
 struct tipc_nl_compat_cmd_doit {
 	int (*doit)(struct sk_buff *skb, struct genl_info *info);
 	int (*transcode)(struct tipc_nl_compat_cmd_doit *cmd,
 			 struct sk_buff *skb, struct tipc_nl_compat_msg *msg);
-};
+} __no_const;
 
 static int tipc_skb_tailroom(struct sk_buff *skb)
 {
@@ -885,7 +885,10 @@ static int tipc_nl_compat_publ_dump(struct tipc_nl_compat_msg *msg, u32 sock)
 	void *hdr;
 	struct nlattr *nest;
 	struct sk_buff *args;
-	struct tipc_nl_compat_cmd_dump dump;
+	static struct tipc_nl_compat_cmd_dump dump = {
+		.dumpit = tipc_nl_publ_dump,
+		.format = __tipc_nl_compat_publ_dump,
+	};
 
 	args = nlmsg_new(NLMSG_GOODSIZE, GFP_KERNEL);
 	if (!args)
@@ -907,9 +910,6 @@ static int tipc_nl_compat_publ_dump(struct tipc_nl_compat_msg *msg, u32 sock)
 
 	nla_nest_end(args, nest);
 	genlmsg_end(args, hdr);
-
-	dump.dumpit = tipc_nl_publ_dump;
-	dump.format = __tipc_nl_compat_publ_dump;
 
 	err = __tipc_nl_compat_dumpit(&dump, msg, args);
 

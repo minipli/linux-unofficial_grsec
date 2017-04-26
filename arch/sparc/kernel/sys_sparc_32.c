@@ -54,7 +54,7 @@ unsigned long arch_get_unmapped_area(struct file *filp, unsigned long addr, unsi
 	if (len > TASK_SIZE - PAGE_SIZE)
 		return -ENOMEM;
 	if (!addr)
-		addr = TASK_UNMAPPED_BASE;
+		addr = current->mm->mmap_base;
 
 	info.flags = 0;
 	info.length = len;

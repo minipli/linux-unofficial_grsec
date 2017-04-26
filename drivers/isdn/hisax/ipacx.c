@@ -35,7 +35,7 @@
 static void ph_command(struct IsdnCardState *cs, unsigned int command);
 static inline void cic_int(struct IsdnCardState *cs);
 static void dch_l2l1(struct PStack *st, int pr, void *arg);
-static void dbusy_timer_handler(struct IsdnCardState *cs);
+static void dbusy_timer_handler(unsigned long _cs);
 static void dch_empty_fifo(struct IsdnCardState *cs, int count);
 static void dch_fill_fifo(struct IsdnCardState *cs);
 static inline void dch_int(struct IsdnCardState *cs);
@@ -198,8 +198,9 @@ dch_l2l1(struct PStack *st, int pr, void *arg)
 //----------------------------------------------------------
 //----------------------------------------------------------
 static void
-dbusy_timer_handler(struct IsdnCardState *cs)
+dbusy_timer_handler(unsigned long _cs)
 {
+	struct IsdnCardState *cs = (struct IsdnCardState *)_cs;
 	struct PStack *st;
 	int	rbchd, stard;
 
@@ -424,7 +425,7 @@ dch_init(struct IsdnCardState *cs)
 
 	cs->setstack_d      = dch_setstack;
 
-	cs->dbusytimer.function = (void *) dbusy_timer_handler;
+	cs->dbusytimer.function = dbusy_timer_handler;
 	cs->dbusytimer.data = (long) cs;
 	init_timer(&cs->dbusytimer);
 

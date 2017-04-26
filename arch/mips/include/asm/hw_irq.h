@@ -10,7 +10,7 @@
 
 #include <linux/atomic.h>
 
-extern atomic_t irq_err_count;
+extern atomic_unchecked_t irq_err_count;
 
 /*
  * interrupt-retrigger: NOP for now. This may not be appropriate for all

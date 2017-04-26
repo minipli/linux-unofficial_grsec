@@ -47,6 +47,7 @@
 ########################################################################
 
 #include <linux/linkage.h>
+#include <asm/alternative-asm.h>
 
 ## assume buffers not aligned
 #define    MOVDQ movdqu
@@ -352,9 +353,7 @@ a = TMP_
 ## arg 2 : pointer to input data
 ## arg 3 : Num blocks
 ########################################################################
-.text
-ENTRY(sha256_transform_ssse3)
-.align 32
+RAP_ENTRY(sha256_transform_ssse3)
 	pushq   %rbx
 	pushq   %rbp
 	pushq   %r13
@@ -471,7 +470,7 @@ done_hash:
 	popq    %rbp
 	popq    %rbx
 
-	ret
+	pax_ret sha256_transform_ssse3
 ENDPROC(sha256_transform_ssse3)
 
 .data

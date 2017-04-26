@@ -1368,29 +1368,77 @@ static void sisusbdummycon_init(struct vc_data *vc, int init)
 	vc_resize(vc, 80, 25);
 }
 
-static int sisusbdummycon_dummy(void)
+static void sisusb_con_deinit(struct vc_data *a)
 {
-    return 0;
 }
 
-#define SISUSBCONDUMMY	(void *)sisusbdummycon_dummy
+static void sisusb_con_clear(struct vc_data *a, int b, int c, int d, int e)
+{
+}
+
+static void sisusb_con_putc(struct vc_data *a, int b, int c, int d)
+{
+}
+
+static void sisusb_con_putcs(struct vc_data *a, const unsigned short *b, int c, int d, int e)
+{
+}
+
+static void sisusb_con_cursor(struct vc_data *a, int b)
+{
+}
+
+static int sisusb_con_scroll(struct vc_data *a, int b, int c, int d, int e)
+{
+	return 0;
+}
+
+static int sisusb_con_switch(struct vc_data *a)
+{
+	return 0;
+}
+
+static int sisusb_con_blank(struct vc_data *a, int b, int c)
+{
+	return 0;
+}
+
+static int sisusb_con_font_set(struct vc_data *a, struct console_font *b, unsigned c)
+{
+	return 0;
+}
+
+static int sisusb_con_font_get(struct vc_data *a, struct console_font *b)
+{
+	return 0;
+}
+
+static int sisusb_con_font_default(struct vc_data *a, struct console_font *b, char *c)
+{
+	return 0;
+}
+
+static int sisusb_con_font_copy(struct vc_data *a, int b)
+{
+	return 0;
+}
 
 static const struct consw sisusb_dummy_con = {
 	.owner =		THIS_MODULE,
 	.con_startup =		sisusbdummycon_startup,
 	.con_init =		sisusbdummycon_init,
-	.con_deinit =		SISUSBCONDUMMY,
-	.con_clear =		SISUSBCONDUMMY,
-	.con_putc =		SISUSBCONDUMMY,
-	.con_putcs =		SISUSBCONDUMMY,
-	.con_cursor =		SISUSBCONDUMMY,
-	.con_scroll =		SISUSBCONDUMMY,
-	.con_switch =		SISUSBCONDUMMY,
-	.con_blank =		SISUSBCONDUMMY,
-	.con_font_set =		SISUSBCONDUMMY,
-	.con_font_get =		SISUSBCONDUMMY,
-	.con_font_default =	SISUSBCONDUMMY,
-	.con_font_copy =	SISUSBCONDUMMY,
+	.con_deinit =		sisusb_con_deinit,
+	.con_clear =		sisusb_con_clear,
+	.con_putc =		sisusb_con_putc,
+	.con_putcs =		sisusb_con_putcs,
+	.con_cursor =		sisusb_con_cursor,
+	.con_scroll =		sisusb_con_scroll,
+	.con_switch =		sisusb_con_switch,
+	.con_blank =		sisusb_con_blank,
+	.con_font_set =		sisusb_con_font_set,
+	.con_font_get =		sisusb_con_font_get,
+	.con_font_default =	sisusb_con_font_default,
+	.con_font_copy =	sisusb_con_font_copy,
 };
 
 int

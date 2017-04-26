@@ -27,6 +27,10 @@ ENTRY(machine_real_restart_asm)
 	lgdtl	pa_tr_gdt
 
 	/* Disable paging to drop us out of long mode */
+	movl	%cr4, %eax
+	andl	$~X86_CR4_PCIDE, %eax
+	movl	%eax, %cr4
+
 	movl	%cr0, %eax
 	andl	$~X86_CR0_PG, %eax
 	movl	%eax, %cr0

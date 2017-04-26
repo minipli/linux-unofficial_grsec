@@ -284,7 +284,7 @@ struct kernfs_node *kernfs_get_parent(struct kernfs_node *kn)
  *
  *	Returns 31 bit hash of ns + name (so it fits in an off_t )
  */
-static unsigned int kernfs_name_hash(const char *name, const void *ns)
+static unsigned int kernfs_name_hash(const unsigned char *name, const void *ns)
 {
 	unsigned long hash = init_name_hash(ns);
 	unsigned int len = strlen(name);
@@ -1024,6 +1024,12 @@ static int kernfs_iop_mkdir(struct inode *dir, struct dentry *dentry,
 	ret = scops->mkdir(parent, dentry->d_name.name, mode);
 
 	kernfs_put_active(parent);
+
+	if (!ret) {
+		struct dentry *dentry_ret = kernfs_iop_lookup(dir, dentry, 0);
+		ret = PTR_ERR_OR_ZERO(dentry_ret);
+	}
+
 	return ret;
 }
 

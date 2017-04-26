@@ -73,6 +73,9 @@ struct thread_info {
 	.flags		= 0,						\
 	.preempt_count	= INIT_PREEMPT_COUNT,				\
 	.addr_limit	= KERNEL_DS,					\
+	.cpu_domain	= domain_val(DOMAIN_USER, DOMAIN_USERCLIENT) |	\
+			  domain_val(DOMAIN_KERNEL, DOMAIN_KERNELCLIENT) | \
+			  domain_val(DOMAIN_IO, DOMAIN_KERNELCLIENT),	\
 }
 
 #define init_thread_info	(init_thread_union.thread_info)
@@ -143,6 +146,10 @@ extern int vfp_restore_user_hwstate(struct user_vfp __user *,
 #define TIF_SYSCALL_AUDIT	5	/* syscall auditing active */
 #define TIF_SYSCALL_TRACEPOINT	6	/* syscall tracepoint instrumentation */
 #define TIF_SECCOMP		7	/* seccomp syscall filtering active */
+/* within 8 bits of TIF_SYSCALL_TRACE
+ *  to meet flexible second operand requirements
+ */
+#define TIF_GRSEC_SETXID	8
 
 #define TIF_NOHZ		12	/* in adaptive nohz mode */
 #define TIF_USING_IWMMXT	17
@@ -158,10 +165,11 @@ extern int vfp_restore_user_hwstate(struct user_vfp __user *,
 #define _TIF_SYSCALL_TRACEPOINT	(1 << TIF_SYSCALL_TRACEPOINT)
 #define _TIF_SECCOMP		(1 << TIF_SECCOMP)
 #define _TIF_USING_IWMMXT	(1 << TIF_USING_IWMMXT)
+#define _TIF_GRSEC_SETXID	(1 << TIF_GRSEC_SETXID)
 
 /* Checks for any syscall work in entry-common.S */
 #define _TIF_SYSCALL_WORK (_TIF_SYSCALL_TRACE | _TIF_SYSCALL_AUDIT | \
-			   _TIF_SYSCALL_TRACEPOINT | _TIF_SECCOMP)
+			   _TIF_SYSCALL_TRACEPOINT | _TIF_SECCOMP | _TIF_GRSEC_SETXID)
 
 /*
  * Change these and you break ASM code in entry-common.S

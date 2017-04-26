@@ -107,26 +107,26 @@ static inline void vm_events_fold_cpu(int cpu)
 /*
  * Zone and node-based page accounting with per cpu differentials.
  */
-extern atomic_long_t vm_zone_stat[NR_VM_ZONE_STAT_ITEMS];
-extern atomic_long_t vm_node_stat[NR_VM_NODE_STAT_ITEMS];
+extern atomic_long_unchecked_t vm_zone_stat[NR_VM_ZONE_STAT_ITEMS];
+extern atomic_long_unchecked_t vm_node_stat[NR_VM_NODE_STAT_ITEMS];
 
 static inline void zone_page_state_add(long x, struct zone *zone,
 				 enum zone_stat_item item)
 {
-	atomic_long_add(x, &zone->vm_stat[item]);
-	atomic_long_add(x, &vm_zone_stat[item]);
+	atomic_long_add_unchecked(x, &zone->vm_stat[item]);
+	atomic_long_add_unchecked(x, &vm_zone_stat[item]);
 }
 
 static inline void node_page_state_add(long x, struct pglist_data *pgdat,
 				 enum node_stat_item item)
 {
-	atomic_long_add(x, &pgdat->vm_stat[item]);
-	atomic_long_add(x, &vm_node_stat[item]);
+	atomic_long_add_unchecked(x, &pgdat->vm_stat[item]);
+	atomic_long_add_unchecked(x, &vm_node_stat[item]);
 }
 
 static inline unsigned long global_page_state(enum zone_stat_item item)
 {
-	long x = atomic_long_read(&vm_zone_stat[item]);
+	long x = atomic_long_read_unchecked(&vm_zone_stat[item]);
 #ifdef CONFIG_SMP
 	if (x < 0)
 		x = 0;
@@ -136,7 +136,7 @@ static inline unsigned long global_page_state(enum zone_stat_item item)
 
 static inline unsigned long global_node_page_state(enum node_stat_item item)
 {
-	long x = atomic_long_read(&vm_node_stat[item]);
+	long x = atomic_long_read_unchecked(&vm_node_stat[item]);
 #ifdef CONFIG_SMP
 	if (x < 0)
 		x = 0;
@@ -144,10 +144,10 @@ static inline unsigned long global_node_page_state(enum node_stat_item item)
 	return x;
 }
 
-static inline unsigned long zone_page_state(struct zone *zone,
+static inline unsigned long __intentional_overflow(-1) zone_page_state(struct zone *zone,
 					enum zone_stat_item item)
 {
-	long x = atomic_long_read(&zone->vm_stat[item]);
+	long x = atomic_long_read_unchecked(&zone->vm_stat[item]);
 #ifdef CONFIG_SMP
 	if (x < 0)
 		x = 0;
@@ -164,7 +164,7 @@ static inline unsigned long zone_page_state(struct zone *zone,
 static inline unsigned long zone_page_state_snapshot(struct zone *zone,
 					enum zone_stat_item item)
 {
-	long x = atomic_long_read(&zone->vm_stat[item]);
+	long x = atomic_long_read_unchecked(&zone->vm_stat[item]);
 
 #ifdef CONFIG_SMP
 	int cpu;
@@ -180,7 +180,7 @@ static inline unsigned long zone_page_state_snapshot(struct zone *zone,
 static inline unsigned long node_page_state_snapshot(pg_data_t *pgdat,
 					enum node_stat_item item)
 {
-	long x = atomic_long_read(&pgdat->vm_stat[item]);
+	long x = atomic_long_read_unchecked(&pgdat->vm_stat[item]);
 
 #ifdef CONFIG_SMP
 	int cpu;
@@ -267,26 +267,26 @@ static inline void __mod_node_page_state(struct pglist_data *pgdat,
 
 static inline void __inc_zone_state(struct zone *zone, enum zone_stat_item item)
 {
-	atomic_long_inc(&zone->vm_stat[item]);
-	atomic_long_inc(&vm_zone_stat[item]);
+	atomic_long_inc_unchecked(&zone->vm_stat[item]);
+	atomic_long_inc_unchecked(&vm_zone_stat[item]);
 }
 
 static inline void __inc_node_state(struct pglist_data *pgdat, enum node_stat_item item)
 {
-	atomic_long_inc(&pgdat->vm_stat[item]);
-	atomic_long_inc(&vm_node_stat[item]);
+	atomic_long_inc_unchecked(&pgdat->vm_stat[item]);
+	atomic_long_inc_unchecked(&vm_node_stat[item]);
 }
 
 static inline void __dec_zone_state(struct zone *zone, enum zone_stat_item item)
 {
-	atomic_long_dec(&zone->vm_stat[item]);
-	atomic_long_dec(&vm_zone_stat[item]);
+	atomic_long_dec_unchecked(&zone->vm_stat[item]);
+	atomic_long_dec_unchecked(&vm_zone_stat[item]);
 }
 
 static inline void __dec_node_state(struct pglist_data *pgdat, enum node_stat_item item)
 {
-	atomic_long_dec(&pgdat->vm_stat[item]);
-	atomic_long_dec(&vm_node_stat[item]);
+	atomic_long_dec_unchecked(&pgdat->vm_stat[item]);
+	atomic_long_dec_unchecked(&vm_node_stat[item]);
 }
 
 static inline void __inc_zone_page_state(struct page *page,

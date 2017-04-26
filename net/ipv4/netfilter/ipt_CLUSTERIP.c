@@ -730,7 +730,7 @@ static int clusterip_net_init(struct net *net)
 	spin_lock_init(&cn->lock);
 
 #ifdef CONFIG_PROC_FS
-	cn->procdir = proc_mkdir("ipt_CLUSTERIP", net->proc_net);
+	cn->procdir = proc_mkdir_restrict("ipt_CLUSTERIP", net->proc_net);
 	if (!cn->procdir) {
 		pr_err("Unable to proc dir entry\n");
 		return -ENOMEM;

@@ -94,7 +94,7 @@ _set_debug(struct sfax_hw *card)
 }
 
 static int
-set_debug(const char *val, struct kernel_param *kp)
+set_debug(const char *val, const struct kernel_param *kp)
 {
 	int ret;
 	struct sfax_hw *card;
@@ -186,9 +186,10 @@ reset_speedfax(struct sfax_hw *sf)
 }
 
 static int
-sfax_ctrl(struct sfax_hw  *sf, u32 cmd, u_long arg)
+sfax_ctrl(void *_sf, u32 cmd, u_long arg)
 {
 	int ret = 0;
+	struct sfax_hw *sf = (struct sfax_hw *)_sf;
 
 	switch (cmd) {
 	case HW_RESET_REQ:
@@ -386,7 +387,7 @@ setup_instance(struct sfax_hw *card)
 	spin_lock_init(&card->lock);
 	card->isac.hwlock = &card->lock;
 	card->isar.hwlock = &card->lock;
-	card->isar.ctrl = (void *)&sfax_ctrl;
+	card->isar.ctrl = &sfax_ctrl;
 	card->isac.name = card->name;
 	card->isar.name = card->name;
 	card->isar.owner = THIS_MODULE;

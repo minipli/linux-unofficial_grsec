@@ -10,6 +10,7 @@
  */
 
 #include <linux/linkage.h>
+#include <asm/alternative-asm.h>
 
 .data
 .align 16
@@ -273,7 +274,7 @@ ENTRY(poly1305_block_sse2)
 	add		$0x10,%rsp
 	pop		%r12
 	pop		%rbx
-	ret
+	pax_ret poly1305_block_sse2
 ENDPROC(poly1305_block_sse2)
 
 
@@ -578,5 +579,5 @@ ENTRY(poly1305_2block_sse2)
 	pop		%r13
 	pop		%r12
 	pop		%rbx
-	ret
+	pax_ret poly1305_2block_sse2
 ENDPROC(poly1305_2block_sse2)

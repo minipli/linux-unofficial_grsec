@@ -139,7 +139,7 @@ int __must_check v4l2_device_register(struct device *dev,
  * then the name will be set to cx18-0 since cx180 would look really odd.
  */
 int v4l2_device_set_name(struct v4l2_device *v4l2_dev, const char *basename,
-			 atomic_t *instance);
+			 atomic_unchecked_t *instance);
 
 /**
  * v4l2_device_disconnect - Change V4L2 device state to disconnected.

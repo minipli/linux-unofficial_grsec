@@ -550,7 +550,7 @@ static __net_exit void net_ns_net_exit(struct net *net)
 	ns_free_inum(&net->ns);
 }
 
-static struct pernet_operations __net_initdata net_ns_ops = {
+static struct pernet_operations __net_initconst net_ns_ops = {
 	.init = net_ns_net_init,
 	.exit = net_ns_net_exit,
 };
@@ -801,7 +801,7 @@ static int __register_pernet_operations(struct list_head *list,
 	int error;
 	LIST_HEAD(net_exit_list);
 
-	list_add_tail(&ops->list, list);
+	pax_list_add_tail((struct list_head *)&ops->list, list);
 	if (ops->init || (ops->id && ops->size)) {
 		for_each_net(net) {
 			error = ops_init(ops, net);
@@ -814,7 +814,7 @@ static int __register_pernet_operations(struct list_head *list,
 
 out_undo:
 	/* If I have an error cleanup all namespaces I initialized */
-	list_del(&ops->list);
+	pax_list_del((struct list_head *)&ops->list);
 	ops_exit_list(ops, &net_exit_list);
 	ops_free_list(ops, &net_exit_list);
 	return error;
@@ -825,7 +825,7 @@ static void __unregister_pernet_operations(struct pernet_operations *ops)
 	struct net *net;
 	LIST_HEAD(net_exit_list);
 
-	list_del(&ops->list);
+	pax_list_del((struct list_head *)&ops->list);
 	for_each_net(net)
 		list_add_tail(&net->exit_list, &net_exit_list);
 	ops_exit_list(ops, &net_exit_list);
@@ -838,7 +838,7 @@ static int __register_pernet_operations(struct list_head *list,
 					struct pernet_operations *ops)
 {
 	if (!init_net_initialized) {
-		list_add_tail(&ops->list, list);
+		pax_list_add_tail((struct list_head *)&ops->list, list);
 		return 0;
 	}
 
@@ -848,7 +848,7 @@ static int __register_pernet_operations(struct list_head *list,
 static void __unregister_pernet_operations(struct pernet_operations *ops)
 {
 	if (!init_net_initialized) {
-		list_del(&ops->list);
+		pax_list_del((struct list_head *)&ops->list);
 	} else {
 		LIST_HEAD(net_exit_list);
 		list_add(&init_net.exit_list, &net_exit_list);
@@ -968,7 +968,7 @@ int register_pernet_device(struct pernet_operations *ops)
 	mutex_lock(&net_mutex);
 	error = register_pernet_operations(&pernet_list, ops);
 	if (!error && (first_device == &pernet_list))
-		first_device = &ops->list;
+		first_device = (struct list_head *)&ops->list;
 	mutex_unlock(&net_mutex);
 	return error;
 }

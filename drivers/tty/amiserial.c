@@ -1489,7 +1489,7 @@ static void rs_hangup(struct tty_struct *tty)
 
 	rs_flush_buffer(tty);
 	shutdown(tty, info);
-	info->tport.count = 0;
+	atomic_set(&info->tport.count, 0);
 	tty_port_set_active(&info->tport, 0);
 	info->tport.tty = NULL;
 	wake_up_interruptible(&info->tport.open_wait);
@@ -1507,7 +1507,7 @@ static int rs_open(struct tty_struct *tty, struct file * filp)
 	struct tty_port *port = &info->tport;
 	int retval;
 
-	port->count++;
+	atomic_inc(&port->count);
 	port->tty = tty;
 	tty->driver_data = info;
 	tty->port = port;

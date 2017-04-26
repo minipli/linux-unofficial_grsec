@@ -2462,10 +2462,10 @@ static void hotkey_compare_and_issue_event(struct tp_nvram_state *oldn,
 				&& !tp_features.bright_unkfw)
 			TPACPI_MAY_SEND_KEY(TP_ACPI_HOTKEYSCAN_FNHOME);
 	}
+}
 
 #undef TPACPI_COMPARE_KEY
 #undef TPACPI_MAY_SEND_KEY
-}
 
 /*
  * Polling driver
@@ -4203,7 +4203,7 @@ static int bluetooth_get_status(void)
 			TPACPI_RFK_RADIO_ON : TPACPI_RFK_RADIO_OFF;
 }
 
-static int bluetooth_set_status(enum tpacpi_rfkill_state state)
+static int bluetooth_set_status(const enum tpacpi_rfkill_state state)
 {
 	int status;
 
@@ -4391,7 +4391,7 @@ static int wan_get_status(void)
 			TPACPI_RFK_RADIO_ON : TPACPI_RFK_RADIO_OFF;
 }
 
-static int wan_set_status(enum tpacpi_rfkill_state state)
+static int wan_set_status(const enum tpacpi_rfkill_state state)
 {
 	int status;
 
@@ -4577,7 +4577,7 @@ static int uwb_get_status(void)
 			TPACPI_RFK_RADIO_ON : TPACPI_RFK_RADIO_OFF;
 }
 
-static int uwb_set_status(enum tpacpi_rfkill_state state)
+static int uwb_set_status(const enum tpacpi_rfkill_state state)
 {
 	int status;
 
@@ -9526,7 +9526,7 @@ static struct ibm_init_struct ibms_init[] __initdata = {
 	},
 };
 
-static int __init set_ibm_param(const char *val, struct kernel_param *kp)
+static int __init set_ibm_param(const char *val, const struct kernel_param *kp)
 {
 	unsigned int i;
 	struct ibm_struct *ibm;

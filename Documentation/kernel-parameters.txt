@@ -1436,6 +1436,12 @@ bytes respectively. Such letter suffixes can also be entirely omitted.
 			[KNL] Should the hard-lockup detector generate
 			backtraces on all cpus.
 			Format: <integer>
+	grsec_proc_gid= [GRKERNSEC_PROC_USERGROUP] Chooses GID to
+			ignore grsecurity's /proc restrictions
+
+	grsec_sysfs_restrict= Format: 0 | 1
+			Default: 1
+			Disables GRKERNSEC_SYSFS_RESTRICT if enabled in config
 
 	hashdist=	[KNL,NUMA] Large hashes allocated during boot
 			are distributed across NUMA nodes.  Defaults on
@@ -2665,6 +2671,10 @@ bytes respectively. Such letter suffixes can also be entirely omitted.
 			noexec=on: enable non-executable mappings (default)
 			noexec=off: disable non-executable mappings
 
+	nopcid		[X86-64]
+			Disable PCID (Process-Context IDentifier) even if it
+			is supported by the processor.
+
 	nosmap		[X86]
 			Disable SMAP (Supervisor Mode Access Prevention)
 			even if it is supported by processor.
@@ -2972,6 +2982,35 @@ bytes respectively. Such letter suffixes can also be entirely omitted.
 			Halt all CPUs after the first oops has been printed for
 			the specified number of seconds.  This is to be used if
 			your oopses keep scrolling off the screen.
+
+	pax_nouderef	[X86] disables UDEREF.  Most likely needed under certain
+			virtualization environments that don't cope well with the
+			expand down segment used by UDEREF on X86-32 or the frequent
+			page table updates on X86-64.
+
+	pax_sanitize_slab=
+			Format: { 0 | 1 | off | fast | full }
+			Options '0' and '1' are only provided for backward
+			compatibility, 'off' or 'fast' should be used instead.
+			0|off : disable slab object sanitization
+			1|fast: enable slab object sanitization excluding
+				whitelisted slabs (default)
+			full  : sanitize all slabs, even the whitelisted ones
+
+	pax_softmode=	0/1 to disable/enable PaX softmode on boot already.
+
+	pax_extra_latent_entropy
+			Enable a very simple form of latent entropy extraction
+			from the first 4GB of memory as the bootmem allocator
+			passes the memory pages to the buddy allocator.
+
+	pax_size_overflow_report_only
+			Enables rate-limited logging of size_overflow plugin
+			violations while disabling killing of the violating
+			task.
+
+	pax_weakuderef	[X86-64] enables the weaker but faster form of UDEREF
+			when the processor supports PCID.
 
 	pcbit=		[HW,ISDN]
 

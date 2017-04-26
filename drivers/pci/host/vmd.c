@@ -396,7 +396,7 @@ static void vmd_teardown_dma_ops(struct vmd_dev *vmd)
 #define ASSIGN_VMD_DMA_OPS(source, dest, fn)	\
 	do {					\
 		if (source->fn)			\
-			dest->fn = vmd_##fn;	\
+			const_cast(dest->fn) = vmd_##fn;\
 	} while (0)
 
 static void vmd_setup_dma_ops(struct vmd_dev *vmd)
@@ -410,6 +410,8 @@ static void vmd_setup_dma_ops(struct vmd_dev *vmd)
 
 	if (!source)
 		return;
+
+	pax_open_kernel();
 	ASSIGN_VMD_DMA_OPS(source, dest, alloc);
 	ASSIGN_VMD_DMA_OPS(source, dest, free);
 	ASSIGN_VMD_DMA_OPS(source, dest, mmap);
@@ -427,6 +429,8 @@ static void vmd_setup_dma_ops(struct vmd_dev *vmd)
 #ifdef ARCH_HAS_DMA_GET_REQUIRED_MASK
 	ASSIGN_VMD_DMA_OPS(source, dest, get_required_mask);
 #endif
+	pax_close_kernel();
+
 	add_dma_domain(domain);
 }
 #undef ASSIGN_VMD_DMA_OPS

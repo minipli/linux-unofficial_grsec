@@ -944,7 +944,7 @@ static void usb_stor_scan_dwork(struct work_struct *work)
 	clear_bit(US_FLIDX_SCAN_PENDING, &us->dflags);
 }
 
-static unsigned int usb_stor_sg_tablesize(struct usb_interface *intf)
+static unsigned short usb_stor_sg_tablesize(struct usb_interface *intf)
 {
 	struct usb_device *usb_dev = interface_to_usbdev(intf);
 

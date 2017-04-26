@@ -94,8 +94,9 @@ static int valuable(struct ubifs_info *c, const struct ubifs_lprops *lprops)
  */
 static int scan_for_dirty_cb(struct ubifs_info *c,
 			     const struct ubifs_lprops *lprops, int in_tree,
-			     struct scan_data *data)
+			     void *_data)
 {
+	struct scan_data *data = _data;
 	int ret = LPT_SCAN_CONTINUE;
 
 	/* Exclude LEBs that are currently in use */
@@ -179,7 +180,7 @@ static const struct ubifs_lprops *scan_for_dirty(struct ubifs_info *c,
 	data.lnum = -1;
 	data.exclude_index = exclude_index;
 	err = ubifs_lpt_scan_nolock(c, -1, c->lscan_lnum,
-				    (ubifs_lpt_scan_callback)scan_for_dirty_cb,
+				    scan_for_dirty_cb,
 				    &data);
 	if (err)
 		return ERR_PTR(err);
@@ -361,8 +362,9 @@ out:
  */
 static int scan_for_free_cb(struct ubifs_info *c,
 			    const struct ubifs_lprops *lprops, int in_tree,
-			    struct scan_data *data)
+			    void *_data)
 {
+	struct scan_data *data = _data;
 	int ret = LPT_SCAN_CONTINUE;
 
 	/* Exclude LEBs that are currently in use */
@@ -458,7 +460,7 @@ const struct ubifs_lprops *do_find_free_space(struct ubifs_info *c,
 	data.pick_free = pick_free;
 	data.lnum = -1;
 	err = ubifs_lpt_scan_nolock(c, -1, c->lscan_lnum,
-				    (ubifs_lpt_scan_callback)scan_for_free_cb,
+				    scan_for_free_cb,
 				    &data);
 	if (err)
 		return ERR_PTR(err);
@@ -601,8 +603,9 @@ out:
  */
 static int scan_for_idx_cb(struct ubifs_info *c,
 			   const struct ubifs_lprops *lprops, int in_tree,
-			   struct scan_data *data)
+			   void *_data)
 {
+	struct scan_data *data = _data;
 	int ret = LPT_SCAN_CONTINUE;
 
 	/* Exclude LEBs that are currently in use */
@@ -638,7 +641,7 @@ static const struct ubifs_lprops *scan_for_leb_for_idx(struct ubifs_info *c)
 
 	data.lnum = -1;
 	err = ubifs_lpt_scan_nolock(c, -1, c->lscan_lnum,
-				    (ubifs_lpt_scan_callback)scan_for_idx_cb,
+				    scan_for_idx_cb,
 				    &data);
 	if (err)
 		return ERR_PTR(err);
@@ -738,18 +741,21 @@ out:
 	return err;
 }
 
-static int cmp_dirty_idx(const struct ubifs_lprops **a,
-			 const struct ubifs_lprops **b)
+static int cmp_dirty_idx(const void *_a,
+			 const void *_b)
 {
+	const struct ubifs_lprops **a = (const struct ubifs_lprops **)_a;
+	const struct ubifs_lprops **b = (const struct ubifs_lprops **)_b;
 	const struct ubifs_lprops *lpa = *a;
 	const struct ubifs_lprops *lpb = *b;
 
 	return lpa->dirty + lpa->free - lpb->dirty - lpb->free;
 }
 
-static void swap_dirty_idx(struct ubifs_lprops **a, struct ubifs_lprops **b,
-			   int size)
+static void swap_dirty_idx(void *_a, void *_b, int size)
 {
+	struct ubifs_lprops **a = (struct ubifs_lprops **)_a;
+	struct ubifs_lprops **b = (struct ubifs_lprops **)_b;
 	struct ubifs_lprops *t = *a;
 
 	*a = *b;
@@ -775,8 +781,7 @@ int ubifs_save_dirty_idx_lnums(struct ubifs_info *c)
 	       sizeof(void *) * c->dirty_idx.cnt);
 	/* Sort it so that the dirtiest is now at the end */
 	sort(c->dirty_idx.arr, c->dirty_idx.cnt, sizeof(void *),
-	     (int (*)(const void *, const void *))cmp_dirty_idx,
-	     (void (*)(void *, void *, int))swap_dirty_idx);
+	     cmp_dirty_idx, swap_dirty_idx);
 	dbg_find("found %d dirty index LEBs", c->dirty_idx.cnt);
 	if (c->dirty_idx.cnt)
 		dbg_find("dirtiest index LEB is %d with dirty %d and free %d",
@@ -804,8 +809,9 @@ int ubifs_save_dirty_idx_lnums(struct ubifs_info *c)
  */
 static int scan_dirty_idx_cb(struct ubifs_info *c,
 			   const struct ubifs_lprops *lprops, int in_tree,
-			   struct scan_data *data)
+			   void *_data)
 {
+	struct scan_data *data = _data;
 	int ret = LPT_SCAN_CONTINUE;
 
 	/* Exclude LEBs that are currently in use */
@@ -865,7 +871,7 @@ static int find_dirty_idx_leb(struct ubifs_info *c)
 		/* All pnodes are in memory, so skip scan */
 		return -ENOSPC;
 	err = ubifs_lpt_scan_nolock(c, -1, c->lscan_lnum,
-				    (ubifs_lpt_scan_callback)scan_dirty_idx_cb,
+				    scan_dirty_idx_cb,
 				    &data);
 	if (err)
 		return err;

@@ -30,6 +30,18 @@
 
 #define ELF_ET_DYN_BASE	0x20000000
 
+#ifdef CONFIG_PAX_ASLR
+#define PAX_ELF_ET_DYN_BASE	(0x10000000UL)
+
+#ifdef __powerpc64__
+#define PAX_DELTA_MMAP_LEN	(is_32bit_task() ? 16 : 28)
+#define PAX_DELTA_STACK_LEN	(is_32bit_task() ? 16 : 28)
+#else
+#define PAX_DELTA_MMAP_LEN	15
+#define PAX_DELTA_STACK_LEN	15
+#endif
+#endif
+
 #define ELF_CORE_EFLAGS (is_elf2_task() ? 2 : 0)
 
 /*

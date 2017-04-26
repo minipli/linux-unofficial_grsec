@@ -112,9 +112,9 @@ static void adf_dev_stop_async(struct work_struct *work)
 	kfree(stop_data);
 }
 
-static void adf_pf2vf_bh_handler(void *data)
+static void adf_pf2vf_bh_handler(unsigned long data)
 {
-	struct adf_accel_dev *accel_dev = data;
+	struct adf_accel_dev *accel_dev = (struct adf_accel_dev *)data;
 	struct adf_hw_device_data *hw_data = accel_dev->hw_device;
 	struct adf_bar *pmisc =
 			&GET_BARS(accel_dev)[hw_data->get_misc_bar_id(hw_data)];
@@ -183,7 +183,7 @@ err:
 static int adf_setup_pf2vf_bh(struct adf_accel_dev *accel_dev)
 {
 	tasklet_init(&accel_dev->vf.pf2vf_bh_tasklet,
-		     (void *)adf_pf2vf_bh_handler, (unsigned long)accel_dev);
+		     adf_pf2vf_bh_handler, (unsigned long)accel_dev);
 
 	mutex_init(&accel_dev->vf.vf2pf_lock);
 	return 0;

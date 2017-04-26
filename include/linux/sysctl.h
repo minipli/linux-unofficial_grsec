@@ -41,12 +41,18 @@ typedef int proc_handler (struct ctl_table *ctl, int write,
 
 extern int proc_dostring(struct ctl_table *, int,
 			 void __user *, size_t *, loff_t *);
+extern int proc_dostring_modpriv(struct ctl_table *, int,
+			 void __user *, size_t *, loff_t *);
 extern int proc_dointvec(struct ctl_table *, int,
 			 void __user *, size_t *, loff_t *);
+extern int proc_dointvec_secure(struct ctl_table *, int,
+                     		void __user *, size_t *, loff_t *);
 extern int proc_douintvec(struct ctl_table *, int,
 			 void __user *, size_t *, loff_t *);
 extern int proc_dointvec_minmax(struct ctl_table *, int,
 				void __user *, size_t *, loff_t *);
+extern int proc_dointvec_minmax_secure(struct ctl_table *, int,
+				       void __user *, size_t *, loff_t *);
 extern int proc_dointvec_jiffies(struct ctl_table *, int,
 				 void __user *, size_t *, loff_t *);
 extern int proc_dointvec_userhz_jiffies(struct ctl_table *, int,
@@ -117,7 +123,8 @@ struct ctl_table
 	struct ctl_table_poll *poll;
 	void *extra1;
 	void *extra2;
-};
+} __do_const __randomize_layout;
+typedef struct ctl_table __no_const ctl_table_no_const;
 
 struct ctl_node {
 	struct rb_node node;
@@ -131,9 +138,9 @@ struct ctl_table_header
 	union {
 		struct {
 			struct ctl_table *ctl_table;
-			int used;
-			int count;
-			int nreg;
+			atomic_t used;
+			atomic_t count;
+			atomic_t nreg;
 		};
 		struct rcu_head rcu;
 	};

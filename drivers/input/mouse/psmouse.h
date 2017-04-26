@@ -126,7 +126,7 @@ struct psmouse_attribute {
 	ssize_t (*set)(struct psmouse *psmouse, void *data,
 			const char *buf, size_t count);
 	bool protect;
-};
+} __do_const;
 #define to_psmouse_attr(a)	container_of((a), struct psmouse_attribute, dattr)
 
 ssize_t psmouse_attr_show_helper(struct device *dev, struct device_attribute *attr,

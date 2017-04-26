@@ -3255,7 +3255,7 @@ set_serial_info(struct e100_serial *info,
 		goto check_and_exit;
 	}
 
-	if (info->port.count > 1)
+	if (atomic_read(&info->port.count) > 1)
 		return -EBUSY;
 
 	/*
@@ -3588,7 +3588,7 @@ rs_close(struct tty_struct *tty, struct file * filp)
 	printk("[%d] rs_close ttyS%d, count = %d\n", current->pid,
 	       info->line, info->count);
 #endif
-	if ((tty->count == 1) && (info->port.count != 1)) {
+	if ((tty->count == 1) && (atomic_read(&info->port.count) != 1)) {
 		/*
 		 * Uh, oh.  tty->count is 1, which means that the tty
 		 * structure will be freed.  Info->count should always
@@ -3598,15 +3598,15 @@ rs_close(struct tty_struct *tty, struct file * filp)
 		 */
 		printk(KERN_ERR
 		       "rs_close: bad serial port count; tty->count is 1, "
-		       "info->count is %d\n", info->port.count);
-		info->port.count = 1;
+		       "info->count is %d\n", atomic_read(&info->port.count));
+		atomic_set(&info->port.count, 1);
 	}
-	if (--info->port.count < 0) {
+	if (atomic_dec_return(&info->port.count) < 0) {
 		printk(KERN_ERR "rs_close: bad serial port count for ttyS%d: %d\n",
-		       info->line, info->port.count);
-		info->port.count = 0;
+		       info->line, atomic_read(&info->port.count));
+		atomic_set(&info->port.count, 0);
 	}
-	if (info->port.count) {
+	if (atomic_read(&info->port.count)) {
 		local_irq_restore(flags);
 		return;
 	}
@@ -3731,7 +3731,7 @@ rs_hangup(struct tty_struct *tty)
 	rs_flush_buffer(tty);
 	shutdown(info);
 	info->event = 0;
-	info->port.count = 0;
+	atomic_set(&info->port.count, 0);
 	tty_port_set_active(&info->port, 0);
 	info->port.tty = NULL;
 	wake_up_interruptible(&info->port.open_wait);
@@ -3774,10 +3774,10 @@ block_til_ready(struct tty_struct *tty, struct file * filp,
 	add_wait_queue(&info->port.open_wait, &wait);
 #ifdef SERIAL_DEBUG_OPEN
 	printk("block_til_ready before block: ttyS%d, count = %d\n",
-	       info->line, info->port.count);
+	       info->line, atomic_read(&info->port.count));
 #endif
 	local_irq_save(flags);
-	info->port.count--;
+	atomic_dec(&info->port.count);
 	local_irq_restore(flags);
 	info->port.blocked_open++;
 	while (1) {
@@ -3807,7 +3807,7 @@ block_til_ready(struct tty_struct *tty, struct file * filp,
 		}
 #ifdef SERIAL_DEBUG_OPEN
 		printk("block_til_ready blocking: ttyS%d, count = %d\n",
-		       info->line, info->port.count);
+		       info->line, atomic_read(&info->port.count));
 #endif
 		tty_unlock(tty);
 		schedule();
@@ -3816,11 +3816,11 @@ block_til_ready(struct tty_struct *tty, struct file * filp,
 	set_current_state(TASK_RUNNING);
 	remove_wait_queue(&info->port.open_wait, &wait);
 	if (!tty_hung_up_p(filp))
-		info->port.count++;
+		atomic_inc(&info->port.count);
 	info->port.blocked_open--;
 #ifdef SERIAL_DEBUG_OPEN
 	printk("block_til_ready after blocking: ttyS%d, count = %d\n",
-	       info->line, info->port.count);
+	       info->line, atomic_read(&info->port.count));
 #endif
 	if (retval)
 		return retval;
@@ -3858,10 +3858,10 @@ rs_open(struct tty_struct *tty, struct file * filp)
 
 #ifdef SERIAL_DEBUG_OPEN
         printk("[%d] rs_open %s, count = %d\n", current->pid, tty->name,
- 	       info->port.count);
+ 	       atomic_read(&info->port.count));
 #endif
 
-	info->port.count++;
+	atomic_inc(&info->port.count);
 	tty->driver_data = info;
 	info->port.tty = tty;
 
@@ -3870,7 +3870,7 @@ rs_open(struct tty_struct *tty, struct file * filp)
 	/*
 	 * If DMA is enabled try to allocate the irq's.
 	 */
-	if (info->port.count == 1) {
+	if (atomic_read(&info->port.count) == 1) {
 		allocated_resources = 1;
 		if (info->dma_in_enabled) {
 			if (request_irq(info->dma_in_irq_nbr,

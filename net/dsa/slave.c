@@ -982,7 +982,7 @@ static void dsa_slave_poll_controller(struct net_device *dev)
 }
 #endif
 
-void dsa_cpu_port_ethtool_init(struct ethtool_ops *ops)
+void dsa_cpu_port_ethtool_init(ethtool_ops_no_const *ops)
 {
 	ops->get_sset_count = dsa_cpu_port_get_sset_count;
 	ops->get_ethtool_stats = dsa_cpu_port_get_ethtool_stats;

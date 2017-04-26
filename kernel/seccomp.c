@@ -654,10 +654,13 @@ static int __seccomp_filter(int this_syscall, const struct seccomp_data *sd,
 }
 #endif
 
-int __secure_computing(const struct seccomp_data *sd)
+int secure_computing(const struct seccomp_data *sd)
 {
 	int mode = current->seccomp.mode;
 	int this_syscall;
+
+	if (likely(!test_thread_flag(TIF_SECCOMP)))
+		return 0;
 
 	if (IS_ENABLED(CONFIG_CHECKPOINT_RESTORE) &&
 	    unlikely(current->ptrace & PT_SUSPEND_SECCOMP))

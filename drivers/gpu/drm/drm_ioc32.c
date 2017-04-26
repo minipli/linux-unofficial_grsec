@@ -458,7 +458,7 @@ static int compat_drm_infobufs(struct file *file, unsigned int cmd,
 	request = compat_alloc_user_space(nbytes);
 	if (!request)
 		return -EFAULT;
-	list = (struct drm_buf_desc *) (request + 1);
+	list = (struct drm_buf_desc __user *) (request + 1);
 
 	if (__put_user(count, &request->count)
 	    || __put_user(list, &request->list))
@@ -519,7 +519,7 @@ static int compat_drm_mapbufs(struct file *file, unsigned int cmd,
 	request = compat_alloc_user_space(nbytes);
 	if (!request)
 		return -EFAULT;
-	list = (struct drm_buf_pub *) (request + 1);
+	list = (struct drm_buf_pub __user *) (request + 1);
 
 	if (__put_user(count, &request->count)
 	    || __put_user(list, &request->list))
@@ -1074,7 +1074,7 @@ static int compat_drm_mode_addfb2(struct file *file, unsigned int cmd,
 }
 #endif
 
-static drm_ioctl_compat_t *drm_compat_ioctls[] = {
+static drm_ioctl_compat_t drm_compat_ioctls[] = {
 	[DRM_IOCTL_NR(DRM_IOCTL_VERSION32)] = compat_drm_version,
 	[DRM_IOCTL_NR(DRM_IOCTL_GET_UNIQUE32)] = compat_drm_getunique,
 	[DRM_IOCTL_NR(DRM_IOCTL_GET_MAP32)] = compat_drm_getmap,
@@ -1123,7 +1123,6 @@ static drm_ioctl_compat_t *drm_compat_ioctls[] = {
 long drm_compat_ioctl(struct file *filp, unsigned int cmd, unsigned long arg)
 {
 	unsigned int nr = DRM_IOCTL_NR(cmd);
-	drm_ioctl_compat_t *fn;
 	int ret;
 
 	/* Assume that ioctls without an explicit compat routine will just
@@ -1133,10 +1132,8 @@ long drm_compat_ioctl(struct file *filp, unsigned int cmd, unsigned long arg)
 	if (nr >= ARRAY_SIZE(drm_compat_ioctls))
 		return drm_ioctl(filp, cmd, arg);
 
-	fn = drm_compat_ioctls[nr];
-
-	if (fn != NULL)
-		ret = (*fn) (filp, cmd, arg);
+	if (drm_compat_ioctls[nr] != NULL)
+		ret = (*drm_compat_ioctls[nr]) (filp, cmd, arg);
 	else
 		ret = drm_ioctl(filp, cmd, arg);
 

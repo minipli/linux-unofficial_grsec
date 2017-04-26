@@ -603,18 +603,6 @@ out:
 	return pc;
 }
 
-/*
- * Don't forget that the stack pointer must be aligned on a 8 bytes
- * boundary for 32-bits ABI and 16 bytes for 64-bits ABI.
- */
-unsigned long arch_align_stack(unsigned long sp)
-{
-	if (!(current->personality & ADDR_NO_RANDOMIZE) && randomize_va_space)
-		sp -= get_random_int() & ~PAGE_MASK;
-
-	return sp & ALMASK;
-}
-
 static void arch_dump_stack(void *info)
 {
 	struct pt_regs *regs;

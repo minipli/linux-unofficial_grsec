@@ -103,7 +103,7 @@ static void qxl_ttm_global_fini(struct qxl_device *qdev)
 	}
 }
 
-static struct vm_operations_struct qxl_ttm_vm_ops;
+static vm_operations_struct_no_const qxl_ttm_vm_ops __read_only;
 static const struct vm_operations_struct *ttm_vm_ops;
 
 static int qxl_ttm_fault(struct vm_area_struct *vma, struct vm_fault *vmf)
@@ -145,8 +145,10 @@ int qxl_mmap(struct file *filp, struct vm_area_struct *vma)
 		return r;
 	if (unlikely(ttm_vm_ops == NULL)) {
 		ttm_vm_ops = vma->vm_ops;
+		pax_open_kernel();
 		qxl_ttm_vm_ops = *ttm_vm_ops;
 		qxl_ttm_vm_ops.fault = &qxl_ttm_fault;
+		pax_close_kernel();
 	}
 	vma->vm_ops = &qxl_ttm_vm_ops;
 	return 0;
@@ -475,25 +477,23 @@ static int qxl_mm_dump_table(struct seq_file *m, void *data)
 static int qxl_ttm_debugfs_init(struct qxl_device *qdev)
 {
 #if defined(CONFIG_DEBUG_FS)
-	static struct drm_info_list qxl_mem_types_list[QXL_DEBUGFS_MEM_TYPES];
-	static char qxl_mem_types_names[QXL_DEBUGFS_MEM_TYPES][32];
-	unsigned i;
+	static struct drm_info_list qxl_mem_types_list[QXL_DEBUGFS_MEM_TYPES] = {
+		{
+			.name = "qxl_mem_mm",
+			.show = &qxl_mm_dump_table,
+		},
+		{
+			.name = "qxl_surf_mm",
+			.show = &qxl_mm_dump_table,
+		}
+	};
 
-	for (i = 0; i < QXL_DEBUGFS_MEM_TYPES; i++) {
-		if (i == 0)
-			sprintf(qxl_mem_types_names[i], "qxl_mem_mm");
-		else
-			sprintf(qxl_mem_types_names[i], "qxl_surf_mm");
-		qxl_mem_types_list[i].name = qxl_mem_types_names[i];
-		qxl_mem_types_list[i].show = &qxl_mm_dump_table;
-		qxl_mem_types_list[i].driver_features = 0;
-		if (i == 0)
-			qxl_mem_types_list[i].data = qdev->mman.bdev.man[TTM_PL_VRAM].priv;
-		else
-			qxl_mem_types_list[i].data = qdev->mman.bdev.man[TTM_PL_PRIV].priv;
+	pax_open_kernel();
+	const_cast(qxl_mem_types_list[0].data) = qdev->mman.bdev.man[TTM_PL_VRAM].priv;
+	const_cast(qxl_mem_types_list[1].data) = qdev->mman.bdev.man[TTM_PL_PRIV].priv;
+	pax_close_kernel();
 
-	}
-	return qxl_debugfs_add_files(qdev, qxl_mem_types_list, i);
+	return qxl_debugfs_add_files(qdev, qxl_mem_types_list, QXL_DEBUGFS_MEM_TYPES);
 #else
 	return 0;
 #endif

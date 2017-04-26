@@ -83,8 +83,8 @@ struct netns_ipv6 {
 	struct fib_rules_ops	*mr6_rules_ops;
 #endif
 #endif
-	atomic_t		dev_addr_genid;
-	atomic_t		fib6_sernum;
+	atomic_unchecked_t	dev_addr_genid;
+	atomic_unchecked_t	fib6_sernum;
 };
 
 #if IS_ENABLED(CONFIG_NF_DEFRAG_IPV6)

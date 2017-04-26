@@ -26,4 +26,4 @@ while [ "$1" != "" ] ; do
 	shift
 done
 
-exec $CC $ARGS
+exec /bin/sh -c "$CC $ARGS $SHELL_GCC_PLUGINS_CFLAGS"

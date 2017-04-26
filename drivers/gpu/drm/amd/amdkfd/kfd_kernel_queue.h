@@ -62,7 +62,7 @@ struct kernel_queue_ops {
 
 	void	(*submit_packet)(struct kernel_queue *kq);
 	void	(*rollback_packet)(struct kernel_queue *kq);
-};
+} __no_const;
 
 struct kernel_queue {
 	struct kernel_queue_ops ops;

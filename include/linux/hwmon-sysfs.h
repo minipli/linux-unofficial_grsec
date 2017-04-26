@@ -25,7 +25,8 @@
 struct sensor_device_attribute{
 	struct device_attribute dev_attr;
 	int index;
-};
+} __do_const;
+typedef struct sensor_device_attribute __no_const sensor_device_attribute_no_const;
 #define to_sensor_dev_attr(_dev_attr) \
 	container_of(_dev_attr, struct sensor_device_attribute, dev_attr)
 
@@ -41,7 +42,8 @@ struct sensor_device_attribute_2 {
 	struct device_attribute dev_attr;
 	u8 index;
 	u8 nr;
-};
+} __do_const;
+typedef struct sensor_device_attribute_2 __no_const sensor_device_attribute_2_no_const;
 #define to_sensor_dev_attr_2(_dev_attr) \
 	container_of(_dev_attr, struct sensor_device_attribute_2, dev_attr)
 

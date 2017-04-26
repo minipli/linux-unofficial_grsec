@@ -236,7 +236,7 @@ static ssize_t tcpprobe_read(struct file *file, char __user *buf,
 		if (cnt + width >= len)
 			break;
 
-		if (copy_to_user(buf + cnt, tbuf, width))
+		if (width > sizeof tbuf || copy_to_user(buf + cnt, tbuf, width))
 			return -EFAULT;
 		cnt += width;
 	}

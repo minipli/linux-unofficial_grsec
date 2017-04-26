@@ -902,7 +902,7 @@ static long long pos_ratio_polynom(unsigned long setpoint,
  *   card's wb_dirty may rush to many times higher than wb_setpoint.
  * - the wb dirty thresh drops quickly due to change of JBOD workload
  */
-static void wb_position_ratio(struct dirty_throttle_control *dtc)
+static void __intentional_overflow(-1) wb_position_ratio(struct dirty_throttle_control *dtc)
 {
 	struct bdi_writeback *wb = dtc->wb;
 	unsigned long write_bw = wb->avg_write_bandwidth;

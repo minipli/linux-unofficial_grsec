@@ -70,6 +70,7 @@
  */
 
 #include <linux/linkage.h>
+#include <asm/alternative-asm.h>
 
 #define	CTX	%rdi	/* arg1 */
 #define BUF	%rsi	/* arg2 */
@@ -671,7 +672,7 @@ _loop3:
 	pop	%rbp
 	pop	%rbx
 
-	ret
+	pax_ret \name
 
 	ENDPROC(\name)
 .endm

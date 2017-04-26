@@ -328,8 +328,8 @@ struct sfw_session {
 	struct list_head sn_batches; /* list of batches */
 	char		 sn_name[LST_NAME_SIZE];
 	atomic_t	 sn_refcount;
-	atomic_t	 sn_brw_errors;
-	atomic_t	 sn_ping_errors;
+	atomic_unchecked_t sn_brw_errors;
+	atomic_unchecked_t sn_ping_errors;
 	unsigned long	 sn_started;
 };
 
@@ -607,13 +607,11 @@ srpc_wait_service_shutdown(struct srpc_service *sv)
 }
 
 extern struct sfw_test_client_ops brw_test_client;
-void brw_init_test_client(void);
 
 extern struct srpc_service brw_test_service;
 void brw_init_test_service(void);
 
 extern struct sfw_test_client_ops ping_test_client;
-void ping_init_test_client(void);
 
 extern struct srpc_service ping_test_service;
 void ping_init_test_service(void);

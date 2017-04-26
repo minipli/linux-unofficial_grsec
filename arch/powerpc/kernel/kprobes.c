@@ -131,6 +131,7 @@ static void __kprobes set_current_kprobe(struct kprobe *p, struct pt_regs *regs,
 	kcb->kprobe_saved_msr = regs->msr;
 }
 
+#ifdef CONFIG_KRETPROBES
 void __kprobes arch_prepare_kretprobe(struct kretprobe_instance *ri,
 				      struct pt_regs *regs)
 {
@@ -139,6 +140,7 @@ void __kprobes arch_prepare_kretprobe(struct kretprobe_instance *ri,
 	/* Replace the return addr with trampoline addr */
 	regs->link = (unsigned long)kretprobe_trampoline;
 }
+#endif
 
 static int __kprobes kprobe_handler(struct pt_regs *regs)
 {
@@ -547,6 +549,7 @@ int __init arch_init_kprobes(void)
 	return register_kprobe(&trampoline_p);
 }
 
+#ifdef CONFIG_KRETPROBES
 int __kprobes arch_trampoline_kprobe(struct kprobe *p)
 {
 	if (p->addr == (kprobe_opcode_t *)&kretprobe_trampoline)
@@ -554,3 +557,4 @@ int __kprobes arch_trampoline_kprobe(struct kprobe *p)
 
 	return 0;
 }
+#endif

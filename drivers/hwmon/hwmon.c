@@ -214,8 +214,8 @@ static struct attribute *hwmon_genattr(struct device *dev,
 				       const struct hwmon_ops *ops)
 {
 	struct hwmon_device_attribute *hattr;
-	struct device_attribute *dattr;
-	struct attribute *a;
+	device_attribute_no_const *dattr;
+	attribute_no_const *a;
 	umode_t mode;
 	char *name;
 

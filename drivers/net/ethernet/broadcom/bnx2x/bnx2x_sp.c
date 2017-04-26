@@ -2576,15 +2576,14 @@ int bnx2x_config_rx_mode(struct bnx2x *bp,
 	return rc;
 }
 
-void bnx2x_init_rx_mode_obj(struct bnx2x *bp,
-			    struct bnx2x_rx_mode_obj *o)
+void bnx2x_init_rx_mode_obj(struct bnx2x *bp)
 {
 	if (CHIP_IS_E1x(bp)) {
-		o->wait_comp      = bnx2x_empty_rx_mode_wait;
-		o->config_rx_mode = bnx2x_set_rx_mode_e1x;
+		bp->rx_mode_obj.wait_comp      = bnx2x_empty_rx_mode_wait;
+		bp->rx_mode_obj.config_rx_mode = bnx2x_set_rx_mode_e1x;
 	} else {
-		o->wait_comp      = bnx2x_wait_rx_mode_comp_e2;
-		o->config_rx_mode = bnx2x_set_rx_mode_e2;
+		bp->rx_mode_obj.wait_comp      = bnx2x_wait_rx_mode_comp_e2;
+		bp->rx_mode_obj.config_rx_mode = bnx2x_set_rx_mode_e2;
 	}
 }
 

@@ -678,7 +678,7 @@ static int qlt_reset(struct scsi_qla_host *vha, void *iocb, int mcmd)
 	loop_id = le16_to_cpu(n->u.isp24.nport_handle);
 	if (loop_id == 0xFFFF) {
 		/* Global event */
-		atomic_inc(&vha->vha_tgt.qla_tgt->tgt_global_resets_count);
+		atomic_inc_unchecked(&vha->vha_tgt.qla_tgt->tgt_global_resets_count);
 		spin_lock_irqsave(&ha->tgt.sess_lock, flags);
 		qlt_clear_tgt_db(vha->vha_tgt.qla_tgt);
 		spin_unlock_irqrestore(&ha->tgt.sess_lock, flags);
@@ -845,8 +845,9 @@ static void qlt_undelete_sess(struct qla_tgt_sess *sess)
 	sess->deleted = 0;
 }
 
-static void qlt_del_sess_work_fn(struct delayed_work *work)
+static void qlt_del_sess_work_fn(struct work_struct *_work)
 {
+	struct delayed_work *work = container_of(_work, struct delayed_work, work);
 	struct qla_tgt *tgt = container_of(work, struct qla_tgt,
 	    sess_del_work);
 	struct scsi_qla_host *vha = tgt->vha;
@@ -5831,7 +5832,7 @@ static struct qla_tgt_sess *qlt_make_local_sess(struct scsi_qla_host *vha,
 
 retry:
 	global_resets =
-	    atomic_read(&vha->vha_tgt.qla_tgt->tgt_global_resets_count);
+	    atomic_read_unchecked(&vha->vha_tgt.qla_tgt->tgt_global_resets_count);
 
 	rc = qla24xx_get_loop_id(vha, s_id, &loop_id);
 	if (rc != 0) {
@@ -5870,12 +5871,12 @@ retry:
 	}
 
 	if (global_resets !=
-	    atomic_read(&vha->vha_tgt.qla_tgt->tgt_global_resets_count)) {
+	    atomic_read_unchecked(&vha->vha_tgt.qla_tgt->tgt_global_resets_count)) {
 		ql_dbg(ql_dbg_tgt_mgt, vha, 0xf043,
 		    "qla_target(%d): global reset during session discovery "
 		    "(counter was %d, new %d), retrying", vha->vp_idx,
 		    global_resets,
-		    atomic_read(&vha->vha_tgt.
+		    atomic_read_unchecked(&vha->vha_tgt.
 			qla_tgt->tgt_global_resets_count));
 		goto retry;
 	}
@@ -6086,8 +6087,7 @@ int qlt_add_target(struct qla_hw_data *ha, struct scsi_qla_host *base_vha)
 	init_waitqueue_head(&tgt->waitQ);
 	INIT_LIST_HEAD(&tgt->sess_list);
 	INIT_LIST_HEAD(&tgt->del_sess_list);
-	INIT_DELAYED_WORK(&tgt->sess_del_work,
-		(void (*)(struct work_struct *))qlt_del_sess_work_fn);
+	INIT_DELAYED_WORK(&tgt->sess_del_work, qlt_del_sess_work_fn);
 	spin_lock_init(&tgt->sess_work_lock);
 	INIT_WORK(&tgt->sess_work, qlt_sess_work_fn);
 	INIT_LIST_HEAD(&tgt->sess_works_list);
@@ -6095,7 +6095,7 @@ int qlt_add_target(struct qla_hw_data *ha, struct scsi_qla_host *base_vha)
 	INIT_LIST_HEAD(&tgt->srr_ctio_list);
 	INIT_LIST_HEAD(&tgt->srr_imm_list);
 	INIT_WORK(&tgt->srr_work, qlt_handle_srr_work);
-	atomic_set(&tgt->tgt_global_resets_count, 0);
+	atomic_set_unchecked(&tgt->tgt_global_resets_count, 0);
 
 	base_vha->vha_tgt.qla_tgt = tgt;
 

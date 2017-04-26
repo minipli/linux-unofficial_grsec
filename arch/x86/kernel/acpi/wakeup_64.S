@@ -6,6 +6,7 @@
 #include <asm/msr.h>
 #include <asm/asm-offsets.h>
 #include <asm/frame.h>
+#include <asm/smap.h>
 
 # Copyright 2003 Pavel Machek <pavel@suse.cz>, distribute under GPLv2
 
@@ -43,7 +44,7 @@ ENTRY(do_suspend_lowlevel)
 	FRAME_BEGIN
 	subq	$8, %rsp
 	xorl	%eax, %eax
-	call	save_processor_state
+	pax_direct_call save_processor_state
 
 	movq	$saved_context, %rax
 	movq	%rsp, pt_regs_sp(%rax)
@@ -75,7 +76,7 @@ ENTRY(do_suspend_lowlevel)
 	addq	$8, %rsp
 	movl	$3, %edi
 	xorl	%eax, %eax
-	call	x86_acpi_enter_sleep_state
+	pax_direct_call x86_acpi_enter_sleep_state
 	/* in case something went wrong, restore the machine status and go on */
 	jmp	.Lresume_point
 
@@ -93,6 +94,7 @@ ENTRY(do_suspend_lowlevel)
 	movq	%rbx, %cr0
 	pushq	pt_regs_flags(%rax)
 	popfq
+	ASM_CLAC
 	movq	pt_regs_sp(%rax), %rsp
 	movq	pt_regs_bp(%rax), %rbp
 	movq	pt_regs_si(%rax), %rsi

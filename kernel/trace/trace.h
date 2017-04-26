@@ -1617,7 +1617,7 @@ void trace_printk_control(bool enabled);
 void trace_printk_init_buffers(void);
 void trace_printk_start_comm(void);
 int trace_keep_overwrite(struct tracer *tracer, u32 mask, int set);
-int set_tracer_flag(struct trace_array *tr, unsigned int mask, int enabled);
+int set_tracer_flag(struct trace_array *tr, unsigned long mask, int enabled);
 
 /*
  * Normal trace_printk() and friends allocates special buffers

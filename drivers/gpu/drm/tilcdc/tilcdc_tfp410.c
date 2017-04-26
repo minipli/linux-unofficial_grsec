@@ -185,7 +185,7 @@ static int tfp410_connector_get_modes(struct drm_connector *connector)
 	return ret;
 }
 
-static int tfp410_connector_mode_valid(struct drm_connector *connector,
+static enum drm_mode_status tfp410_connector_mode_valid(struct drm_connector *connector,
 		  struct drm_display_mode *mode)
 {
 	struct tilcdc_drm_private *priv = connector->dev->dev_private;

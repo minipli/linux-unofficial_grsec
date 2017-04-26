@@ -16123,13 +16123,13 @@ struct intel_quirk {
 	int subsystem_vendor;
 	int subsystem_device;
 	void (*hook)(struct drm_device *dev);
-};
+} __do_const;
 
 /* For systems that don't have a meaningful PCI subdevice/subvendor ID */
 struct intel_dmi_quirk {
 	void (*hook)(struct drm_device *dev);
-	const struct dmi_system_id (*dmi_id_list)[];
-};
+	const struct dmi_system_id *dmi_id_list;
+} __do_const;
 
 static int intel_dmi_reverse_brightness(const struct dmi_system_id *id)
 {
@@ -16137,18 +16137,20 @@ static int intel_dmi_reverse_brightness(const struct dmi_system_id *id)
 	return 1;
 }
 
+static const struct dmi_system_id intel_dmi_quirks_table[] = {
+	{
+		.callback = intel_dmi_reverse_brightness,
+		.ident = "NCR Corporation",
+		.matches = {DMI_MATCH(DMI_SYS_VENDOR, "NCR Corporation"),
+			    DMI_MATCH(DMI_PRODUCT_NAME, ""),
+		},
+	},
+	{ }  /* terminating entry */
+};
+
 static const struct intel_dmi_quirk intel_dmi_quirks[] = {
 	{
-		.dmi_id_list = &(const struct dmi_system_id[]) {
-			{
-				.callback = intel_dmi_reverse_brightness,
-				.ident = "NCR Corporation",
-				.matches = {DMI_MATCH(DMI_SYS_VENDOR, "NCR Corporation"),
-					    DMI_MATCH(DMI_PRODUCT_NAME, ""),
-				},
-			},
-			{ }  /* terminating entry */
-		},
+		.dmi_id_list = intel_dmi_quirks_table,
 		.hook = quirk_invert_brightness,
 	},
 };
@@ -16231,7 +16233,7 @@ static void intel_init_quirks(struct drm_device *dev)
 			q->hook(dev);
 	}
 	for (i = 0; i < ARRAY_SIZE(intel_dmi_quirks); i++) {
-		if (dmi_check_system(*intel_dmi_quirks[i].dmi_id_list) != 0)
+		if (dmi_check_system(intel_dmi_quirks[i].dmi_id_list) != 0)
 			intel_dmi_quirks[i].hook(dev);
 	}
 }

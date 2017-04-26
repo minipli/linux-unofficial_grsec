@@ -54,7 +54,7 @@
 
 #define NUM_PAGES_TO_ALLOC		(PAGE_SIZE/sizeof(struct page *))
 #define SMALL_ALLOCATION		16
-#define FREE_ALL_PAGES			(~0U)
+#define FREE_ALL_PAGES			(~0UL)
 /* times are in msecs */
 #define PAGE_FREE_INTERVAL		1000
 
@@ -299,15 +299,14 @@ static void ttm_pool_update_free_locked(struct ttm_page_pool *pool,
  * @free_all: If set to true will free all pages in pool
  * @use_static: Safe to use static buffer
  **/
-static int ttm_page_pool_free(struct ttm_page_pool *pool, unsigned nr_free,
+static unsigned long ttm_page_pool_free(struct ttm_page_pool *pool, unsigned long nr_free,
 			      bool use_static)
 {
 	static struct page *static_buf[NUM_PAGES_TO_ALLOC];
 	unsigned long irq_flags;
 	struct page *p;
 	struct page **pages_to_free;
-	unsigned freed_pages = 0,
-		 npages_to_free = nr_free;
+	unsigned long freed_pages = 0, npages_to_free = nr_free;
 
 	if (NUM_PAGES_TO_ALLOC < nr_free)
 		npages_to_free = NUM_PAGES_TO_ALLOC;
@@ -371,7 +370,8 @@ restart:
 		__list_del(&p->lru, &pool->list);
 
 		ttm_pool_update_free_locked(pool, freed_pages);
-		nr_free -= freed_pages;
+		if (likely(nr_free != FREE_ALL_PAGES))
+			nr_free -= freed_pages;
 	}
 
 	spin_unlock_irqrestore(&pool->lock, irq_flags);
@@ -399,7 +399,7 @@ ttm_pool_shrink_scan(struct shrinker *shrink, struct shrink_control *sc)
 	unsigned i;
 	unsigned pool_offset;
 	struct ttm_page_pool *pool;
-	int shrink_pages = sc->nr_to_scan;
+	unsigned long shrink_pages = sc->nr_to_scan;
 	unsigned long freed = 0;
 
 	if (!mutex_trylock(&lock))
@@ -407,7 +407,7 @@ ttm_pool_shrink_scan(struct shrinker *shrink, struct shrink_control *sc)
 	pool_offset = ++start_pool % NUM_POOLS;
 	/* select start pool in round robin fashion */
 	for (i = 0; i < NUM_POOLS; ++i) {
-		unsigned nr_free = shrink_pages;
+		unsigned long nr_free = shrink_pages;
 		if (shrink_pages == 0)
 			break;
 		pool = &_manager->pools[(i + pool_offset)%NUM_POOLS];
@@ -673,7 +673,7 @@ out:
 }
 
 /* Put all pages in pages list to correct pool to wait for reuse */
-static void ttm_put_pages(struct page **pages, unsigned npages, int flags,
+static void ttm_put_pages(struct page **pages, unsigned long npages, int flags,
 			  enum ttm_caching_state cstate)
 {
 	unsigned long irq_flags;
@@ -728,7 +728,7 @@ static int ttm_get_pages(struct page **pages, unsigned npages, int flags,
 	struct list_head plist;
 	struct page *p = NULL;
 	gfp_t gfp_flags = GFP_USER;
-	unsigned count;
+	unsigned long count;
 	int r;
 
 	/* set zero flag for page allocation if required */

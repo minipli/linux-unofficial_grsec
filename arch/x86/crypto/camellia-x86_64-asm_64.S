@@ -21,6 +21,7 @@
  */
 
 #include <linux/linkage.h>
+#include <asm/alternative-asm.h>
 
 .file "camellia-x86_64-asm_64.S"
 .text
@@ -228,16 +229,16 @@ ENTRY(__camellia_enc_blk)
 	enc_outunpack(mov, RT1);
 
 	movq RRBP, %rbp;
-	ret;
+	pax_ret __camellia_enc_blk;
 
 .L__enc_xor:
 	enc_outunpack(xor, RT1);
 
 	movq RRBP, %rbp;
-	ret;
+	pax_ret __camellia_enc_blk;
 ENDPROC(__camellia_enc_blk)
 
-ENTRY(camellia_dec_blk)
+RAP_ENTRY(camellia_dec_blk)
 	/* input:
 	 *	%rdi: ctx, CTX
 	 *	%rsi: dst
@@ -272,7 +273,7 @@ ENTRY(camellia_dec_blk)
 	dec_outunpack();
 
 	movq RRBP, %rbp;
-	ret;
+	pax_ret camellia_dec_blk;
 ENDPROC(camellia_dec_blk)
 
 /**********************************************************************
@@ -463,17 +464,17 @@ ENTRY(__camellia_enc_blk_2way)
 
 	movq RRBP, %rbp;
 	popq %rbx;
-	ret;
+	pax_ret __camellia_enc_blk_2way;
 
 .L__enc2_xor:
 	enc_outunpack2(xor, RT2);
 
 	movq RRBP, %rbp;
 	popq %rbx;
-	ret;
+	pax_ret __camellia_enc_blk_2way;
 ENDPROC(__camellia_enc_blk_2way)
 
-ENTRY(camellia_dec_blk_2way)
+RAP_ENTRY(camellia_dec_blk_2way)
 	/* input:
 	 *	%rdi: ctx, CTX
 	 *	%rsi: dst
@@ -510,5 +511,5 @@ ENTRY(camellia_dec_blk_2way)
 
 	movq RRBP, %rbp;
 	movq RXOR, %rbx;
-	ret;
+	pax_ret camellia_dec_blk_2way;
 ENDPROC(camellia_dec_blk_2way)

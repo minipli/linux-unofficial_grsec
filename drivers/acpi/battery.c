@@ -75,7 +75,7 @@ MODULE_PARM_DESC(cache_time, "cache time in milliseconds");
 
 #ifdef CONFIG_ACPI_PROCFS_POWER
 extern struct proc_dir_entry *acpi_lock_battery_dir(void);
-extern void *acpi_unlock_battery_dir(struct proc_dir_entry *acpi_battery_dir);
+extern void acpi_unlock_battery_dir(struct proc_dir_entry *acpi_battery_dir);
 
 enum acpi_battery_files {
 	info_tag = 0,

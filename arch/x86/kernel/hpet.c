@@ -136,7 +136,7 @@ int is_hpet_enabled(void)
 }
 EXPORT_SYMBOL_GPL(is_hpet_enabled);
 
-static void _hpet_print_config(const char *function, int line)
+static void __nocapture(1) _hpet_print_config(const char *function, int line)
 {
 	u32 i, timers, l, h;
 	printk(KERN_INFO "hpet: %s(%d):\n", function, line);
@@ -593,7 +593,7 @@ static void init_one_hpet_msi_clockevent(struct hpet_dev *hdev, int cpu)
 #define RESERVE_TIMERS 0
 #endif
 
-static void hpet_msi_capability_lookup(unsigned int start_timer)
+static __init void hpet_msi_capability_lookup(unsigned int start_timer)
 {
 	unsigned int id;
 	unsigned int num_timers;

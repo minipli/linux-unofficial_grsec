@@ -264,6 +264,12 @@ static int v253_hangup(struct tty_struct *tty)
 	return 0;
 }
 
+static int v253_hw_write(void *client, const char *buf, int count)
+{
+	struct tty_struct *tty = client;
+	return tty->ops->write(client, buf, count);
+}
+
 /* Line discipline .receive_buf() */
 static void v253_receive(struct tty_struct *tty,
 				const unsigned char *cp, char *fp, int count)
@@ -281,7 +287,7 @@ static void v253_receive(struct tty_struct *tty,
 
 		/* Set up codec driver access to modem controls */
 		cx20442->control_data = tty;
-		codec->hw_write = (hw_write_t)tty->ops->write;
+		codec->hw_write = v253_hw_write;
 		codec->component.card->pop_time = 1;
 	}
 }

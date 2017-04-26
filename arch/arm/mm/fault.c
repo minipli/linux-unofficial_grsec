@@ -25,6 +25,7 @@
 #include <asm/system_misc.h>
 #include <asm/system_info.h>
 #include <asm/tlbflush.h>
+#include <asm/sections.h>
 
 #include "fault.h"
 
@@ -138,6 +139,31 @@ __do_kernel_fault(struct mm_struct *mm, unsigned long addr, unsigned int fsr,
 	if (fixup_exception(regs))
 		return;
 
+#ifdef CONFIG_PAX_MEMORY_UDEREF
+	if (addr < TASK_SIZE) {
+		if (current->signal->curr_ip)
+			printk(KERN_EMERG "PAX: From %pI4: %s:%d, uid/euid: %u/%u, attempted to access userland memory at %08lx\n", &current->signal->curr_ip, current->comm, task_pid_nr(current),
+					from_kuid_munged(&init_user_ns, current_uid()), from_kuid_munged(&init_user_ns, current_euid()), addr);
+		else
+			printk(KERN_EMERG "PAX: %s:%d, uid/euid: %u/%u, attempted to access userland memory at %08lx\n", current->comm, task_pid_nr(current),
+					from_kuid_munged(&init_user_ns, current_uid()), from_kuid_munged(&init_user_ns, current_euid()), addr);
+	}
+#endif
+
+#ifdef CONFIG_PAX_KERNEXEC
+	if ((fsr & FSR_WRITE) &&
+	    (((unsigned long)_stext <= addr && addr < init_mm.end_code) ||
+	     (MODULES_VADDR <= addr && addr < MODULES_END)))
+	{
+		if (current->signal->curr_ip)
+			printk(KERN_EMERG "PAX: From %pI4: %s:%d, uid/euid: %u/%u, attempted to modify kernel code\n", &current->signal->curr_ip, current->comm, task_pid_nr(current),
+					from_kuid_munged(&init_user_ns, current_uid()), from_kuid_munged(&init_user_ns, current_euid()));
+		else
+			printk(KERN_EMERG "PAX: %s:%d, uid/euid: %u/%u, attempted to modify kernel code\n", current->comm, task_pid_nr(current),
+					from_kuid_munged(&init_user_ns, current_uid()), from_kuid_munged(&init_user_ns, current_euid()));
+	}
+#endif
+
 	/*
 	 * No handler, we'll have to terminate things with extreme prejudice.
 	 */
@@ -170,6 +196,13 @@ __do_user_fault(struct task_struct *tsk, unsigned long addr,
 		       tsk->comm, sig, addr, fsr);
 		show_pte(tsk->mm, addr);
 		show_regs(regs);
+	}
+#endif
+
+#ifdef CONFIG_PAX_PAGEEXEC
+	if ((tsk->mm->pax_flags & MF_PAX_PAGEEXEC) && (fsr & FSR_LNX_PF)) {
+		pax_report_fault(regs, (void *)regs->ARM_pc, (void *)regs->ARM_sp);
+		do_group_exit(SIGKILL);
 	}
 #endif
 
@@ -400,6 +433,33 @@ do_page_fault(unsigned long addr, unsigned int fsr, struct pt_regs *regs)
 }
 #endif					/* CONFIG_MMU */
 
+#ifdef CONFIG_PAX_PAGEEXEC
+void pax_report_insns(struct pt_regs *regs, void *pc, void *sp)
+{
+	long i;
+
+	printk(KERN_ERR "PAX: bytes at PC: ");
+	for (i = 0; i < 20; i++) {
+		unsigned char c;
+		if (get_user(c, (__force unsigned char __user *)pc+i))
+			printk(KERN_CONT "?? ");
+		else
+			printk(KERN_CONT "%02x ", c);
+	}
+	printk("\n");
+
+	printk(KERN_ERR "PAX: bytes at SP-4: ");
+	for (i = -1; i < 20; i++) {
+		unsigned long c;
+		if (get_user(c, (__force unsigned long __user *)sp+i))
+			printk(KERN_CONT "???????? ");
+		else
+			printk(KERN_CONT "%08lx ", c);
+	}
+	printk("\n");
+}
+#endif
+
 /*
  * First Level Translation Fault Handler
  *
@@ -547,9 +607,22 @@ do_DataAbort(unsigned long addr, unsigned int fsr, struct pt_regs *regs)
 	const struct fsr_info *inf = fsr_info + fsr_fs(fsr);
 	struct siginfo info;
 
+#ifdef CONFIG_PAX_MEMORY_UDEREF
+	if (addr < TASK_SIZE && is_domain_fault(fsr)) {
+		if (current->signal->curr_ip)
+			printk(KERN_EMERG "PAX: From %pI4: %s:%d, uid/euid: %u/%u, attempted to access userland memory at %08lx\n", &current->signal->curr_ip, current->comm, task_pid_nr(current),
+					from_kuid_munged(&init_user_ns, current_uid()), from_kuid_munged(&init_user_ns, current_euid()), addr);
+		else
+			printk(KERN_EMERG "PAX: %s:%d, uid/euid: %u/%u, attempted to access userland memory at %08lx\n", current->comm, task_pid_nr(current),
+					from_kuid_munged(&init_user_ns, current_uid()), from_kuid_munged(&init_user_ns, current_euid()), addr);
+		goto die;
+	}
+#endif
+
 	if (!inf->fn(addr, fsr & ~FSR_LNX_PF, regs))
 		return;
 
+die:
 	pr_alert("Unhandled fault: %s (0x%03x) at 0x%08lx\n",
 		inf->name, fsr, addr);
 	show_pte(current->mm, addr);
@@ -574,15 +647,118 @@ hook_ifault_code(int nr, int (*fn)(unsigned long, unsigned int, struct pt_regs *
 	ifsr_info[nr].name = name;
 }
 
+asmlinkage int sys_sigreturn(struct pt_regs *regs);
+asmlinkage int sys_rt_sigreturn(struct pt_regs *regs);
+
 asmlinkage void __exception
 do_PrefetchAbort(unsigned long addr, unsigned int ifsr, struct pt_regs *regs)
 {
 	const struct fsr_info *inf = ifsr_info + fsr_fs(ifsr);
 	struct siginfo info;
+	unsigned long pc = instruction_pointer(regs);
+
+	if (user_mode(regs)) {
+		unsigned long sigpage = current->mm->context.sigpage;
+
+		if (sigpage <= pc && pc < sigpage + 7*4) {
+			if (pc < sigpage + 3*4)
+				sys_sigreturn(regs);
+			else
+				sys_rt_sigreturn(regs);
+			return;
+		}
+		if (pc == 0xffff0f60UL) {
+			/*
+			 * PaX: __kuser_cmpxchg64 emulation
+			 */
+			// TODO
+			//regs->ARM_pc = regs->ARM_lr;
+			//return;
+		}
+		if (pc == 0xffff0fa0UL) {
+			/*
+			 * PaX: __kuser_memory_barrier emulation
+			 */
+			// dmb(); implied by the exception
+			regs->ARM_pc = regs->ARM_lr;
+#ifdef CONFIG_ARM_THUMB
+			if (regs->ARM_lr & 1) {
+				regs->ARM_cpsr |= PSR_T_BIT;
+				regs->ARM_pc &= ~0x1U;
+			} else
+				regs->ARM_cpsr &= ~PSR_T_BIT;
+#endif
+			return;
+		}
+		if (pc == 0xffff0fc0UL) {
+			/*
+			 * PaX: __kuser_cmpxchg emulation
+			 */
+			// TODO
+			//long new;
+			//int op;
+
+			//op = FUTEX_OP_SET << 28;
+			//new = futex_atomic_op_inuser(op, regs->ARM_r2);
+			//regs->ARM_r0 = old != new;
+			//regs->ARM_pc = regs->ARM_lr;
+			//return;
+		}
+		if (pc == 0xffff0fe0UL) {
+			/*
+			 * PaX: __kuser_get_tls emulation
+			 */
+			regs->ARM_r0 = current_thread_info()->tp_value[0];
+			regs->ARM_pc = regs->ARM_lr;
+#ifdef CONFIG_ARM_THUMB
+			if (regs->ARM_lr & 1) {
+				regs->ARM_cpsr |= PSR_T_BIT;
+				regs->ARM_pc &= ~0x1U;
+			} else
+				regs->ARM_cpsr &= ~PSR_T_BIT;
+#endif
+			return;
+		}
+	}
+
+#if defined(CONFIG_PAX_KERNEXEC) || defined(CONFIG_PAX_MEMORY_UDEREF)
+	else if (is_domain_fault(ifsr) || is_xn_fault(ifsr)) {
+		if (current->signal->curr_ip)
+			printk(KERN_EMERG "PAX: From %pI4: %s:%d, uid/euid: %u/%u, attempted to execute %s memory at %08lx\n", &current->signal->curr_ip, current->comm, task_pid_nr(current),
+					from_kuid_munged(&init_user_ns, current_uid()), from_kuid_munged(&init_user_ns, current_euid()),
+					pc >= TASK_SIZE ? "non-executable kernel" : "userland", pc);
+		else
+			printk(KERN_EMERG "PAX: %s:%d, uid/euid: %u/%u, attempted to execute %s memory at %08lx\n", current->comm, task_pid_nr(current),
+					from_kuid_munged(&init_user_ns, current_uid()), from_kuid_munged(&init_user_ns, current_euid()),
+					pc >= TASK_SIZE ? "non-executable kernel" : "userland", pc);
+		goto die;
+	}
+#endif
+
+#ifdef CONFIG_PAX_REFCOUNT
+	if (fsr_fs(ifsr) == FAULT_CODE_DEBUG) {
+#ifdef CONFIG_THUMB2_KERNEL
+		unsigned short bkpt;
+
+		if (!probe_kernel_address((const unsigned short *)pc, bkpt) && cpu_to_le16(bkpt) == 0xbef1) {
+#else
+		unsigned int bkpt;
+
+		if (!probe_kernel_address((const unsigned int *)pc, bkpt) && cpu_to_le32(bkpt) == 0xe12f1073) {
+#endif
+			current->thread.error_code = ifsr;
+			current->thread.trap_no = 0;
+			pax_report_refcount_error(regs, NULL);
+			fixup_exception(regs);
+			return;
+		}
+	}
+#endif
 
 	if (!inf->fn(addr, ifsr | FSR_LNX_PF, regs))
 		return;
 
+die:
 	pr_alert("Unhandled prefetch abort: %s (0x%03x) at 0x%08lx\n",
 		inf->name, ifsr, addr);
 

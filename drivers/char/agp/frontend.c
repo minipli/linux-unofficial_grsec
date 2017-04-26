@@ -806,7 +806,7 @@ static int agpioc_reserve_wrap(struct agp_file_private *priv, void __user *arg)
 	if (copy_from_user(&reserve, arg, sizeof(struct agp_region)))
 		return -EFAULT;
 
-	if ((unsigned) reserve.seg_count >= ~0U/sizeof(struct agp_segment))
+	if ((unsigned) reserve.seg_count >= ~0U/sizeof(struct agp_segment_priv))
 		return -EFAULT;
 
 	client = agp_find_client_by_pid(reserve.pid);
@@ -836,7 +836,7 @@ static int agpioc_reserve_wrap(struct agp_file_private *priv, void __user *arg)
 		if (segment == NULL)
 			return -ENOMEM;
 
-		if (copy_from_user(segment, (void __user *) reserve.seg_list,
+		if (copy_from_user(segment, (void __force_user *) reserve.seg_list,
 				   sizeof(struct agp_segment) * reserve.seg_count)) {
 			kfree(segment);
 			return -EFAULT;

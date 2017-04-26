@@ -7,12 +7,13 @@
  */
 
 #include <linux/linkage.h>
+#include <linux/init.h>
 
 #include <asm/irq_vectors.h>
 #include <asm/page_types.h>
 #include <asm/unistd_64.h>
 
-__PAGE_ALIGNED_DATA
+	__READ_ONLY
 	.globl __vsyscall_page
 	.balign PAGE_SIZE, 0xcc
 	.type __vsyscall_page, @object

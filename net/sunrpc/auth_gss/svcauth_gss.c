@@ -1149,7 +1149,7 @@ static int gss_proxy_save_rsc(struct cache_detail *cd,
 				uint64_t *handle)
 {
 	struct rsc rsci, *rscp = NULL;
-	static atomic64_t ctxhctr;
+	static atomic64_unchecked_t ctxhctr = ATOMIC64_INIT(0);
 	long long ctxh;
 	struct gss_api_mech *gm = NULL;
 	time_t expiry;
@@ -1160,7 +1160,7 @@ static int gss_proxy_save_rsc(struct cache_detail *cd,
 	status = -ENOMEM;
 	/* the handle needs to be just a unique id,
 	 * use a static counter */
-	ctxh = atomic64_inc_return(&ctxhctr);
+	ctxh = atomic64_inc_return_unchecked(&ctxhctr);
 
 	/* make a copy for the caller */
 	*handle = ctxh;

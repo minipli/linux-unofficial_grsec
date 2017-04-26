@@ -1359,7 +1359,7 @@ int i2400m_rx_setup(struct i2400m *i2400m)
 		if (i2400m->rx_roq == NULL)
 			goto error_roq_alloc;
 
-		rd = kcalloc(I2400M_RO_CIN + 1, sizeof(*i2400m->rx_roq[0].log),
+		rd = kcalloc(sizeof(*i2400m->rx_roq[0].log), I2400M_RO_CIN + 1,
 			     GFP_KERNEL);
 		if (rd == NULL) {
 			result = -ENOMEM;

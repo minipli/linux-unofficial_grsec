@@ -289,7 +289,7 @@ int __init ipx_proc_init(void)
 	struct proc_dir_entry *p;
 	int rc = -ENOMEM;
 
-	ipx_proc_dir = proc_mkdir("ipx", init_net.proc_net);
+	ipx_proc_dir = proc_mkdir_restrict("ipx", init_net.proc_net);
 
 	if (!ipx_proc_dir)
 		goto out;

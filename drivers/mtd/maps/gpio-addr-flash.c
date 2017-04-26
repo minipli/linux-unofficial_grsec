@@ -128,7 +128,7 @@ static void gf_copy_from(struct map_info *map, void *to, unsigned long from, ssi
  *	@map: MTD map state
  *	@ofs: desired offset to write
  */
-static void gf_write(struct map_info *map, map_word d1, unsigned long ofs)
+static void gf_write(struct map_info *map, const map_word d1, unsigned long ofs)
 {
 	struct async_state *state = gf_map_info_to_state(map);
 	uint16_t d;

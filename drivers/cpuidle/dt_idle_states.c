@@ -21,7 +21,7 @@
 
 #include "dt_idle_states.h"
 
-static int init_state_node(struct cpuidle_state *idle_state,
+static int init_state_node(cpuidle_state_no_const *idle_state,
 			   const struct of_device_id *matches,
 			   struct device_node *state_node)
 {

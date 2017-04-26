@@ -43,7 +43,7 @@ int nf_register_sockopt(struct nf_sockopt_ops *reg)
 		}
 	}
 
-	list_add(&reg->list, &nf_sockopts);
+	pax_list_add((struct list_head *)&reg->list, &nf_sockopts);
 out:
 	mutex_unlock(&nf_sockopt_mutex);
 	return ret;
@@ -53,7 +53,7 @@ EXPORT_SYMBOL(nf_register_sockopt);
 void nf_unregister_sockopt(struct nf_sockopt_ops *reg)
 {
 	mutex_lock(&nf_sockopt_mutex);
-	list_del(&reg->list);
+	pax_list_del((struct list_head *)&reg->list);
 	mutex_unlock(&nf_sockopt_mutex);
 }
 EXPORT_SYMBOL(nf_unregister_sockopt);

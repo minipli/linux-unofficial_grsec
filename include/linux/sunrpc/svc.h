@@ -426,7 +426,7 @@ struct svc_procedure {
 	unsigned int		pc_count;	/* call count */
 	unsigned int		pc_cachetype;	/* cache info (NFS) */
 	unsigned int		pc_xdrressize;	/* maximum size of XDR reply */
-};
+} __do_const;
 
 /*
  * Mode for mapping cpus to pools.

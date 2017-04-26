@@ -169,15 +169,18 @@ do {						\
  * stack by default, so in the absence of a PT_GNU_STACK program header
  * we turn execute permission off.
  */
-#define VM_STACK_DEFAULT_FLAGS32	(VM_READ | VM_WRITE | VM_EXEC | \
-					 VM_MAYREAD | VM_MAYWRITE | VM_MAYEXEC)
+#define VM_STACK_DEFAULT_FLAGS32 \
+	(((current->personality & READ_IMPLIES_EXEC) ? VM_EXEC : 0) | \
+	 VM_READ | VM_WRITE | VM_MAYREAD | VM_MAYWRITE | VM_MAYEXEC)
 
 #define VM_STACK_DEFAULT_FLAGS64	(VM_READ | VM_WRITE | \
 					 VM_MAYREAD | VM_MAYWRITE | VM_MAYEXEC)
 
+#ifndef CONFIG_PAX_PAGEEXEC
 #define VM_STACK_DEFAULT_FLAGS \
 	(is_32bit_task() ? \
 	 VM_STACK_DEFAULT_FLAGS32 : VM_STACK_DEFAULT_FLAGS64)
+#endif
 
 #include <asm-generic/getorder.h>
 

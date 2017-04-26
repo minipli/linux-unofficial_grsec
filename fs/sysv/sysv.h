@@ -187,7 +187,7 @@ static inline u32 PDP_swab(u32 x)
 #endif
 }
 
-static inline __u32 fs32_to_cpu(struct sysv_sb_info *sbi, __fs32 n)
+static inline __u32 __intentional_overflow(-1) fs32_to_cpu(struct sysv_sb_info *sbi, __fs32 n)
 {
 	if (sbi->s_bytesex == BYTESEX_PDP)
 		return PDP_swab((__force __u32)n);

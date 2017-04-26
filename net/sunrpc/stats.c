@@ -290,7 +290,7 @@ int rpc_proc_init(struct net *net)
 
 	dprintk("RPC:       registering /proc/net/rpc\n");
 	sn = net_generic(net, sunrpc_net_id);
-	sn->proc_net_rpc = proc_mkdir("rpc", net->proc_net);
+	sn->proc_net_rpc = proc_mkdir_restrict("rpc", net->proc_net);
 	if (sn->proc_net_rpc == NULL)
 		return -ENOMEM;
 

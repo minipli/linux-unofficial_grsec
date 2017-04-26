@@ -37,7 +37,7 @@ struct bfa_iotag_s {
 
 struct bfa_itn_s {
 	bfa_isr_func_t isr;
-};
+} __no_const;
 
 void bfa_itn_create(struct bfa_s *bfa, struct bfa_rport_s *rport,
 		void (*isr)(struct bfa_s *bfa, struct bfi_msg_s *m));
@@ -165,9 +165,11 @@ struct bfa_fcp_mod_s {
 /*
  * BFA IO (initiator mode)
  */
+enum bfa_ioim_event;
+
 struct bfa_ioim_s {
 	struct list_head	qe;		/*  queue elememt	*/
-	bfa_sm_t		sm;		/*  BFA ioim state machine */
+	void (*sm)(struct bfa_ioim_s *, enum bfa_ioim_event);/*  BFA ioim state machine */
 	struct bfa_s		*bfa;		/*  BFA module	*/
 	struct bfa_fcpim_s	*fcpim;		/*  parent fcpim module */
 	struct bfa_itnim_s	*itnim;		/*  i-t-n nexus for this IO  */
@@ -197,9 +199,11 @@ struct bfa_ioim_sp_s {
 /*
  * BFA Task management command (initiator mode)
  */
+enum bfa_tskim_event;
+
 struct bfa_tskim_s {
 	struct list_head	qe;
-	bfa_sm_t		sm;
+	void (*sm)(struct bfa_tskim_s *, enum bfa_tskim_event);
 	struct bfa_s		*bfa;	/*  BFA module  */
 	struct bfa_fcpim_s	*fcpim;	/*  parent fcpim module	*/
 	struct bfa_itnim_s	*itnim;	/*  i-t-n nexus for this IO  */
@@ -219,9 +223,11 @@ struct bfa_tskim_s {
 /*
  * BFA i-t-n (initiator mode)
  */
+enum bfa_itnim_event;
+
 struct bfa_itnim_s {
 	struct list_head	qe;	/*  queue element	*/
-	bfa_sm_t		sm;	/*  i-t-n im BFA state machine  */
+	void (*sm)(struct bfa_itnim_s *, enum bfa_itnim_event);/*  i-t-n im BFA state machine  */
 	struct bfa_s		*bfa;	/*  bfa instance	*/
 	struct bfa_rport_s	*rport;	/*  bfa rport	*/
 	void			*ditn;	/*  driver i-t-n structure	*/

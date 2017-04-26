@@ -4908,7 +4908,7 @@ int ata_sas_port_init(struct ata_port *ap)
 
 	if (rc)
 		return rc;
-	ap->print_id = atomic_inc_return(&ata_print_id);
+	ap->print_id = atomic_inc_return_unchecked(&ata_print_id);
 	return 0;
 }
 EXPORT_SYMBOL_GPL(ata_sas_port_init);

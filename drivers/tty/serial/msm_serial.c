@@ -1726,7 +1726,7 @@ static struct uart_driver msm_uart_driver = {
 	.cons = MSM_CONSOLE,
 };
 
-static atomic_t msm_uart_next_id = ATOMIC_INIT(0);
+static atomic_unchecked_t msm_uart_next_id = ATOMIC_INIT(0);
 
 static const struct of_device_id msm_uartdm_table[] = {
 	{ .compatible = "qcom,msm-uartdm-v1.1", .data = (void *)UARTDM_1P1 },
@@ -1750,7 +1750,7 @@ static int msm_serial_probe(struct platform_device *pdev)
 		line = pdev->id;
 
 	if (line < 0)
-		line = atomic_inc_return(&msm_uart_next_id) - 1;
+		line = atomic_inc_return_unchecked(&msm_uart_next_id) - 1;
 
 	if (unlikely(line < 0 || line >= UART_NR))
 		return -ENXIO;

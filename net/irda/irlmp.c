@@ -125,6 +125,11 @@ int __init irlmp_init(void)
  *    Remove IrLMP layer
  *
  */
+void irlmp_kfree(void *arg)
+{
+	kfree(arg);
+}
+
 void irlmp_cleanup(void)
 {
 	/* Check for main structure */
@@ -133,11 +138,11 @@ void irlmp_cleanup(void)
 
 	del_timer(&irlmp->discovery_timer);
 
-	hashbin_delete(irlmp->links, (FREE_FUNC) kfree);
-	hashbin_delete(irlmp->unconnected_lsaps, (FREE_FUNC) kfree);
-	hashbin_delete(irlmp->clients, (FREE_FUNC) kfree);
-	hashbin_delete(irlmp->services, (FREE_FUNC) kfree);
-	hashbin_delete(irlmp->cachelog, (FREE_FUNC) kfree);
+	hashbin_delete(irlmp->links, irlmp_kfree);
+	hashbin_delete(irlmp->unconnected_lsaps, irlmp_kfree);
+	hashbin_delete(irlmp->clients, irlmp_kfree);
+	hashbin_delete(irlmp->services, irlmp_kfree);
+	hashbin_delete(irlmp->cachelog, irlmp_kfree);
 
 	/* De-allocate main structure */
 	kfree(irlmp);
@@ -204,8 +209,10 @@ EXPORT_SYMBOL(irlmp_open_lsap);
  *
  *    Remove an instance of LSAP
  */
-static void __irlmp_close_lsap(struct lsap_cb *self)
+static void __irlmp_close_lsap(void *_self)
 {
+	struct lsap_cb *self = _self;
+
 	IRDA_ASSERT(self != NULL, return;);
 	IRDA_ASSERT(self->magic == LMP_LSAP_MAGIC, return;);
 
@@ -354,7 +361,7 @@ void irlmp_unregister_link(__u32 saddr)
 		/* Final cleanup */
 		del_timer(&link->idle_timer);
 		link->magic = 0;
-		hashbin_delete(link->lsaps, (FREE_FUNC) __irlmp_close_lsap);
+		hashbin_delete(link->lsaps, __irlmp_close_lsap);
 		kfree(link);
 	}
 }

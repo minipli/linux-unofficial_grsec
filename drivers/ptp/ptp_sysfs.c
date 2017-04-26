@@ -280,7 +280,7 @@ static int ptp_populate_pins(struct ptp_clock *ptp)
 		goto no_pin_attr;
 
 	for (i = 0; i < n_pins; i++) {
-		struct device_attribute *da = &ptp->pin_dev_attr[i];
+		device_attribute_no_const *da = &ptp->pin_dev_attr[i];
 		sysfs_attr_init(&da->attr);
 		da->attr.name = info->pin_config[i].name;
 		da->attr.mode = 0644;

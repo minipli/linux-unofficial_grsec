@@ -297,7 +297,7 @@ struct lis3lv02d {
 	struct input_polled_dev	*idev;     /* input device */
 	struct platform_device	*pdev;     /* platform device */
 	struct regulator_bulk_data regulators[2];
-	atomic_t		count;     /* interrupt count after last read */
+	atomic_unchecked_t	count;     /* interrupt count after last read */
 	union axis_conversion	ac;        /* hw -> logical axis */
 	int			mapped_btns[3];
 

@@ -193,7 +193,7 @@ static int mpx_insn_decode(struct insn *insn,
 	 */
 	if (!nr_copied)
 		return -EFAULT;
-	insn_init(insn, buf, nr_copied, x86_64);
+	insn_init(insn, (void *)ktva_ktla((unsigned long)buf), nr_copied, x86_64);
 	insn_get_length(insn);
 	/*
 	 * copy_from_user() tries to get as many bytes as we could see in
@@ -293,11 +293,11 @@ siginfo_t *mpx_generate_siginfo(struct pt_regs *regs)
 	 * We were not able to extract an address from the instruction,
 	 * probably because there was something invalid in it.
 	 */
-	if (info->si_addr == (void *)-1) {
+	if (info->si_addr == (void __user *)-1) {
 		err = -EINVAL;
 		goto err_out;
 	}
-	trace_mpx_bounds_register_exception(info->si_addr, bndreg);
+	trace_mpx_bounds_register_exception((void __force_kernel *)info->si_addr, bndreg);
 	return info;
 err_out:
 	/* info might be NULL, but kfree() handles that */

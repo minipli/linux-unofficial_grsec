@@ -1654,6 +1654,8 @@ isdn_ioctl(struct file *file, uint cmd, ulong arg)
 			} else
 				return -EINVAL;
 		case IIOCDBGVAR:
+			if (!capable(CAP_SYS_RAWIO))
+				return -EPERM;
 			if (arg) {
 				if (copy_to_user(argp, &dev, sizeof(ulong)))
 					return -EFAULT;

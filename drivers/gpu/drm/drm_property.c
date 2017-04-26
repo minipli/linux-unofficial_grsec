@@ -493,7 +493,7 @@ int drm_mode_getproperty_ioctl(struct drm_device *dev,
 					goto done;
 				}
 
-				if (copy_to_user(&enum_ptr[copied].name,
+				if (copy_to_user(enum_ptr[copied].name,
 						 &prop_enum->name, DRM_PROP_NAME_LEN)) {
 					ret = -EFAULT;
 					goto done;

@@ -306,7 +306,7 @@ static int add_template(struct sw842_param *p, u8 c)
 	}
 
 	if (sw842_template_counts)
-		atomic_inc(&template_count[t[4]]);
+		atomic_inc_unchecked(&template_count[t[4]]);
 
 	return 0;
 }
@@ -328,7 +328,7 @@ static int add_repeat_template(struct sw842_param *p, u8 r)
 		return ret;
 
 	if (sw842_template_counts)
-		atomic_inc(&template_repeat_count);
+		atomic_inc_unchecked(&template_repeat_count);
 
 	return 0;
 }
@@ -355,7 +355,7 @@ static int add_short_data_template(struct sw842_param *p, u8 b)
 	}
 
 	if (sw842_template_counts)
-		atomic_inc(&template_short_data_count);
+		atomic_inc_unchecked(&template_short_data_count);
 
 	return 0;
 }
@@ -368,7 +368,7 @@ static int add_zeros_template(struct sw842_param *p)
 		return ret;
 
 	if (sw842_template_counts)
-		atomic_inc(&template_zeros_count);
+		atomic_inc_unchecked(&template_zeros_count);
 
 	return 0;
 }
@@ -381,7 +381,7 @@ static int add_end_template(struct sw842_param *p)
 		return ret;
 
 	if (sw842_template_counts)
-		atomic_inc(&template_end_count);
+		atomic_inc_unchecked(&template_end_count);
 
 	return 0;
 }

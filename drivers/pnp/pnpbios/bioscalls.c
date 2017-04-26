@@ -59,7 +59,7 @@ do { \
 	set_desc_limit(&gdt[(selname) >> 3], (size) - 1); \
 } while(0)
 
-static struct desc_struct bad_bios_desc = GDT_ENTRY_INIT(0x4092,
+static const struct desc_struct bad_bios_desc = GDT_ENTRY_INIT(0x4093,
 			(unsigned long)__va(0x400UL), PAGE_SIZE - 0x400 - 1);
 
 /*
@@ -96,7 +96,10 @@ static inline u16 call_pnp_bios(u16 func, u16 arg1, u16 arg2, u16 arg3,
 
 	cpu = get_cpu();
 	save_desc_40 = get_cpu_gdt_table(cpu)[0x40 / 8];
+
+	pax_open_kernel();
 	get_cpu_gdt_table(cpu)[0x40 / 8] = bad_bios_desc;
+	pax_close_kernel();
 
 	/* On some boxes IRQ's during PnP BIOS calls are deadly.  */
 	spin_lock_irqsave(&pnp_bios_lock, flags);
@@ -134,7 +137,10 @@ static inline u16 call_pnp_bios(u16 func, u16 arg1, u16 arg2, u16 arg3,
 			     :"memory");
 	spin_unlock_irqrestore(&pnp_bios_lock, flags);
 
+	pax_open_kernel();
 	get_cpu_gdt_table(cpu)[0x40 / 8] = save_desc_40;
+	pax_close_kernel();
+
 	put_cpu();
 
 	/* If we get here and this is set then the PnP BIOS faulted on us. */
@@ -468,13 +474,15 @@ int pnp_bios_read_escd(char *data, u32 nvram_base)
 	return status;
 }
 
-void pnpbios_calls_init(union pnp_bios_install_struct *header)
+void __init pnpbios_calls_init(union pnp_bios_install_struct *header)
 {
 	int i;
 
 	spin_lock_init(&pnp_bios_lock);
 	pnp_bios_callpoint.offset = header->fields.pm16offset;
 	pnp_bios_callpoint.segment = PNP_CS16;
+
+	pax_open_kernel();
 
 	for_each_possible_cpu(i) {
 		struct desc_struct *gdt = get_cpu_gdt_table(i);
@@ -487,4 +495,6 @@ void pnpbios_calls_init(union pnp_bios_install_struct *header)
 		set_desc_base(&gdt[GDT_ENTRY_PNPBIOS_DS],
 			 (unsigned long)__va(header->fields.pm16dseg));
 	}
+
+	pax_close_kernel();
 }

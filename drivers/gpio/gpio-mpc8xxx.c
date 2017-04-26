@@ -21,6 +21,7 @@
 #include <linux/slab.h>
 #include <linux/irq.h>
 #include <linux/gpio/driver.h>
+#include <asm/pgtable.h>
 
 #define MPC8XXX_GPIO_PINS	32
 
@@ -226,7 +227,7 @@ static int mpc512x_irq_set_type(struct irq_data *d, unsigned int flow_type)
 	return 0;
 }
 
-static struct irq_chip mpc8xxx_irq_chip = {
+static irq_chip_no_const mpc8xxx_irq_chip __read_only = {
 	.name		= "mpc8xxx-gpio",
 	.irq_unmask	= mpc8xxx_irq_unmask,
 	.irq_mask	= mpc8xxx_irq_mask,
@@ -337,7 +338,9 @@ static int mpc8xxx_probe(struct platform_device *pdev)
 	 * It's assumed that only a single type of gpio controller is available
 	 * on the current machine, so overwriting global data is fine.
 	 */
-	mpc8xxx_irq_chip.irq_set_type = devtype->irq_set_type;
+	pax_open_kernel();
+	const_cast(mpc8xxx_irq_chip.irq_set_type) = devtype->irq_set_type;
+	pax_close_kernel();
 
 	if (devtype->gpio_dir_out)
 		gc->direction_output = devtype->gpio_dir_out;

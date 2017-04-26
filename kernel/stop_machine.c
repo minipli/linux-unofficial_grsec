@@ -524,7 +524,7 @@ void stop_machine_unpark(int cpu)
 	kthread_unpark(stopper->thread);
 }
 
-static struct smp_hotplug_thread cpu_stop_threads = {
+static struct smp_hotplug_thread cpu_stop_threads __read_only = {
 	.store			= &cpu_stopper.thread,
 	.thread_should_run	= cpu_stop_should_run,
 	.thread_fn		= cpu_stopper_thread,

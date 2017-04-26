@@ -22,7 +22,7 @@ ENTRY(clear_page)
 	movl $4096/8,%ecx
 	xorl %eax,%eax
 	rep stosq
-	ret
+	pax_ret clear_page
 ENDPROC(clear_page)
 EXPORT_SYMBOL(clear_page)
 
@@ -45,12 +45,12 @@ ENTRY(clear_page_orig)
 	leaq	64(%rdi),%rdi
 	jnz	.Lloop
 	nop
-	ret
+	pax_ret clear_page
 ENDPROC(clear_page_orig)
 
 ENTRY(clear_page_c_e)
 	movl $4096,%ecx
 	xorl %eax,%eax
 	rep stosb
-	ret
+	pax_ret clear_page
 ENDPROC(clear_page_c_e)

@@ -3240,7 +3240,7 @@ static void ieee80211_xmit_fast_finish(struct ieee80211_sub_if_data *sdata,
 		case WLAN_CIPHER_SUITE_CCMP_256:
 		case WLAN_CIPHER_SUITE_GCMP:
 		case WLAN_CIPHER_SUITE_GCMP_256:
-			pn = atomic64_inc_return(&key->conf.tx_pn);
+			pn = atomic64_inc_return_unchecked(&key->conf.tx_pn);
 			crypto_hdr[0] = pn;
 			crypto_hdr[1] = pn >> 8;
 			crypto_hdr[4] = pn >> 16;

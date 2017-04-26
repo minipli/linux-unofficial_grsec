@@ -107,7 +107,7 @@ enum savage_family {
 };
 
 extern const struct drm_ioctl_desc savage_ioctls[];
-extern int savage_max_ioctl;
+extern const int savage_max_ioctl;
 
 #define S3_SAVAGE3D_SERIES(chip)  ((chip>=S3_SAVAGE3D) && (chip<=S3_SAVAGE_MX))
 

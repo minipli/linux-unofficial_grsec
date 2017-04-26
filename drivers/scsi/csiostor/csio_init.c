@@ -1053,7 +1053,7 @@ static void csio_remove_one(struct pci_dev *pdev)
  *
  */
 static pci_ers_result_t
-csio_pci_error_detected(struct pci_dev *pdev, pci_channel_state_t state)
+csio_pci_error_detected(struct pci_dev *pdev, enum pci_channel_state state)
 {
 	struct csio_hw *hw = pci_get_drvdata(pdev);
 

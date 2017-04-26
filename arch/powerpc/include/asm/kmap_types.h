@@ -10,7 +10,7 @@
  * 2 of the License, or (at your option) any later version.
  */
 
-#define KM_TYPE_NR 16
+#define KM_TYPE_NR 17
 
 #endif	/* __KERNEL__ */
 #endif	/* _ASM_POWERPC_KMAP_TYPES_H */

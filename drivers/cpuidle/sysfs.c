@@ -135,7 +135,7 @@ static struct attribute *cpuidle_switch_attrs[] = {
 	NULL
 };
 
-static struct attribute_group cpuidle_attr_group = {
+static attribute_group_no_const cpuidle_attr_group = {
 	.attrs = cpuidle_default_attrs,
 	.name = "cpuidle",
 };

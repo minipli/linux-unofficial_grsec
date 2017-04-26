@@ -751,7 +751,7 @@ void mwifiex_hist_data_reset(struct mwifiex_private *priv)
 void *mwifiex_alloc_dma_align_buf(int rx_len, gfp_t flags)
 {
 	struct sk_buff *skb;
-	int buf_len, pad;
+	long buf_len, pad;
 
 	buf_len = rx_len + MWIFIEX_RX_HEADROOM + MWIFIEX_DMA_ALIGN_SZ;
 

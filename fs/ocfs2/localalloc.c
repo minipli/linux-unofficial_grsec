@@ -1317,7 +1317,7 @@ static int ocfs2_local_alloc_slide_window(struct ocfs2_super *osb,
 		goto bail;
 	}
 
-	atomic_inc(&osb->alloc_stats.moves);
+	atomic_inc_unchecked(&osb->alloc_stats.moves);
 
 bail:
 	if (handle)

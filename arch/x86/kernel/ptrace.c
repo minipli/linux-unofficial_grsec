@@ -169,7 +169,7 @@ unsigned long kernel_stack_pointer(struct pt_regs *regs)
 	unsigned long sp = (unsigned long)&regs->sp;
 	u32 *prev_esp;
 
-	if (context == (sp & ~(THREAD_SIZE - 1)))
+	if (context == ((sp + 8) & ~(THREAD_SIZE - 1)))
 		return sp;
 
 	prev_esp = (u32 *)(context);
@@ -411,6 +411,20 @@ static int putreg(struct task_struct *child,
 		if (child->thread.gsbase != value)
 			return do_arch_prctl(child, ARCH_SET_GS, value);
 		return 0;
+
+	case offsetof(struct user_regs_struct,ip):
+		/*
+		 * Protect against any attempt to set ip to an
+		 * impossible address.  There are dragons lurking if the
+		 * address is noncanonical.  (This explicitly allows
+		 * setting ip to TASK_SIZE_MAX, because user code can do
+		 * that all by itself by running off the end of its
+		 * address space.
+		 */
+		if (value > TASK_SIZE_MAX)
+			return -EIO;
+		break;
+
 #endif
 	}
 
@@ -533,7 +547,7 @@ static void ptrace_triggered(struct perf_event *bp,
 static unsigned long ptrace_get_dr7(struct perf_event *bp[])
 {
 	int i;
-	int dr7 = 0;
+	unsigned long dr7 = 0;
 	struct arch_hw_breakpoint *info;
 
 	for (i = 0; i < HBP_NUM; i++) {
@@ -767,7 +781,7 @@ long arch_ptrace(struct task_struct *child, long request,
 		 unsigned long addr, unsigned long data)
 {
 	int ret;
-	unsigned long __user *datap = (unsigned long __user *)data;
+	unsigned long __user *datap = (__force unsigned long __user *)data;
 
 	switch (request) {
 	/* read the word at location addr in the USER area. */
@@ -852,14 +866,14 @@ long arch_ptrace(struct task_struct *child, long request,
 		if ((int) addr < 0)
 			return -EIO;
 		ret = do_get_thread_area(child, addr,
-					(struct user_desc __user *)data);
+					(__force struct user_desc __user *) data);
 		break;
 
 	case PTRACE_SET_THREAD_AREA:
 		if ((int) addr < 0)
 			return -EIO;
 		ret = do_set_thread_area(child, addr,
-					(struct user_desc __user *)data, 0);
+					(__force struct user_desc __user *) data, 0);
 		break;
 #endif
 
@@ -1250,7 +1264,7 @@ long compat_arch_ptrace(struct task_struct *child, compat_long_t request,
 
 #ifdef CONFIG_X86_64
 
-static struct user_regset x86_64_regsets[] __ro_after_init = {
+static user_regset_no_const x86_64_regsets[] __ro_after_init = {
 	[REGSET_GENERAL] = {
 		.core_note_type = NT_PRSTATUS,
 		.n = sizeof(struct user_regs_struct) / sizeof(long),
@@ -1291,7 +1305,7 @@ static const struct user_regset_view user_x86_64_view = {
 #endif	/* CONFIG_X86_64 */
 
 #if defined CONFIG_X86_32 || defined CONFIG_IA32_EMULATION
-static struct user_regset x86_32_regsets[] __ro_after_init = {
+static user_regset_no_const x86_32_regsets[] __ro_after_init = {
 	[REGSET_GENERAL] = {
 		.core_note_type = NT_PRSTATUS,
 		.n = sizeof(struct user_regs_struct32) / sizeof(u32),
@@ -1379,7 +1393,7 @@ static void fill_sigtrap_info(struct task_struct *tsk,
 	memset(info, 0, sizeof(*info));
 	info->si_signo = SIGTRAP;
 	info->si_code = si_code;
-	info->si_addr = user_mode(regs) ? (void __user *)regs->ip : NULL;
+	info->si_addr = user_mode(regs) ? (__force void __user *)regs->ip : NULL;
 }
 
 void user_single_step_siginfo(struct task_struct *tsk,

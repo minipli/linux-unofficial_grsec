@@ -36,7 +36,7 @@
 struct drm_global_item {
 	struct mutex mutex;
 	void *object;
-	int refcount;
+	atomic_t refcount;
 };
 
 static struct drm_global_item glob[DRM_GLOBAL_NUM];
@@ -49,7 +49,7 @@ void drm_global_init(void)
 		struct drm_global_item *item = &glob[i];
 		mutex_init(&item->mutex);
 		item->object = NULL;
-		item->refcount = 0;
+		atomic_set(&item->refcount, 0);
 	}
 }
 
@@ -59,7 +59,7 @@ void drm_global_release(void)
 	for (i = 0; i < DRM_GLOBAL_NUM; ++i) {
 		struct drm_global_item *item = &glob[i];
 		BUG_ON(item->object != NULL);
-		BUG_ON(item->refcount != 0);
+		BUG_ON(atomic_read(&item->refcount) != 0);
 	}
 }
 
@@ -69,7 +69,7 @@ int drm_global_item_ref(struct drm_global_reference *ref)
 	struct drm_global_item *item = &glob[ref->global_type];
 
 	mutex_lock(&item->mutex);
-	if (item->refcount == 0) {
+	if (atomic_read(&item->refcount) == 0) {
 		ref->object = kzalloc(ref->size, GFP_KERNEL);
 		if (unlikely(ref->object == NULL)) {
 			ret = -ENOMEM;
@@ -84,7 +84,7 @@ int drm_global_item_ref(struct drm_global_reference *ref)
 		ref->object = item->object;
 	}
 
-	++item->refcount;
+	atomic_inc(&item->refcount);
 	mutex_unlock(&item->mutex);
 	return 0;
 
@@ -102,9 +102,9 @@ void drm_global_item_unref(struct drm_global_reference *ref)
 	struct drm_global_item *item = &glob[ref->global_type];
 
 	mutex_lock(&item->mutex);
-	BUG_ON(item->refcount == 0);
+	BUG_ON(atomic_read(&item->refcount) == 0);
 	BUG_ON(ref->object != item->object);
-	if (--item->refcount == 0) {
+	if (atomic_dec_and_test(&item->refcount)) {
 		ref->release(ref);
 		item->object = NULL;
 	}

@@ -25,5 +25,7 @@ EXPORT_SYMBOL(init_task);
 union thread_union init_thread_union __init_task_data = {
 #ifndef CONFIG_THREAD_INFO_IN_TASK
 	INIT_THREAD_INFO(init_task)
+#elif defined(CONFIG_X86)
+	.stack[0] = ~0xabcd1234L,
 #endif
 };

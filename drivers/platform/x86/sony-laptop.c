@@ -2556,7 +2556,7 @@ static void sony_nc_gfx_switch_cleanup(struct platform_device *pd)
 }
 
 /* High speed charging function */
-static struct device_attribute *hsc_handle;
+static device_attribute_no_const *hsc_handle;
 
 static ssize_t sony_nc_highspeed_charging_store(struct device *dev,
 		struct device_attribute *attr,
@@ -2630,7 +2630,7 @@ static void sony_nc_highspeed_charging_cleanup(struct platform_device *pd)
 }
 
 /* low battery function */
-static struct device_attribute *lowbatt_handle;
+static device_attribute_no_const *lowbatt_handle;
 
 static ssize_t sony_nc_lowbatt_store(struct device *dev,
 		struct device_attribute *attr,
@@ -2696,7 +2696,7 @@ static void sony_nc_lowbatt_cleanup(struct platform_device *pd)
 }
 
 /* fan speed function */
-static struct device_attribute *fan_handle, *hsf_handle;
+static device_attribute_no_const *fan_handle, *hsf_handle;
 
 static ssize_t sony_nc_hsfan_store(struct device *dev,
 		struct device_attribute *attr,
@@ -2803,7 +2803,7 @@ static void sony_nc_fanspeed_cleanup(struct platform_device *pd)
 }
 
 /* USB charge function */
-static struct device_attribute *uc_handle;
+static device_attribute_no_const *uc_handle;
 
 static ssize_t sony_nc_usb_charge_store(struct device *dev,
 		struct device_attribute *attr,
@@ -2877,7 +2877,7 @@ static void sony_nc_usb_charge_cleanup(struct platform_device *pd)
 }
 
 /* Panel ID function */
-static struct device_attribute *panel_handle;
+static device_attribute_no_const *panel_handle;
 
 static ssize_t sony_nc_panelid_show(struct device *dev,
 		struct device_attribute *attr, char *buffer)
@@ -2924,7 +2924,7 @@ static void sony_nc_panelid_cleanup(struct platform_device *pd)
 }
 
 /* smart connect function */
-static struct device_attribute *sc_handle;
+static device_attribute_no_const *sc_handle;
 
 static ssize_t sony_nc_smart_conn_store(struct device *dev,
 		struct device_attribute *attr,
@@ -4880,7 +4880,7 @@ static struct acpi_driver sony_pic_driver = {
 	.drv.pm = &sony_pic_pm,
 };
 
-static struct dmi_system_id __initdata sonypi_dmi_table[] = {
+static const struct dmi_system_id __initconst sonypi_dmi_table[] = {
 	{
 		.ident = "Sony Vaio",
 		.matches = {

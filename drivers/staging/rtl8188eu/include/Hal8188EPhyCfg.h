@@ -182,17 +182,9 @@ void PHY_GetTxPowerLevel8188E(struct adapter *adapter, u32 *powerlevel);
 
 void PHY_ScanOperationBackup8188E(struct adapter *Adapter, u8 Operation);
 
-/*  Call after initialization */
-void ChkFwCmdIoDone(struct adapter *adapter);
-
 /*  BB/MAC/RF other monitor API */
 void PHY_SetRFPathSwitch_8188E(struct adapter *adapter,	bool main);
 
-void PHY_SwitchEphyParameter(struct adapter *adapter);
-
-void PHY_EnableHostClkReq(struct adapter *adapter);
-
-bool SetAntennaConfig92C(struct adapter *adapter, u8 defaultant);
 
 /*--------------------------Exported Function prototype---------------------*/
 

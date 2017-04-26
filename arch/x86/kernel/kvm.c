@@ -533,7 +533,7 @@ static uint32_t __init kvm_detect(void)
 	return kvm_cpuid_base();
 }
 
-const struct hypervisor_x86 x86_hyper_kvm __refconst = {
+const struct hypervisor_x86 x86_hyper_kvm = {
 	.name			= "KVM",
 	.detect			= kvm_detect,
 	.x2apic_available	= kvm_para_available,
@@ -604,10 +604,12 @@ void __init kvm_spinlock_init(void)
 		return;
 
 	__pv_init_lock_hash();
+	pax_open_kernel();
 	pv_lock_ops.queued_spin_lock_slowpath = __pv_queued_spin_lock_slowpath;
-	pv_lock_ops.queued_spin_unlock = PV_CALLEE_SAVE(__pv_queued_spin_unlock);
+	pv_lock_ops.queued_spin_unlock = PV_CALLEE_SAVE(queued_spin_unlock, __pv_queued_spin_unlock);
 	pv_lock_ops.wait = kvm_wait;
 	pv_lock_ops.kick = kvm_kick_cpu;
+	pax_close_kernel();
 }
 
 static __init int kvm_spinlock_init_jump(void)

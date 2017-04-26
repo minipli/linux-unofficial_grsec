@@ -739,15 +739,15 @@ SHOW(__bch_cache)
 	sysfs_hprint(block_size,	block_bytes(ca));
 	sysfs_print(nbuckets,		ca->sb.nbuckets);
 	sysfs_print(discard,		ca->discard);
-	sysfs_hprint(written, atomic_long_read(&ca->sectors_written) << 9);
+	sysfs_hprint(written, atomic_long_read_unchecked(&ca->sectors_written) << 9);
 	sysfs_hprint(btree_written,
-		     atomic_long_read(&ca->btree_sectors_written) << 9);
+		     atomic_long_read_unchecked(&ca->btree_sectors_written) << 9);
 	sysfs_hprint(metadata_written,
-		     (atomic_long_read(&ca->meta_sectors_written) +
-		      atomic_long_read(&ca->btree_sectors_written)) << 9);
+		     (atomic_long_read_unchecked(&ca->meta_sectors_written) +
+		      atomic_long_read_unchecked(&ca->btree_sectors_written)) << 9);
 
 	sysfs_print(io_errors,
-		    atomic_read(&ca->io_errors) >> IO_ERROR_SHIFT);
+		    atomic_read_unchecked(&ca->io_errors) >> IO_ERROR_SHIFT);
 
 	if (attr == &sysfs_cache_replacement_policy)
 		return bch_snprint_string_list(buf, PAGE_SIZE,
@@ -870,11 +870,11 @@ STORE(__bch_cache)
 	}
 
 	if (attr == &sysfs_clear_stats) {
-		atomic_long_set(&ca->sectors_written, 0);
-		atomic_long_set(&ca->btree_sectors_written, 0);
-		atomic_long_set(&ca->meta_sectors_written, 0);
-		atomic_set(&ca->io_count, 0);
-		atomic_set(&ca->io_errors, 0);
+		atomic_long_set_unchecked(&ca->sectors_written, 0);
+		atomic_long_set_unchecked(&ca->btree_sectors_written, 0);
+		atomic_long_set_unchecked(&ca->meta_sectors_written, 0);
+		atomic_set_unchecked(&ca->io_count, 0);
+		atomic_set_unchecked(&ca->io_errors, 0);
 	}
 
 	return size;

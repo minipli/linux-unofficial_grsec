@@ -102,6 +102,14 @@ kmem_zone_init_flags(int size, char *zone_name, unsigned long flags,
 	return kmem_cache_create(zone_name, size, 0, flags, construct);
 }
 
+static inline kmem_zone_t *
+kmem_zone_init_flags_usercopy(int size, char *zone_name, unsigned long flags,
+			      size_t useroffset, size_t usersize,
+			      void (*construct)(void *))
+{
+	return kmem_cache_create_usercopy(zone_name, size, 0, flags, useroffset, usersize, construct);
+}
+
 static inline void
 kmem_zone_free(kmem_zone_t *zone, void *ptr)
 {

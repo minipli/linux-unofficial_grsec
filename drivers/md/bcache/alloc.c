@@ -631,7 +631,7 @@ bool bch_alloc_sectors(struct cache_set *c, struct bkey *k, unsigned sectors,
 	for (i = 0; i < KEY_PTRS(&b->key); i++) {
 		SET_PTR_OFFSET(&b->key, i, PTR_OFFSET(&b->key, i) + sectors);
 
-		atomic_long_add(sectors,
+		atomic_long_add_unchecked(sectors,
 				&PTR_CACHE(c, &b->key, i)->sectors_written);
 	}
 

@@ -54,16 +54,20 @@ static void print_llogd_body(struct llogd_body *d)
 	CDEBUG(D_OTHER, "\tlgd_cur_offset: %#llx\n", d->lgd_cur_offset);
 }
 
-void lustre_swab_lu_fid(struct lu_fid *fid)
+void lustre_swab_lu_fid(void *_fid)
 {
+	struct lu_fid *fid = _fid;
+
 	__swab64s(&fid->f_seq);
 	__swab32s(&fid->f_oid);
 	__swab32s(&fid->f_ver);
 }
 EXPORT_SYMBOL(lustre_swab_lu_fid);
 
-void lustre_swab_ost_id(struct ost_id *oid)
+void lustre_swab_ost_id(void *_oid)
 {
+	struct ost_id *oid = _oid;
+
 	if (fid_seq_is_mdt0(oid->oi.oi_seq)) {
 		__swab64s(&oid->oi.oi_id);
 		__swab64s(&oid->oi.oi_seq);
@@ -80,8 +84,10 @@ static void lustre_swab_llog_id(struct llog_logid *log_id)
 	__swab32s(&log_id->lgl_ogen);
 }
 
-void lustre_swab_llogd_body(struct llogd_body *d)
+void lustre_swab_llogd_body(void *_d)
 {
+	struct llogd_body *d = _d;
+
 	print_llogd_body(d);
 	lustre_swab_llog_id(&d->lgd_logid);
 	__swab32s(&d->lgd_ctxt_idx);
@@ -94,8 +100,10 @@ void lustre_swab_llogd_body(struct llogd_body *d)
 }
 EXPORT_SYMBOL(lustre_swab_llogd_body);
 
-void lustre_swab_llogd_conn_body(struct llogd_conn_body *d)
+void lustre_swab_llogd_conn_body(void *_d)
 {
+	struct llogd_conn_body *d = _d;
+
 	__swab64s(&d->lgdc_gen.mnt_cnt);
 	__swab64s(&d->lgdc_gen.conn_cnt);
 	lustre_swab_llog_id(&d->lgdc_logid);
@@ -110,8 +118,10 @@ static void lustre_swab_ll_fid(struct ll_fid *fid)
 	__swab32s(&fid->f_type);
 }
 
-void lustre_swab_lu_seq_range(struct lu_seq_range *range)
+void lustre_swab_lu_seq_range(void *_range)
 {
+	struct lu_seq_range *range = _range;
+
 	__swab64s(&range->lsr_start);
 	__swab64s(&range->lsr_end);
 	__swab32s(&range->lsr_index);
@@ -294,8 +304,10 @@ static void print_llog_hdr(struct llog_log_hdr *h)
 	CDEBUG(D_OTHER, "\tllh_tail.lrt_len: %#x\n", h->llh_tail.lrt_len);
 }
 
-void lustre_swab_llog_hdr(struct llog_log_hdr *h)
+void lustre_swab_llog_hdr(void *_h)
 {
+	struct llog_log_hdr *h = _h;
+
 	print_llog_hdr(h);
 
 	lustre_swab_llog_rec(&h->llh_hdr);

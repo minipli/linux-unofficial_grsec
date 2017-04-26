@@ -74,7 +74,7 @@ struct shark_device {
 	u8 *transfer_buffer;
 };
 
-static atomic_t shark_instance = ATOMIC_INIT(0);
+static atomic_unchecked_t shark_instance = ATOMIC_INIT(0);
 
 static int shark_write_reg(struct radio_tea5777 *tea, u64 reg)
 {

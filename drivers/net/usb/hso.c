@@ -72,7 +72,7 @@
 #include <asm/byteorder.h>
 #include <linux/serial_core.h>
 #include <linux/serial.h>
-
+#include <asm/local.h>
 
 #define MOD_AUTHOR			"Option Wireless"
 #define MOD_DESCRIPTION			"USB High Speed Option driver"
@@ -1175,7 +1175,7 @@ static void put_rxbuf_data_and_resubmit_ctrl_urb(struct hso_serial *serial)
 	struct urb *urb;
 
 	urb = serial->rx_urb[0];
-	if (serial->port.count > 0) {
+	if (atomic_read(&serial->port.count) > 0) {
 		count = put_rxbuf_data(urb, serial);
 		if (count == -1)
 			return;
@@ -1213,7 +1213,7 @@ static void hso_std_serial_read_bulk_callback(struct urb *urb)
 	DUMP1(urb->transfer_buffer, urb->actual_length);
 
 	/* Anyone listening? */
-	if (serial->port.count == 0)
+	if (atomic_read(&serial->port.count) == 0)
 		return;
 
 	if (serial->parent->port_spec & HSO_INFO_CRC_BUG)
@@ -1229,8 +1229,9 @@ static void hso_std_serial_read_bulk_callback(struct urb *urb)
  * This needs to be a tasklet otherwise we will
  * end up recursively calling this function.
  */
-static void hso_unthrottle_tasklet(struct hso_serial *serial)
+static void hso_unthrottle_tasklet(unsigned long _serial)
 {
+	struct hso_serial *serial = (struct hso_serial *)_serial;
 	unsigned long flags;
 
 	spin_lock_irqsave(&serial->serial_lock, flags);
@@ -1274,18 +1275,17 @@ static int hso_serial_open(struct tty_struct *tty, struct file *filp)
 	tty_port_tty_set(&serial->port, tty);
 
 	/* check for port already opened, if not set the termios */
-	serial->port.count++;
-	if (serial->port.count == 1) {
+	if (atomic_inc_return(&serial->port.count) == 1) {
 		serial->rx_state = RX_IDLE;
 		/* Force default termio settings */
 		_hso_serial_set_termios(tty, NULL);
 		tasklet_init(&serial->unthrottle_tasklet,
-			     (void (*)(unsigned long))hso_unthrottle_tasklet,
+			     hso_unthrottle_tasklet,
 			     (unsigned long)serial);
 		result = hso_start_serial_device(serial->parent, GFP_KERNEL);
 		if (result) {
 			hso_stop_serial_device(serial->parent);
-			serial->port.count--;
+			atomic_dec(&serial->port.count);
 		} else {
 			kref_get(&serial->parent->ref);
 		}
@@ -1323,10 +1323,10 @@ static void hso_serial_close(struct tty_struct *tty, struct file *filp)
 
 	/* reset the rts and dtr */
 	/* do the actual close */
-	serial->port.count--;
+	atomic_dec(&serial->port.count);
 
-	if (serial->port.count <= 0) {
-		serial->port.count = 0;
+	if (atomic_read(&serial->port.count) <= 0) {
+		atomic_set(&serial->port.count, 0);
 		tty_port_tty_set(&serial->port, NULL);
 		if (!usb_gone)
 			hso_stop_serial_device(serial->parent);
@@ -1409,7 +1409,7 @@ static void hso_serial_set_termios(struct tty_struct *tty, struct ktermios *old)
 
 	/* the actual setup */
 	spin_lock_irqsave(&serial->serial_lock, flags);
-	if (serial->port.count)
+	if (atomic_read(&serial->port.count))
 		_hso_serial_set_termios(tty, old);
 	else
 		tty->termios = *old;
@@ -1884,7 +1884,7 @@ static void intr_callback(struct urb *urb)
 					i);
 				spin_lock(&serial->serial_lock);
 				if (serial->rx_state == RX_IDLE &&
-					serial->port.count > 0) {
+					atomic_read(&serial->port.count) > 0) {
 					/* Setup and send a ctrl req read on
 					 * port i */
 					if (!serial->rx_urb_filled[0]) {
@@ -3041,7 +3041,7 @@ static int hso_resume(struct usb_interface *iface)
 	/* Start all serial ports */
 	for (i = 0; i < HSO_SERIAL_TTY_MINORS; i++) {
 		if (serial_table[i] && (serial_table[i]->interface == iface)) {
-			if (dev2ser(serial_table[i])->port.count) {
+			if (atomic_read(&dev2ser(serial_table[i])->port.count)) {
 				result =
 				    hso_start_serial_device(serial_table[i], GFP_NOIO);
 				hso_kick_transmit(dev2ser(serial_table[i]));

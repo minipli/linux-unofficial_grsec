@@ -63,7 +63,7 @@ static int edp_connector_get_modes(struct drm_connector *connector)
 	return ret;
 }
 
-static int edp_connector_mode_valid(struct drm_connector *connector,
+static enum drm_mode_status edp_connector_mode_valid(struct drm_connector *connector,
 				 struct drm_display_mode *mode)
 {
 	struct edp_connector *edp_connector = to_edp_connector(connector);

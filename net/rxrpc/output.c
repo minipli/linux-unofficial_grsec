@@ -158,7 +158,7 @@ int rxrpc_send_ack_packet(struct rxrpc_call *call, bool ping)
 	iov[1].iov_len	= sizeof(pkt->ackinfo);
 	len = iov[0].iov_len + iov[1].iov_len;
 
-	serial = atomic_inc_return(&conn->serial);
+	serial = atomic_inc_return_unchecked(&conn->serial);
 	pkt->whdr.serial = htonl(serial);
 	trace_rxrpc_tx_ack(call, serial,
 			   ntohl(pkt->ack.firstPacket),
@@ -249,7 +249,7 @@ int rxrpc_send_abort_packet(struct rxrpc_call *call)
 	iov[0].iov_base	= &pkt;
 	iov[0].iov_len	= sizeof(pkt);
 
-	serial = atomic_inc_return(&conn->serial);
+	serial = atomic_inc_return_unchecked(&conn->serial);
 	pkt.whdr.serial = htonl(serial);
 
 	ret = kernel_sendmsg(conn->params.local->socket,
@@ -278,7 +278,7 @@ int rxrpc_send_data_packet(struct rxrpc_call *call, struct sk_buff *skb,
 	_enter(",{%d}", skb->len);
 
 	/* Each transmission of a Tx packet needs a new serial number */
-	serial = atomic_inc_return(&conn->serial);
+	serial = atomic_inc_return_unchecked(&conn->serial);
 
 	whdr.epoch	= htonl(conn->proto.epoch);
 	whdr.cid	= htonl(call->cid);

@@ -314,7 +314,7 @@ void amdtp_am824_midi_trigger(struct amdtp_stream *s, unsigned int port,
 	struct amdtp_am824 *p = s->protocol;
 
 	if (port < p->midi_ports)
-		ACCESS_ONCE(p->midi[port]) = midi;
+		ACCESS_ONCE_RW(p->midi[port]) = midi;
 }
 EXPORT_SYMBOL_GPL(amdtp_am824_midi_trigger);
 

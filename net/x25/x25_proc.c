@@ -209,7 +209,7 @@ static const struct file_operations x25_seq_forward_fops = {
 
 int __init x25_proc_init(void)
 {
-	if (!proc_mkdir("x25", init_net.proc_net))
+	if (!proc_mkdir_restrict("x25", init_net.proc_net))
 		return -ENOMEM;
 
 	if (!proc_create("x25/route", S_IRUGO, init_net.proc_net,

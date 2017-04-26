@@ -1911,9 +1911,9 @@ td_cleanup:
 	 * unsigned).  Play it safe and say we didn't transfer anything.
 	 */
 	if (urb->actual_length > urb->transfer_buffer_length) {
-		xhci_warn(xhci, "URB transfer length is wrong, xHC issue? req. len = %u, act. len = %u\n",
+		xhci_warn(xhci, "URB transfer length is wrong, xHC issue? req. len = %u, trans. len = %u\n",
 			urb->transfer_buffer_length,
-			urb->actual_length);
+			EVENT_TRB_LEN(le32_to_cpu(event->transfer_len)));
 		urb->actual_length = 0;
 		if (td->urb->transfer_flags & URB_SHORT_NOT_OK)
 			*status = -EREMOTEIO;
@@ -1992,10 +1992,15 @@ static int process_ctrl_td(struct xhci_hcd *xhci, struct xhci_td *td,
 		return finish_td(xhci, td, event_trb, event, ep, status, false);
 	case COMP_STOP:
 		/* Did we stop at data stage? */
-		if (event_trb != ep_ring->dequeue && event_trb != td->last_trb)
-			td->urb->actual_length =
-				td->urb->transfer_buffer_length -
-				EVENT_TRB_LEN(le32_to_cpu(event->transfer_len));
+		if (event_trb != ep_ring->dequeue && event_trb != td->last_trb) {
+			if (td->urb->transfer_buffer_length >= EVENT_TRB_LEN(le32_to_cpu(event->transfer_len)))
+				td->urb->actual_length =
+					td->urb->transfer_buffer_length -
+					EVENT_TRB_LEN(le32_to_cpu(event->transfer_len));
+			else
+				td->urb->actual_length =
+					td->urb->transfer_buffer_length + 1;
+		}
 		/* fall through */
 	case COMP_STOP_INVAL:
 		return finish_td(xhci, td, event_trb, event, ep, status, false);
@@ -2009,12 +2014,15 @@ static int process_ctrl_td(struct xhci_hcd *xhci, struct xhci_td *td,
 		/* else fall through */
 	case COMP_STALL:
 		/* Did we transfer part of the data (middle) phase? */
-		if (event_trb != ep_ring->dequeue &&
-				event_trb != td->last_trb)
-			td->urb->actual_length =
-				td->urb->transfer_buffer_length -
-				EVENT_TRB_LEN(le32_to_cpu(event->transfer_len));
-		else if (!td->urb_length_set)
+		if (event_trb != ep_ring->dequeue && event_trb != td->last_trb) {
+			if (td->urb->transfer_buffer_length >= EVENT_TRB_LEN(le32_to_cpu(event->transfer_len)))
+				td->urb->actual_length =
+					td->urb->transfer_buffer_length -
+					EVENT_TRB_LEN(le32_to_cpu(event->transfer_len));
+			else
+				td->urb->actual_length =
+					td->urb->transfer_buffer_length + 1;
+		} else if (!td->urb_length_set)
 			td->urb->actual_length = 0;
 
 		return finish_td(xhci, td, event_trb, event, ep, status, false);
@@ -2047,9 +2055,12 @@ static int process_ctrl_td(struct xhci_hcd *xhci, struct xhci_td *td,
 			 * the last TRB.
 			 */
 			td->urb_length_set = true;
-			td->urb->actual_length =
-				td->urb->transfer_buffer_length -
-				EVENT_TRB_LEN(le32_to_cpu(event->transfer_len));
+			if (td->urb->transfer_buffer_length >= EVENT_TRB_LEN(le32_to_cpu(event->transfer_len)))
+				td->urb->actual_length =
+					td->urb->transfer_buffer_length -
+					EVENT_TRB_LEN(le32_to_cpu(event->transfer_len));
+			else
+				BUG();
 			xhci_dbg(xhci, "Waiting for status "
 					"stage event\n");
 			return 0;
@@ -2244,11 +2255,7 @@ static int process_bulk_intr_td(struct xhci_hcd *xhci, struct xhci_td *td,
 	/* Fast path - was this the last TRB in the TD for this URB? */
 	} else if (event_trb == td->last_trb) {
 		if (EVENT_TRB_LEN(le32_to_cpu(event->transfer_len)) != 0) {
-			td->urb->actual_length =
-				td->urb->transfer_buffer_length -
-				EVENT_TRB_LEN(le32_to_cpu(event->transfer_len));
-			if (td->urb->transfer_buffer_length <
-					td->urb->actual_length) {
+			if (td->urb->transfer_buffer_length < EVENT_TRB_LEN(le32_to_cpu(event->transfer_len))) {
 				xhci_warn(xhci, "HC gave bad length "
 						"of %d bytes left\n",
 					  EVENT_TRB_LEN(le32_to_cpu(event->transfer_len)));
@@ -2257,7 +2264,10 @@ static int process_bulk_intr_td(struct xhci_hcd *xhci, struct xhci_td *td,
 					*status = -EREMOTEIO;
 				else
 					*status = 0;
-			}
+			} else
+				td->urb->actual_length =
+					td->urb->transfer_buffer_length -
+					EVENT_TRB_LEN(le32_to_cpu(event->transfer_len));
 			/* Don't overwrite a previously set error code */
 			if (*status == -EINPROGRESS) {
 				if (td->urb->transfer_flags & URB_SHORT_NOT_OK)

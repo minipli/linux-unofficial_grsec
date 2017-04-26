@@ -25,6 +25,7 @@
 
 #include <linux/linkage.h>
 #include <asm/frame.h>
+#include <asm/alternative-asm.h>
 #include "glue_helper-asm-avx.S"
 
 .file "cast6-avx-x86_64-asm_64.S"
@@ -296,7 +297,7 @@ __cast6_enc_blk8:
 	outunpack_blocks(RA1, RB1, RC1, RD1, RTMP, RX, RKRF, RKM);
 	outunpack_blocks(RA2, RB2, RC2, RD2, RTMP, RX, RKRF, RKM);
 
-	ret;
+	pax_ret __cast6_enc_blk8;
 ENDPROC(__cast6_enc_blk8)
 
 .align 8
@@ -341,10 +342,10 @@ __cast6_dec_blk8:
 	outunpack_blocks(RA1, RB1, RC1, RD1, RTMP, RX, RKRF, RKM);
 	outunpack_blocks(RA2, RB2, RC2, RD2, RTMP, RX, RKRF, RKM);
 
-	ret;
+	pax_ret __cast6_dec_blk8;
 ENDPROC(__cast6_dec_blk8)
 
-ENTRY(cast6_ecb_enc_8way)
+RAP_ENTRY(cast6_ecb_enc_8way)
 	/* input:
 	 *	%rdi: ctx, CTX
 	 *	%rsi: dst
@@ -356,15 +357,15 @@ ENTRY(cast6_ecb_enc_8way)
 
 	load_8way(%rdx, RA1, RB1, RC1, RD1, RA2, RB2, RC2, RD2);
 
-	call __cast6_enc_blk8;
+	pax_direct_call __cast6_enc_blk8;
 
 	store_8way(%r11, RA1, RB1, RC1, RD1, RA2, RB2, RC2, RD2);
 
 	FRAME_END
-	ret;
+	pax_ret cast6_ecb_enc_8way;
 ENDPROC(cast6_ecb_enc_8way)
 
-ENTRY(cast6_ecb_dec_8way)
+RAP_ENTRY(cast6_ecb_dec_8way)
 	/* input:
 	 *	%rdi: ctx, CTX
 	 *	%rsi: dst
@@ -376,15 +377,15 @@ ENTRY(cast6_ecb_dec_8way)
 
 	load_8way(%rdx, RA1, RB1, RC1, RD1, RA2, RB2, RC2, RD2);
 
-	call __cast6_dec_blk8;
+	pax_direct_call __cast6_dec_blk8;
 
 	store_8way(%r11, RA1, RB1, RC1, RD1, RA2, RB2, RC2, RD2);
 
 	FRAME_END
-	ret;
+	pax_ret cast6_ecb_dec_8way;
 ENDPROC(cast6_ecb_dec_8way)
 
-ENTRY(cast6_cbc_dec_8way)
+RAP_ENTRY(cast6_cbc_dec_8way)
 	/* input:
 	 *	%rdi: ctx, CTX
 	 *	%rsi: dst
@@ -392,24 +393,24 @@ ENTRY(cast6_cbc_dec_8way)
 	 */
 	FRAME_BEGIN
 
-	pushq %r12;
+	pushq %r14;
 
 	movq %rsi, %r11;
-	movq %rdx, %r12;
+	movq %rdx, %r14;
 
 	load_8way(%rdx, RA1, RB1, RC1, RD1, RA2, RB2, RC2, RD2);
 
-	call __cast6_dec_blk8;
+	pax_direct_call __cast6_dec_blk8;
 
-	store_cbc_8way(%r12, %r11, RA1, RB1, RC1, RD1, RA2, RB2, RC2, RD2);
+	store_cbc_8way(%r14, %r11, RA1, RB1, RC1, RD1, RA2, RB2, RC2, RD2);
 
-	popq %r12;
+	popq %r14;
 
 	FRAME_END
-	ret;
+	pax_ret cast6_cbc_dec_8way;
 ENDPROC(cast6_cbc_dec_8way)
 
-ENTRY(cast6_ctr_8way)
+RAP_ENTRY(cast6_ctr_8way)
 	/* input:
 	 *	%rdi: ctx, CTX
 	 *	%rsi: dst
@@ -418,25 +419,25 @@ ENTRY(cast6_ctr_8way)
 	 */
 	FRAME_BEGIN
 
-	pushq %r12;
+	pushq %r14;
 
 	movq %rsi, %r11;
-	movq %rdx, %r12;
+	movq %rdx, %r14;
 
 	load_ctr_8way(%rcx, .Lbswap128_mask, RA1, RB1, RC1, RD1, RA2, RB2, RC2,
 		      RD2, RX, RKR, RKM);
 
-	call __cast6_enc_blk8;
+	pax_direct_call __cast6_enc_blk8;
 
-	store_ctr_8way(%r12, %r11, RA1, RB1, RC1, RD1, RA2, RB2, RC2, RD2);
+	store_ctr_8way(%r14, %r11, RA1, RB1, RC1, RD1, RA2, RB2, RC2, RD2);
 
-	popq %r12;
+	popq %r14;
 
 	FRAME_END
-	ret;
+	pax_ret cast6_ctr_8way;
 ENDPROC(cast6_ctr_8way)
 
-ENTRY(cast6_xts_enc_8way)
+RAP_ENTRY(cast6_xts_enc_8way)
 	/* input:
 	 *	%rdi: ctx, CTX
 	 *	%rsi: dst
@@ -451,16 +452,16 @@ ENTRY(cast6_xts_enc_8way)
 	load_xts_8way(%rcx, %rdx, %rsi, RA1, RB1, RC1, RD1, RA2, RB2, RC2, RD2,
 		      RX, RKR, RKM, .Lxts_gf128mul_and_shl1_mask);
 
-	call __cast6_enc_blk8;
+	pax_direct_call __cast6_enc_blk8;
 
 	/* dst <= regs xor IVs(in dst) */
 	store_xts_8way(%r11, RA1, RB1, RC1, RD1, RA2, RB2, RC2, RD2);
 
 	FRAME_END
-	ret;
+	pax_ret cast6_xts_enc_8way;
 ENDPROC(cast6_xts_enc_8way)
 
-ENTRY(cast6_xts_dec_8way)
+RAP_ENTRY(cast6_xts_dec_8way)
 	/* input:
 	 *	%rdi: ctx, CTX
 	 *	%rsi: dst
@@ -475,11 +476,11 @@ ENTRY(cast6_xts_dec_8way)
 	load_xts_8way(%rcx, %rdx, %rsi, RA1, RB1, RC1, RD1, RA2, RB2, RC2, RD2,
 		      RX, RKR, RKM, .Lxts_gf128mul_and_shl1_mask);
 
-	call __cast6_dec_blk8;
+	pax_direct_call __cast6_dec_blk8;
 
 	/* dst <= regs xor IVs(in dst) */
 	store_xts_8way(%r11, RA1, RB1, RC1, RD1, RA2, RB2, RC2, RD2);
 
 	FRAME_END
-	ret;
+	pax_ret cast6_xts_dec_8way;
 ENDPROC(cast6_xts_dec_8way)

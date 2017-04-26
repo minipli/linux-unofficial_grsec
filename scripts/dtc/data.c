@@ -94,10 +94,10 @@ struct data data_copy_file(FILE *f, size_t maxlen)
 {
 	struct data d = empty_data;
 
-	while (!feof(f) && (d.len < maxlen)) {
+	while (!feof(f) && ((size_t)d.len < maxlen)) {
 		size_t chunksize, ret;
 
-		if (maxlen == -1)
+		if (maxlen == ~0UL)
 			chunksize = 4096;
 		else
 			chunksize = maxlen - d.len;
@@ -108,7 +108,7 @@ struct data data_copy_file(FILE *f, size_t maxlen)
 		if (ferror(f))
 			die("Error reading file into data: %s", strerror(errno));
 
-		if (d.len + ret < d.len)
+		if (d.len + ret < (size_t)d.len)
 			die("Overflow reading file into data\n");
 
 		d.len += ret;

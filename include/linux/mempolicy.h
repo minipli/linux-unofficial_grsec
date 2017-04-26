@@ -91,6 +91,10 @@ static inline struct mempolicy *mpol_dup(struct mempolicy *pol)
 }
 
 #define vma_policy(vma) ((vma)->vm_policy)
+static inline void set_vma_policy(struct vm_area_struct *vma, struct mempolicy *pol)
+{
+	vma->vm_policy = pol;
+}
 
 static inline void mpol_get(struct mempolicy *pol)
 {
@@ -236,6 +240,9 @@ mpol_shared_policy_lookup(struct shared_policy *sp, unsigned long idx)
 }
 
 #define vma_policy(vma) NULL
+static inline void set_vma_policy(struct vm_area_struct *vma, struct mempolicy *pol)
+{
+}
 
 static inline int
 vma_dup_policy(struct vm_area_struct *src, struct vm_area_struct *dst)

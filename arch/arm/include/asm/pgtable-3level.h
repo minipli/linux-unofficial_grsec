@@ -80,6 +80,7 @@
 #define L_PTE_USER		(_AT(pteval_t, 1) << 6)		/* AP[1] */
 #define L_PTE_SHARED		(_AT(pteval_t, 3) << 8)		/* SH[1:0], inner shareable */
 #define L_PTE_YOUNG		(_AT(pteval_t, 1) << 10)	/* AF */
+#define L_PTE_PXN		(_AT(pteval_t, 1) << 53)	/* PXN */
 #define L_PTE_XN		(_AT(pteval_t, 1) << 54)	/* XN */
 #define L_PTE_DIRTY		(_AT(pteval_t, 1) << 55)
 #define L_PTE_SPECIAL		(_AT(pteval_t, 1) << 56)
@@ -90,10 +91,12 @@
 #define L_PMD_SECT_DIRTY	(_AT(pmdval_t, 1) << 55)
 #define L_PMD_SECT_NONE		(_AT(pmdval_t, 1) << 57)
 #define L_PMD_SECT_RDONLY	(_AT(pteval_t, 1) << 58)
+#define PMD_SECT_RDONLY		PMD_SECT_AP2
 
 /*
  * To be used in assembly code with the upper page attributes.
  */
+#define L_PTE_PXN_HIGH		(1 << (53 - 32))
 #define L_PTE_XN_HIGH		(1 << (54 - 32))
 #define L_PTE_DIRTY_HIGH	(1 << (55 - 32))
 

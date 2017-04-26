@@ -1265,7 +1265,7 @@ bna_enet_mtu_get(struct bna_enet *enet)
 void
 bna_enet_enable(struct bna_enet *enet)
 {
-	if (enet->fsm != (bfa_sm_t)bna_enet_sm_stopped)
+	if (enet->fsm != bna_enet_sm_stopped)
 		return;
 
 	enet->flags |= BNA_ENET_F_ENABLED;
@@ -1676,10 +1676,10 @@ bna_cb_ioceth_reset(void *arg)
 }
 
 static struct bfa_ioc_cbfn bna_ioceth_cbfn = {
-	bna_cb_ioceth_enable,
-	bna_cb_ioceth_disable,
-	bna_cb_ioceth_hbfail,
-	bna_cb_ioceth_reset
+	.enable_cbfn = bna_cb_ioceth_enable,
+	.disable_cbfn = bna_cb_ioceth_disable,
+	.hbfail_cbfn = bna_cb_ioceth_hbfail,
+	.reset_cbfn = bna_cb_ioceth_reset
 };
 
 static void bna_attr_init(struct bna_ioceth *ioceth)
@@ -1759,12 +1759,12 @@ bna_ioceth_uninit(struct bna_ioceth *ioceth)
 void
 bna_ioceth_enable(struct bna_ioceth *ioceth)
 {
-	if (ioceth->fsm == (bfa_fsm_t)bna_ioceth_sm_ready) {
+	if (ioceth->fsm == bna_ioceth_sm_ready) {
 		bnad_cb_ioceth_ready(ioceth->bna->bnad);
 		return;
 	}
 
-	if (ioceth->fsm == (bfa_fsm_t)bna_ioceth_sm_stopped)
+	if (ioceth->fsm == bna_ioceth_sm_stopped)
 		bfa_fsm_send_event(ioceth, IOCETH_E_ENABLE);
 }
 

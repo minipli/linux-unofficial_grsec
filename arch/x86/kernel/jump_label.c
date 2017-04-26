@@ -32,6 +32,8 @@ static void bug_at(unsigned char *ip, int line)
 	 * Something went wrong. Crash the box, as something could be
 	 * corrupting the kernel.
 	 */
+	ip = (unsigned char *)ktla_ktva((unsigned long)ip);
+	pr_warning("Unexpected op at %pS [%p] %s:%d\n", ip, ip, __FILE__, line);
 	pr_warning("Unexpected op at %pS [%p] (%02x %02x %02x %02x %02x) %s:%d\n",
 	       ip, ip, ip[0], ip[1], ip[2], ip[3], ip[4], __FILE__, line);
 	BUG();
@@ -52,7 +54,7 @@ static void __jump_label_transform(struct jump_entry *entry,
 			 * Jump label is enabled for the first time.
 			 * So we expect a default_nop...
 			 */
-			if (unlikely(memcmp((void *)entry->code, default_nop, 5)
+			if (unlikely(memcmp((void *)ktla_ktva(entry->code), default_nop, 5)
 				     != 0))
 				bug_at((void *)entry->code, __LINE__);
 		} else {
@@ -60,7 +62,7 @@ static void __jump_label_transform(struct jump_entry *entry,
 			 * ...otherwise expect an ideal_nop. Otherwise
 			 * something went horribly wrong.
 			 */
-			if (unlikely(memcmp((void *)entry->code, ideal_nop, 5)
+			if (unlikely(memcmp((void *)ktla_ktva(entry->code), ideal_nop, 5)
 				     != 0))
 				bug_at((void *)entry->code, __LINE__);
 		}
@@ -76,13 +78,13 @@ static void __jump_label_transform(struct jump_entry *entry,
 		 * are converting the default nop to the ideal nop.
 		 */
 		if (init) {
-			if (unlikely(memcmp((void *)entry->code, default_nop, 5) != 0))
+			if (unlikely(memcmp((void *)ktla_ktva(entry->code), default_nop, 5) != 0))
 				bug_at((void *)entry->code, __LINE__);
 		} else {
 			code.jump = 0xe9;
 			code.offset = entry->target -
 				(entry->code + JUMP_LABEL_NOP_SIZE);
-			if (unlikely(memcmp((void *)entry->code, &code, 5) != 0))
+			if (unlikely(memcmp((void *)ktla_ktva(entry->code), &code, 5) != 0))
 				bug_at((void *)entry->code, __LINE__);
 		}
 		memcpy(&code, ideal_nops[NOP_ATOMIC5], JUMP_LABEL_NOP_SIZE);

@@ -81,7 +81,7 @@ static inline u64 __cmpxchg64_local(volatile u64 *ptr, u64 old, u64 new)
 	__typeof__(*(ptr)) __old = (o);				\
 	__typeof__(*(ptr)) __new = (n);				\
 	alternative_io(LOCK_PREFIX_HERE				\
-			"call cmpxchg8b_emu",			\
+			PAX_DIRECT_CALL("cmpxchg8b_emu"),	\
 			"lock; cmpxchg8b (%%esi)" ,		\
 		       X86_FEATURE_CX8,				\
 		       "=A" (__ret),				\
@@ -97,7 +97,7 @@ static inline u64 __cmpxchg64_local(volatile u64 *ptr, u64 old, u64 new)
 	__typeof__(*(ptr)) __ret;				\
 	__typeof__(*(ptr)) __old = (o);				\
 	__typeof__(*(ptr)) __new = (n);				\
-	alternative_io("call cmpxchg8b_emu",			\
+	alternative_io(PAX_DIRECT_CALL("cmpxchg8b_emu"),	\
 		       "cmpxchg8b (%%esi)" ,			\
 		       X86_FEATURE_CX8,				\
 		       "=A" (__ret),				\

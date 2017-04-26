@@ -50,8 +50,8 @@ static void interrupt_wq(struct work_struct *);
 
 int kfd_interrupt_init(struct kfd_dev *kfd)
 {
-	void *interrupt_ring = kmalloc_array(KFD_INTERRUPT_RING_SIZE,
-					kfd->device_info->ih_ring_entry_size,
+	void *interrupt_ring = kmalloc_array(kfd->device_info->ih_ring_entry_size,
+					KFD_INTERRUPT_RING_SIZE,
 					GFP_KERNEL);
 	if (!interrupt_ring)
 		return -ENOMEM;

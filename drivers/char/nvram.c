@@ -235,7 +235,7 @@ static ssize_t nvram_read(struct file *file, char __user *buf,
 
 	spin_unlock_irq(&rtc_lock);
 
-	if (copy_to_user(buf, contents, tmp - contents))
+	if (tmp - contents > sizeof(contents) || copy_to_user(buf, contents, tmp - contents))
 		return -EFAULT;
 
 	*ppos = i;

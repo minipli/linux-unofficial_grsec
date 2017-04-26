@@ -1263,8 +1263,11 @@ static int tegra_sor_debugfs_init(struct tegra_sor *sor,
 		goto remove;
 	}
 
-	for (i = 0; i < ARRAY_SIZE(debugfs_files); i++)
-		sor->debugfs_files[i].data = sor;
+	for (i = 0; i < ARRAY_SIZE(debugfs_files); i++) {
+		pax_open_kernel();
+		const_cast(sor->debugfs_files[i].data) = sor;
+		pax_close_kernel();
+	}
 
 	err = drm_debugfs_create_files(sor->debugfs_files,
 				       ARRAY_SIZE(debugfs_files),

@@ -7837,7 +7837,7 @@ static void igb_netpoll(struct net_device *netdev)
  *  this device has been detected.
  **/
 static pci_ers_result_t igb_io_error_detected(struct pci_dev *pdev,
-					      pci_channel_state_t state)
+					      enum pci_channel_state state)
 {
 	struct net_device *netdev = pci_get_drvdata(pdev);
 	struct igb_adapter *adapter = netdev_priv(netdev);

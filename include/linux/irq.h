@@ -425,7 +425,10 @@ struct irq_chip {
 	void		(*ipi_send_mask)(struct irq_data *data, const struct cpumask *dest);
 
 	unsigned long	flags;
-};
+} __do_const;
+#ifndef _LINUX_IRQDOMAIN_H
+typedef struct irq_chip __no_const irq_chip_no_const;
+#endif
 
 /*
  * irq_chip specific flags

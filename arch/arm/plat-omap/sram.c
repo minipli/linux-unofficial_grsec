@@ -93,6 +93,8 @@ void __init omap_map_sram(unsigned long start, unsigned long size,
 	 * Looks like we need to preserve some bootloader code at the
 	 * beginning of SRAM for jumping to flash for reboot to work...
 	 */
+	pax_open_kernel();
 	memset_io(omap_sram_base + omap_sram_skip, 0,
 		  omap_sram_size - omap_sram_skip);
+	pax_close_kernel();
 }

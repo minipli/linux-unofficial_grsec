@@ -134,7 +134,7 @@ L_extent_zero:
 #ifdef PARANOID
 L_bugged:
 	pushl	EX_INTERNAL|0x205
-	call	EXCEPTION
+	pax_direct_call EXCEPTION
 	pop	%ebx
 	jmp	L_exit
 
@@ -143,6 +143,6 @@ L_exit:
 	popl	%edi
 	popl	%esi
 	leave
-	ret
+	pax_ret FPU_u_mul
 #endif /* PARANOID */ 
 

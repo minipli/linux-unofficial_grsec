@@ -79,7 +79,7 @@ struct iscsi_internal {
 	struct transport_container session_cont;
 };
 
-static atomic_t iscsi_session_nr; /* sysfs session id for next new session */
+static atomic_unchecked_t iscsi_session_nr; /* sysfs session id for next new session */
 static struct workqueue_struct *iscsi_eh_timer_workq;
 
 static DEFINE_IDA(iscsi_sess_ida);
@@ -2073,7 +2073,7 @@ int iscsi_add_session(struct iscsi_cls_session *session, unsigned int target_id)
 	int id = 0;
 	int err;
 
-	session->sid = atomic_add_return(1, &iscsi_session_nr);
+	session->sid = atomic_add_return_unchecked(1, &iscsi_session_nr);
 
 	if (target_id == ISCSI_MAX_TARGET) {
 		id = ida_simple_get(&iscsi_sess_ida, 0, 0, GFP_KERNEL);
@@ -4523,7 +4523,7 @@ static __init int iscsi_transport_init(void)
 	printk(KERN_INFO "Loading iSCSI transport class v%s.\n",
 		ISCSI_TRANSPORT_VERSION);
 
-	atomic_set(&iscsi_session_nr, 0);
+	atomic_set_unchecked(&iscsi_session_nr, 0);
 
 	err = class_register(&iscsi_transport_class);
 	if (err)

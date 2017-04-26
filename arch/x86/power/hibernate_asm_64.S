@@ -22,6 +22,7 @@
 #include <asm/asm-offsets.h>
 #include <asm/processor-flags.h>
 #include <asm/frame.h>
+#include <asm/smap.h>
 
 ENTRY(swsusp_arch_suspend)
 	movq	$saved_context, %rax
@@ -48,9 +49,9 @@ ENTRY(swsusp_arch_suspend)
 	movq	%rax, restore_cr3(%rip)
 
 	FRAME_BEGIN
-	call swsusp_save
+	pax_direct_call swsusp_save
 	FRAME_END
-	ret
+	pax_ret swsusp_arch_suspend
 ENDPROC(swsusp_arch_suspend)
 
 ENTRY(restore_image)
@@ -133,6 +134,7 @@ ENTRY(restore_registers)
 	movq	pt_regs_r15(%rax), %r15
 	pushq	pt_regs_flags(%rax)
 	popfq
+	ASM_CLAC
 
 	/* Saved in save_processor_state. */
 	lgdt	saved_context_gdt_desc(%rax)
@@ -142,5 +144,5 @@ ENTRY(restore_registers)
 	/* tell the hibernation core that we've just restored the memory */
 	movq	%rax, in_suspend(%rip)
 
-	ret
+	pax_ret restore_registers
 ENDPROC(restore_registers)

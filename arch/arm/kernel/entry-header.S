@@ -196,6 +196,59 @@
 	msr	cpsr_c, \rtemp			@ switch back to the SVC mode
 	.endm
 
+	.macro	pax_enter_kernel_user
+#if defined(CONFIG_PAX_KERNEXEC) || defined(CONFIG_PAX_MEMORY_UDEREF)
+	@ save regs
+	stmdb	sp!, {r0, r1}
+	@ read DACR from cpu_domain into r1
+	mov	r0, sp
+	@ assume 8K pages, since we have to split the immediate in two
+	bic	r0, r0, #(0x1fc0)
+	bic	r0, r0, #(0x3f)
+	ldr	r1, [r0, #TI_CPU_DOMAIN]
+#ifdef CONFIG_PAX_MEMORY_UDEREF
+	@ set current DOMAIN_USER to DOMAIN_NOACCESS
+	bic	r1, r1, #(domain_val(DOMAIN_USER, 3))
+#endif
+#ifdef CONFIG_PAX_KERNEXEC
+	@ set current DOMAIN_KERNEL to DOMAIN_KERNELCLIENT
+	bic	r1, r1, #(domain_val(DOMAIN_KERNEL, 3))
+	orr	r1, r1, #(domain_val(DOMAIN_KERNEL, DOMAIN_KERNELCLIENT))
+#endif
+	@ write r1 to current_thread_info()->cpu_domain
+	str	r1, [r0, #TI_CPU_DOMAIN]
+	@ write r1 to DACR
+	mcr	p15, 0, r1, c3, c0, 0
+	@ instruction sync
+	instr_sync
+	@ restore regs
+	ldmia	sp!, {r0, r1}
+#endif
+	.endm
+
+	.macro  pax_exit_kernel
+#if defined(CONFIG_PAX_KERNEXEC) || defined(CONFIG_PAX_MEMORY_UDEREF)
+	@ save regs
+	stmdb	sp!, {r0, r1}
+	@ read old DACR from stack into r1
+	ldr	r1, [sp, #(8 + S_SP)]
+	sub	r1, r1, #8
+	ldr	r1, [r1]
+
+	@ write r1 to current_thread_info()->cpu_domain
+	mov	r0, sp
+	@ assume 8K pages, since we have to split the immediate in two
+	bic	r0, r0, #(0x1fc0)
+	bic	r0, r0, #(0x3f)
+	str	r1, [r0, #TI_CPU_DOMAIN]
+	@ write r1 to DACR
+	mcr	p15, 0, r1, c3, c0, 0
+	@ instruction sync
+	instr_sync
+	@ restore regs
+	ldmia	sp!, {r0, r1}
+#endif
+	.endm
 
 	.macro	svc_exit, rpsr, irq = 0
 	.if	\irq != 0
@@ -218,6 +271,8 @@
 	ldr	r1, [sp, #SVC_ADDR_LIMIT]
 	uaccess_restore
 	str	r1, [tsk, #TI_ADDR_LIMIT]
+
+	pax_exit_kernel
 
 #ifndef CONFIG_THUMB2_KERNEL
 	@ ARM mode SVC restore

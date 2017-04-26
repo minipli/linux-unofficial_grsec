@@ -932,9 +932,9 @@ fore200e_tx_irq(struct fore200e* fore200e)
 #endif
 		/* check error condition */
 		if (*entry->status & STATUS_ERROR)
-		    atomic_inc(&vcc->stats->tx_err);
+		    atomic_inc_unchecked(&vcc->stats->tx_err);
 		else
-		    atomic_inc(&vcc->stats->tx);
+		    atomic_inc_unchecked(&vcc->stats->tx);
 	    }
 	}
 
@@ -1083,7 +1083,7 @@ fore200e_push_rpd(struct fore200e* fore200e, struct atm_vcc* vcc, struct rpd* rp
     if (skb == NULL) {
 	DPRINTK(2, "unable to alloc new skb, rx PDU length = %d\n", pdu_len);
 
-	atomic_inc(&vcc->stats->rx_drop);
+	atomic_inc_unchecked(&vcc->stats->rx_drop);
 	return -ENOMEM;
     } 
 
@@ -1126,14 +1126,14 @@ fore200e_push_rpd(struct fore200e* fore200e, struct atm_vcc* vcc, struct rpd* rp
 
 	dev_kfree_skb_any(skb);
 
-	atomic_inc(&vcc->stats->rx_drop);
+	atomic_inc_unchecked(&vcc->stats->rx_drop);
 	return -ENOMEM;
     }
 
     ASSERT(atomic_read(&sk_atm(vcc)->sk_wmem_alloc) >= 0);
 
     vcc->push(vcc, skb);
-    atomic_inc(&vcc->stats->rx);
+    atomic_inc_unchecked(&vcc->stats->rx);
 
     ASSERT(atomic_read(&sk_atm(vcc)->sk_wmem_alloc) >= 0);
 
@@ -1211,7 +1211,7 @@ fore200e_rx_irq(struct fore200e* fore200e)
 		DPRINTK(2, "damaged PDU on %d.%d.%d\n",
 			fore200e->atm_dev->number,
 			entry->rpd->atm_header.vpi, entry->rpd->atm_header.vci);
-		atomic_inc(&vcc->stats->rx_err);
+		atomic_inc_unchecked(&vcc->stats->rx_err);
 	    }
 	}
 
@@ -1656,7 +1656,7 @@ fore200e_send(struct atm_vcc *vcc, struct sk_buff *skb)
 		goto retry_here;
 	    }
 
-	    atomic_inc(&vcc->stats->tx_err);
+	    atomic_inc_unchecked(&vcc->stats->tx_err);
 
 	    fore200e->tx_sat++;
 	    DPRINTK(2, "tx queue of device %s is saturated, PDU dropped - heartbeat is %08x\n",

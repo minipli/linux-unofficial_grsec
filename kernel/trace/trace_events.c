@@ -2274,7 +2274,6 @@ __trace_early_add_new_event(struct trace_event_call *call,
 	return 0;
 }
 
-struct ftrace_module_file_ops;
 static void __add_event_to_tracers(struct trace_event_call *call);
 
 /* Add an additional event_call dynamically */

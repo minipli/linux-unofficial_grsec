@@ -39,6 +39,7 @@
 
 #ifndef __ASSEMBLY__
 
+#include <linux/linkage.h>
 #include <asm/desc_defs.h>
 #include <asm/kmap_types.h>
 #include <asm/pgtable_types.h>
@@ -51,14 +52,29 @@ struct mm_struct;
 struct desc_struct;
 struct task_struct;
 struct cpumask;
+struct qspinlock;
 
 /*
  * Wrapper type for pointers to code which uses the non-standard
- * calling convention.  See PV_CALL_SAVE_REGS_THUNK below.
+ * calling convention.  See PV_CALLEE_SAVE_REGS_THUNK below.
  */
-struct paravirt_callee_save {
-	void *func;
-};
+union paravirt_callee_save {
+	void (*queued_spin_unlock)(struct qspinlock *);
+
+	asmlinkage unsigned long (*save_fl)(void);
+	void (*restore_fl)(unsigned long);
+	asmlinkage void (*irq_disable)(void);
+	asmlinkage void (*irq_enable)(void);
+
+	pteval_t (*pte_val)(pte_t);
+	pte_t (*make_pte)(pteval_t);
+	pmdval_t (*pmd_val)(pmd_t);
+	pmd_t (*make_pmd)(pmdval_t);
+	pudval_t (*pud_val)(pud_t);
+	pud_t (*make_pud)(pmdval_t);
+	pgdval_t (*pgd_val)(pgd_t);
+	pgd_t (*make_pgd)(pgdval_t);
+} __no_const;
 
 /* general info */
 struct pv_info {
@@ -83,7 +99,7 @@ struct pv_init_ops {
 	 */
 	unsigned (*patch)(u8 type, u16 clobber, void *insnbuf,
 			  unsigned long addr, unsigned len);
-};
+} __no_const __no_randomize_layout;
 
 
 struct pv_lazy_ops {
@@ -91,12 +107,12 @@ struct pv_lazy_ops {
 	void (*enter)(void);
 	void (*leave)(void);
 	void (*flush)(void);
-};
+} __no_const __no_randomize_layout;
 
 struct pv_time_ops {
 	unsigned long long (*sched_clock)(void);
 	unsigned long long (*steal_clock)(int cpu);
-};
+} __rap_hash __no_const __no_randomize_layout;
 
 struct pv_cpu_ops {
 	/* hooks for various privileged instructions */
@@ -177,7 +193,7 @@ struct pv_cpu_ops {
 
 	void (*start_context_switch)(struct task_struct *prev);
 	void (*end_context_switch)(struct task_struct *next);
-};
+} __rap_hash __no_const __no_randomize_layout;
 
 struct pv_irq_ops {
 	/*
@@ -189,10 +205,10 @@ struct pv_irq_ops {
 	 * NOTE: These functions callers expect the callee to preserve
 	 * more registers than the standard C calling convention.
 	 */
-	struct paravirt_callee_save save_fl;
-	struct paravirt_callee_save restore_fl;
-	struct paravirt_callee_save irq_disable;
-	struct paravirt_callee_save irq_enable;
+	union paravirt_callee_save save_fl;
+	union paravirt_callee_save restore_fl;
+	union paravirt_callee_save irq_disable;
+	union paravirt_callee_save irq_enable;
 
 	void (*safe_halt)(void);
 	void (*halt)(void);
@@ -200,7 +216,7 @@ struct pv_irq_ops {
 #ifdef CONFIG_X86_64
 	void (*adjust_exception_frame)(void);
 #endif
-};
+} __rap_hash __no_randomize_layout;
 
 struct pv_mmu_ops {
 	unsigned long (*read_cr2)(void);
@@ -259,11 +275,11 @@ struct pv_mmu_ops {
 	void (*ptep_modify_prot_commit)(struct mm_struct *mm, unsigned long addr,
 					pte_t *ptep, pte_t pte);
 
-	struct paravirt_callee_save pte_val;
-	struct paravirt_callee_save make_pte;
+	union paravirt_callee_save pte_val;
+	union paravirt_callee_save make_pte;
 
-	struct paravirt_callee_save pgd_val;
-	struct paravirt_callee_save make_pgd;
+	union paravirt_callee_save pgd_val;
+	union paravirt_callee_save make_pgd;
 
 #if CONFIG_PGTABLE_LEVELS >= 3
 #ifdef CONFIG_X86_PAE
@@ -276,14 +292,15 @@ struct pv_mmu_ops {
 
 	void (*set_pud)(pud_t *pudp, pud_t pudval);
 
-	struct paravirt_callee_save pmd_val;
-	struct paravirt_callee_save make_pmd;
+	union paravirt_callee_save pmd_val;
+	union paravirt_callee_save make_pmd;
 
 #if CONFIG_PGTABLE_LEVELS == 4
-	struct paravirt_callee_save pud_val;
-	struct paravirt_callee_save make_pud;
+	union paravirt_callee_save pud_val;
+	union paravirt_callee_save make_pud;
 
 	void (*set_pgd)(pgd_t *pudp, pgd_t pgdval);
+	void (*set_pgd_batched)(pgd_t *pudp, pgd_t pgdval);
 #endif	/* CONFIG_PGTABLE_LEVELS == 4 */
 #endif	/* CONFIG_PGTABLE_LEVELS >= 3 */
 
@@ -295,7 +312,13 @@ struct pv_mmu_ops {
 	   an mfn.  We can tell which is which from the index. */
 	void (*set_fixmap)(unsigned /* enum fixed_addresses */ idx,
 			   phys_addr_t phys, pgprot_t flags);
-};
+
+#ifdef CONFIG_PAX_KERNEXEC
+	unsigned long (*pax_open_kernel)(void);
+	unsigned long (*pax_close_kernel)(void);
+#endif
+
+} __rap_hash __no_randomize_layout;
 
 struct arch_spinlock;
 #ifdef CONFIG_SMP
@@ -306,15 +329,18 @@ struct qspinlock;
 
 struct pv_lock_ops {
 	void (*queued_spin_lock_slowpath)(struct qspinlock *lock, u32 val);
-	struct paravirt_callee_save queued_spin_unlock;
+	union paravirt_callee_save queued_spin_unlock;
 
 	void (*wait)(u8 *ptr, u8 val);
 	void (*kick)(int cpu);
-};
+} __rap_hash __no_randomize_layout;
 
 /* This contains all the paravirt structures: we get a convenient
  * number for each function using the offset which we use to indicate
- * what to patch. */
+ * what to patch.
+ * shouldn't be randomized due to the "NEAT TRICK" in paravirt.c
+ */
+
 struct paravirt_patch_template {
 	struct pv_init_ops pv_init_ops;
 	struct pv_time_ops pv_time_ops;
@@ -322,7 +348,7 @@ struct paravirt_patch_template {
 	struct pv_irq_ops pv_irq_ops;
 	struct pv_mmu_ops pv_mmu_ops;
 	struct pv_lock_ops pv_lock_ops;
-};
+} __no_randomize_layout;
 
 extern struct pv_info pv_info;
 extern struct pv_init_ops pv_init_ops;
@@ -391,7 +417,7 @@ int paravirt_disable_iospace(void);
  * offset into the paravirt_patch_template structure, and can therefore be
  * freely converted back into a structure offset.
  */
-#define PARAVIRT_CALL	"call *%c[paravirt_opptr];"
+#define PARAVIRT_CALL(op)	PAX_INDIRECT_CALL("*%c[paravirt_opptr]", #op) ";"
 
 /*
  * These macros are intended to wrap calls through one of the paravirt
@@ -518,7 +544,7 @@ int paravirt_disable_iospace(void);
 		/* since this condition will never hold */		\
 		if (sizeof(rettype) > sizeof(unsigned long)) {		\
 			asm volatile(pre				\
-				     paravirt_alt(PARAVIRT_CALL)	\
+				     paravirt_alt(PARAVIRT_CALL(op))	\
 				     post				\
 				     : call_clbr, "+r" (__sp)		\
 				     : paravirt_type(op),		\
@@ -528,7 +554,7 @@ int paravirt_disable_iospace(void);
 			__ret = (rettype)((((u64)__edx) << 32) | __eax); \
 		} else {						\
 			asm volatile(pre				\
-				     paravirt_alt(PARAVIRT_CALL)	\
+				     paravirt_alt(PARAVIRT_CALL(op))	\
 				     post				\
 				     : call_clbr, "+r" (__sp)		\
 				     : paravirt_type(op),		\
@@ -544,8 +570,8 @@ int paravirt_disable_iospace(void);
 	____PVOP_CALL(rettype, op, CLBR_ANY, PVOP_CALL_CLOBBERS,	\
 		      EXTRA_CLOBBERS, pre, post, ##__VA_ARGS__)
 
-#define __PVOP_CALLEESAVE(rettype, op, pre, post, ...)			\
-	____PVOP_CALL(rettype, op.func, CLBR_RET_REG,			\
+#define __PVOP_CALLEESAVE(rettype, op, func, pre, post, ...)		\
+	____PVOP_CALL(rettype, op.func.func, CLBR_RET_REG,		\
 		      PVOP_CALLEE_CLOBBERS, ,				\
 		      pre, post, ##__VA_ARGS__)
 
@@ -555,7 +581,7 @@ int paravirt_disable_iospace(void);
 		PVOP_VCALL_ARGS;					\
 		PVOP_TEST_NULL(op);					\
 		asm volatile(pre					\
-			     paravirt_alt(PARAVIRT_CALL)		\
+			     paravirt_alt(PARAVIRT_CALL(op))		\
 			     post					\
 			     : call_clbr, "+r" (__sp)			\
 			     : paravirt_type(op),			\
@@ -569,8 +595,8 @@ int paravirt_disable_iospace(void);
 		       VEXTRA_CLOBBERS,					\
 		       pre, post, ##__VA_ARGS__)
 
-#define __PVOP_VCALLEESAVE(op, pre, post, ...)				\
-	____PVOP_VCALL(op.func, CLBR_RET_REG,				\
+#define __PVOP_VCALLEESAVE(op, func, pre, post, ...)			\
+	____PVOP_VCALL(op.func.func, CLBR_RET_REG,			\
 		      PVOP_VCALLEE_CLOBBERS, ,				\
 		      pre, post, ##__VA_ARGS__)
 
@@ -581,10 +607,10 @@ int paravirt_disable_iospace(void);
 #define PVOP_VCALL0(op)							\
 	__PVOP_VCALL(op, "", "")
 
-#define PVOP_CALLEE0(rettype, op)					\
-	__PVOP_CALLEESAVE(rettype, op, "", "")
-#define PVOP_VCALLEE0(op)						\
-	__PVOP_VCALLEESAVE(op, "", "")
+#define PVOP_CALLEE0(rettype, op, func)					\
+	__PVOP_CALLEESAVE(rettype, op, func, "", "")
+#define PVOP_VCALLEE0(op, func)						\
+	__PVOP_VCALLEESAVE(op, func, "", "")
 
 
 #define PVOP_CALL1(rettype, op, arg1)					\
@@ -592,10 +618,10 @@ int paravirt_disable_iospace(void);
 #define PVOP_VCALL1(op, arg1)						\
 	__PVOP_VCALL(op, "", "", PVOP_CALL_ARG1(arg1))
 
-#define PVOP_CALLEE1(rettype, op, arg1)					\
-	__PVOP_CALLEESAVE(rettype, op, "", "", PVOP_CALL_ARG1(arg1))
-#define PVOP_VCALLEE1(op, arg1)						\
-	__PVOP_VCALLEESAVE(op, "", "", PVOP_CALL_ARG1(arg1))
+#define PVOP_CALLEE1(rettype, op, func, arg1)				\
+	__PVOP_CALLEESAVE(rettype, op, func, "", "", PVOP_CALL_ARG1(arg1))
+#define PVOP_VCALLEE1(op, func, arg1)					\
+	__PVOP_VCALLEESAVE(op, func, "", "", PVOP_CALL_ARG1(arg1))
 
 
 #define PVOP_CALL2(rettype, op, arg1, arg2)				\
@@ -605,11 +631,11 @@ int paravirt_disable_iospace(void);
 	__PVOP_VCALL(op, "", "", PVOP_CALL_ARG1(arg1),			\
 		     PVOP_CALL_ARG2(arg2))
 
-#define PVOP_CALLEE2(rettype, op, arg1, arg2)				\
-	__PVOP_CALLEESAVE(rettype, op, "", "", PVOP_CALL_ARG1(arg1),	\
+#define PVOP_CALLEE2(rettype, op, func, arg1, arg2)			\
+	__PVOP_CALLEESAVE(rettype, op, func, "", "", PVOP_CALL_ARG1(arg1),\
 			  PVOP_CALL_ARG2(arg2))
-#define PVOP_VCALLEE2(op, arg1, arg2)					\
-	__PVOP_VCALLEESAVE(op, "", "", PVOP_CALL_ARG1(arg1),		\
+#define PVOP_VCALLEE2(op, func, arg1, arg2)				\
+	__PVOP_VCALLEESAVE(op, func, "", "", PVOP_CALL_ARG1(arg1),	\
 			   PVOP_CALL_ARG2(arg2))
 
 

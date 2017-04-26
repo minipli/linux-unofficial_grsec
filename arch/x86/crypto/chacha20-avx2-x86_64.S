@@ -10,6 +10,7 @@
  */
 
 #include <linux/linkage.h>
+#include <asm/alternative-asm.h>
 
 .data
 .align 32
@@ -439,5 +440,5 @@ ENTRY(chacha20_8block_xor_avx2)
 
 	vzeroupper
 	mov		%r8,%rsp
-	ret
+	pax_ret chacha20_8block_xor_avx2
 ENDPROC(chacha20_8block_xor_avx2)

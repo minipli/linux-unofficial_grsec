@@ -437,12 +437,12 @@ struct i915_ggtt {
 	struct i915_address_space base;
 	struct io_mapping mappable;	/* Mapping to our CPU mappable region */
 
-	size_t stolen_size;		/* Total size of stolen memory */
+	u64 stolen_size;		/* Total size of stolen memory */
 	size_t stolen_usable_size;	/* Total size minus BIOS reserved */
 	size_t stolen_reserved_base;
 	size_t stolen_reserved_size;
 	u64 mappable_end;		/* End offset that we can CPU map */
-	phys_addr_t mappable_base;	/* PA of our GMADR */
+	u64 mappable_base;		/* PA of our GMADR */
 
 	/** "Graphics Stolen Memory" holds the global PTEs */
 	void __iomem *gsm;

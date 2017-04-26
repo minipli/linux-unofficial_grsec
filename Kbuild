@@ -91,6 +91,7 @@ $(obj)/$(offsets-file): arch/$(SRCARCH)/kernel/asm-offsets.s FORCE
 always += missing-syscalls
 targets += missing-syscalls
 
+GCC_PLUGINS_missing-syscalls := n
 quiet_cmd_syscalls = CALL    $<
       cmd_syscalls = $(CONFIG_SHELL) $< $(CC) $(c_flags) $(missing_syscalls_flags)
 

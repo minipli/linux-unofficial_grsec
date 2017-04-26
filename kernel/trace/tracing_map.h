@@ -181,7 +181,7 @@ struct tracing_map {
 	unsigned int			map_bits;
 	unsigned int			map_size;
 	unsigned int			max_elts;
-	atomic_t			next_elt;
+	atomic_unchecked_t		next_elt;
 	struct tracing_map_array	*elts;
 	struct tracing_map_array	*map;
 	const struct tracing_map_ops	*ops;
@@ -191,8 +191,8 @@ struct tracing_map {
 	int				key_idx[TRACING_MAP_KEYS_MAX];
 	unsigned int			n_keys;
 	struct tracing_map_sort_key	sort_key;
-	atomic64_t			hits;
-	atomic64_t			drops;
+	atomic64_unchecked_t		hits;
+	atomic64_unchecked_t		drops;
 };
 
 /**

@@ -444,19 +444,19 @@ LRound_precision:
 /* The logic is wrong if we got here */
 L_bugged:
 	pushl	EX_INTERNAL|0x202
-	call	EXCEPTION
+	pax_direct_call EXCEPTION
 	pop	%ebx
 	jmp	L_exit
 
 L_bugged_1:
 	pushl	EX_INTERNAL|0x203
-	call	EXCEPTION
+	pax_direct_call EXCEPTION
 	pop	%ebx
 	jmp	L_exit
 
 L_bugged_2:
 	pushl	EX_INTERNAL|0x204
-	call	EXCEPTION
+	pax_direct_call EXCEPTION
 	pop	%ebx
 	jmp	L_exit
 
@@ -467,5 +467,5 @@ L_exit:
 	popl	%esi
 
 	leave
-	ret
+	pax_ret FPU_u_div
 #endif /* PARANOID */ 

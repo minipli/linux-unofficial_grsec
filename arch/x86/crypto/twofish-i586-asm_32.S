@@ -22,6 +22,7 @@
 
 #include <linux/linkage.h>
 #include <asm/asm-offsets.h>
+#include <asm/alternative-asm.h>
 
 /* return address at 0 */
 
@@ -220,7 +221,7 @@
 	xor	%esi,		d ## D;\
 	ror	$1,		d ## D;
 
-ENTRY(twofish_enc_blk)
+RAP_ENTRY(twofish_enc_blk)
 	push	%ebp			/* save registers according to calling convention*/
 	push    %ebx
 	push    %esi
@@ -273,10 +274,10 @@ ENTRY(twofish_enc_blk)
 	pop	%ebx
 	pop	%ebp
 	mov	$1,	%eax
-	ret
+	pax_ret twofish_enc_blk
 ENDPROC(twofish_enc_blk)
 
-ENTRY(twofish_dec_blk)
+RAP_ENTRY(twofish_dec_blk)
 	push	%ebp			/* save registers according to calling convention*/
 	push    %ebx
 	push    %esi
@@ -330,5 +331,5 @@ ENTRY(twofish_dec_blk)
 	pop	%ebx
 	pop	%ebp
 	mov	$1,	%eax
-	ret
+	pax_ret twofish_dec_blk
 ENDPROC(twofish_dec_blk)

@@ -45,7 +45,7 @@ static void fpu__init_cpu_generic(void)
 	/* Flush out any pending x87 state: */
 #ifdef CONFIG_MATH_EMULATION
 	if (!boot_cpu_has(X86_FEATURE_FPU))
-		fpstate_init_soft(&current->thread.fpu.state.soft);
+		fpstate_init_soft(&current->thread.fpu.state->soft);
 	else
 #endif
 		asm volatile ("fninit");
@@ -148,51 +148,7 @@ static void __init fpu__init_system_generic(void)
 unsigned int fpu_kernel_xstate_size;
 EXPORT_SYMBOL_GPL(fpu_kernel_xstate_size);
 
-/* Get alignment of the TYPE. */
-#define TYPE_ALIGN(TYPE) offsetof(struct { char x; TYPE test; }, test)
-
-/*
- * Enforce that 'MEMBER' is the last field of 'TYPE'.
- *
- * Align the computed size with alignment of the TYPE,
- * because that's how C aligns structs.
- */
-#define CHECK_MEMBER_AT_END_OF(TYPE, MEMBER) \
-	BUILD_BUG_ON(sizeof(TYPE) != ALIGN(offsetofend(TYPE, MEMBER), \
-					   TYPE_ALIGN(TYPE)))
-
-/*
- * We append the 'struct fpu' to the task_struct:
- */
-static void __init fpu__init_task_struct_size(void)
-{
-	int task_size = sizeof(struct task_struct);
-
-	/*
-	 * Subtract off the static size of the register state.
-	 * It potentially has a bunch of padding.
-	 */
-	task_size -= sizeof(((struct task_struct *)0)->thread.fpu.state);
-
-	/*
-	 * Add back the dynamically-calculated register state
-	 * size.
-	 */
-	task_size += fpu_kernel_xstate_size;
-
-	/*
-	 * We dynamically size 'struct fpu', so we require that
-	 * it be at the end of 'thread_struct' and that
-	 * 'thread_struct' be at the end of 'task_struct'.  If
-	 * you hit a compile error here, check the structure to
-	 * see if something got added to the end.
-	 */
-	CHECK_MEMBER_AT_END_OF(struct fpu, state);
-	CHECK_MEMBER_AT_END_OF(struct thread_struct, fpu);
-	CHECK_MEMBER_AT_END_OF(struct task_struct, thread);
-
-	arch_task_struct_size = task_size;
-}
+union fpregs_state init_fpregs_state;
 
 /*
  * Set up the user and kernel xstate sizes based on the legacy FPU context size.
@@ -386,7 +342,6 @@ void __init fpu__init_system(struct cpuinfo_x86 *c)
 	fpu__init_system_generic();
 	fpu__init_system_xstate_size_legacy();
 	fpu__init_system_xstate();
-	fpu__init_task_struct_size();
 
 	fpu__init_system_ctx_switch();
 }

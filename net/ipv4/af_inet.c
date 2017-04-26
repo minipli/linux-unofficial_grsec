@@ -1447,7 +1447,7 @@ int inet_recv_error(struct sock *sk, struct msghdr *msg, int len, int *addr_len)
 		return ip_recv_error(sk, msg, len, addr_len);
 #if IS_ENABLED(CONFIG_IPV6)
 	if (sk->sk_family == AF_INET6)
-		return pingv6_ops.ipv6_recv_error(sk, msg, len, addr_len);
+		return pingv6_ops->ipv6_recv_error(sk, msg, len, addr_len);
 #endif
 	return -EINVAL;
 }
@@ -1659,7 +1659,7 @@ static __net_exit void ipv4_mib_exit_net(struct net *net)
 	free_percpu(net->mib.tcp_statistics);
 }
 
-static __net_initdata struct pernet_operations ipv4_mib_ops = {
+static __net_initconst struct pernet_operations ipv4_mib_ops = {
 	.init = ipv4_mib_init_net,
 	.exit = ipv4_mib_exit_net,
 };
@@ -1700,7 +1700,7 @@ static __net_exit void inet_exit_net(struct net *net)
 {
 }
 
-static __net_initdata struct pernet_operations af_inet_ops = {
+static __net_initconst struct pernet_operations af_inet_ops = {
 	.init = inet_init_net,
 	.exit = inet_exit_net,
 };

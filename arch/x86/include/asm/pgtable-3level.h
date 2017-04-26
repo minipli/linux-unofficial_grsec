@@ -92,12 +92,16 @@ static inline void native_set_pte_atomic(pte_t *ptep, pte_t pte)
 
 static inline void native_set_pmd(pmd_t *pmdp, pmd_t pmd)
 {
+	pax_open_kernel();
 	set_64bit((unsigned long long *)(pmdp), native_pmd_val(pmd));
+	pax_close_kernel();
 }
 
 static inline void native_set_pud(pud_t *pudp, pud_t pud)
 {
+	pax_open_kernel();
 	set_64bit((unsigned long long *)(pudp), native_pud_val(pud));
+	pax_close_kernel();
 }
 
 /*
@@ -116,9 +120,12 @@ static inline void native_pte_clear(struct mm_struct *mm, unsigned long addr,
 static inline void native_pmd_clear(pmd_t *pmd)
 {
 	u32 *tmp = (u32 *)pmd;
+
+	pax_open_kernel();
 	*tmp = 0;
 	smp_wmb();
 	*(tmp + 1) = 0;
+	pax_close_kernel();
 }
 
 static inline void pud_clear(pud_t *pudp)

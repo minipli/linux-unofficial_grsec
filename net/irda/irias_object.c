@@ -88,8 +88,10 @@ EXPORT_SYMBOL(irias_new_object);
  *    Delete given attribute and deallocate all its memory
  *
  */
-static void __irias_delete_attrib(struct ias_attrib *attrib)
+static void __irias_delete_attrib(void *_attrib)
 {
+	struct ias_attrib *attrib = _attrib;
+
 	IRDA_ASSERT(attrib != NULL, return;);
 	IRDA_ASSERT(attrib->magic == IAS_ATTRIB_MAGIC, return;);
 
@@ -101,14 +103,16 @@ static void __irias_delete_attrib(struct ias_attrib *attrib)
 	kfree(attrib);
 }
 
-void __irias_delete_object(struct ias_object *obj)
+void __irias_delete_object(void *_obj)
 {
+	struct ias_object *obj = _obj;
+
 	IRDA_ASSERT(obj != NULL, return;);
 	IRDA_ASSERT(obj->magic == IAS_OBJECT_MAGIC, return;);
 
 	kfree(obj->name);
 
-	hashbin_delete(obj->attribs, (FREE_FUNC) __irias_delete_attrib);
+	hashbin_delete(obj->attribs, __irias_delete_attrib);
 
 	obj->magic = ~IAS_OBJECT_MAGIC;
 

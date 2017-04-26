@@ -1,4 +1,5 @@
 #include <linux/linkage.h>
+#include <asm/alternative-asm.h>
 
 # enter salsa20_encrypt_bytes
 ENTRY(salsa20_encrypt_bytes)
@@ -789,7 +790,7 @@ ENTRY(salsa20_encrypt_bytes)
 	add	%r11,%rsp
 	mov	%rdi,%rax
 	mov	%rsi,%rdx
-	ret
+	pax_ret salsa20_encrypt_bytes
 #   bytesatleast65:
 ._bytesatleast65:
 	#   bytes -= 64
@@ -889,7 +890,7 @@ ENTRY(salsa20_keysetup)
 	add	%r11,%rsp
 	mov	%rdi,%rax
 	mov	%rsi,%rdx
-	ret
+	pax_ret salsa20_keysetup
 ENDPROC(salsa20_keysetup)
 
 # enter salsa20_ivsetup
@@ -914,5 +915,5 @@ ENTRY(salsa20_ivsetup)
 	add	%r11,%rsp
 	mov	%rdi,%rax
 	mov	%rsi,%rdx
-	ret
+	pax_ret salsa20_ivsetup
 ENDPROC(salsa20_ivsetup)

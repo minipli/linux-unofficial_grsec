@@ -2055,10 +2055,10 @@ static struct dlm_ctxt *dlm_alloc_ctxt(const char *domain,
 	dlm->reco.new_master = O2NM_INVALID_NODE_NUM;
 	dlm->reco.dead_node = O2NM_INVALID_NODE_NUM;
 
-	atomic_set(&dlm->res_tot_count, 0);
+	atomic_set_unchecked(&dlm->res_tot_count, 0);
 	atomic_set(&dlm->res_cur_count, 0);
 	for (i = 0; i < DLM_MLE_NUM_TYPES; ++i) {
-		atomic_set(&dlm->mle_tot_count[i], 0);
+		atomic_set_unchecked(&dlm->mle_tot_count[i], 0);
 		atomic_set(&dlm->mle_cur_count[i], 0);
 	}
 

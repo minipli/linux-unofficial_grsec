@@ -240,8 +240,9 @@ static void __write_super(struct cache_sb *sb, struct bio *bio)
 	submit_bio(bio);
 }
 
-static void bch_write_bdev_super_unlock(struct closure *cl)
+static void bch_write_bdev_super_unlock(struct work_struct *work)
 {
+	struct closure *cl = container_of(work, struct closure, work);
 	struct cached_dev *dc = container_of(cl, struct cached_dev, sb_write);
 
 	up(&dc->sb_write_mutex);
@@ -274,8 +275,9 @@ static void write_super_endio(struct bio *bio)
 	closure_put(&ca->set->sb_write);
 }
 
-static void bcache_write_super_unlock(struct closure *cl)
+static void bcache_write_super_unlock(struct work_struct *work)
 {
+	struct closure *cl = container_of(work, struct closure, work);
 	struct cache_set *c = container_of(cl, struct cache_set, sb_write);
 
 	up(&c->sb_write_mutex);
@@ -325,8 +327,9 @@ static void uuid_endio(struct bio *bio)
 	closure_put(cl);
 }
 
-static void uuid_io_unlock(struct closure *cl)
+static void uuid_io_unlock(struct work_struct *work)
 {
+	struct closure *cl = container_of(work, struct closure, work);
 	struct cache_set *c = container_of(cl, struct cache_set, uuid_write);
 
 	up(&c->uuid_write_mutex);
@@ -531,7 +534,7 @@ void bch_prio_write(struct cache *ca)
 
 	ca->disk_buckets->seq++;
 
-	atomic_long_add(ca->sb.bucket_size * prio_buckets(ca),
+	atomic_long_add_unchecked(ca->sb.bucket_size * prio_buckets(ca),
 			&ca->meta_sectors_written);
 
 	//pr_debug("free %zu, free_inc %zu, unused %zu", fifo_used(&ca->free),
@@ -1051,8 +1054,9 @@ void bch_cached_dev_release(struct kobject *kobj)
 	module_put(THIS_MODULE);
 }
 
-static void cached_dev_free(struct closure *cl)
+static void cached_dev_free(struct work_struct *work)
 {
+	struct closure *cl = container_of(work, struct closure, work);
 	struct cached_dev *dc = container_of(cl, struct cached_dev, disk.cl);
 
 	cancel_delayed_work_sync(&dc->writeback_rate_update);
@@ -1076,8 +1080,9 @@ static void cached_dev_free(struct closure *cl)
 	kobject_put(&dc->disk.kobj);
 }
 
-static void cached_dev_flush(struct closure *cl)
+static void cached_dev_flush(struct work_struct *work)
 {
+	struct closure *cl = container_of(work, struct closure, work);
 	struct cached_dev *dc = container_of(cl, struct cached_dev, disk.cl);
 	struct bcache_device *d = &dc->disk;
 
@@ -1193,8 +1198,9 @@ void bch_flash_dev_release(struct kobject *kobj)
 	kfree(d);
 }
 
-static void flash_dev_free(struct closure *cl)
+static void flash_dev_free(struct work_struct *work)
 {
+	struct closure *cl = container_of(work, struct closure, work);
 	struct bcache_device *d = container_of(cl, struct bcache_device, cl);
 	mutex_lock(&bch_register_lock);
 	bcache_device_free(d);
@@ -1202,8 +1208,9 @@ static void flash_dev_free(struct closure *cl)
 	kobject_put(&d->kobj);
 }
 
-static void flash_dev_flush(struct closure *cl)
+static void flash_dev_flush(struct work_struct *work)
 {
+	struct closure *cl = container_of(work, struct closure, work);
 	struct bcache_device *d = container_of(cl, struct bcache_device, cl);
 
 	mutex_lock(&bch_register_lock);
@@ -1322,8 +1329,9 @@ void bch_cache_set_release(struct kobject *kobj)
 	module_put(THIS_MODULE);
 }
 
-static void cache_set_free(struct closure *cl)
+static void cache_set_free(struct work_struct *work)
 {
+	struct closure *cl = container_of(work, struct closure, work);
 	struct cache_set *c = container_of(cl, struct cache_set, cl);
 	struct cache *ca;
 	unsigned i;
@@ -1368,8 +1376,9 @@ static void cache_set_free(struct closure *cl)
 	kobject_put(&c->kobj);
 }
 
-static void cache_set_flush(struct closure *cl)
+static void cache_set_flush(struct work_struct *work)
 {
+	struct closure *cl = container_of(work, struct closure, work);
 	struct cache_set *c = container_of(cl, struct cache_set, caching);
 	struct cache *ca;
 	struct btree *b;
@@ -1410,8 +1419,9 @@ static void cache_set_flush(struct closure *cl)
 	closure_return(cl);
 }
 
-static void __cache_set_unregister(struct closure *cl)
+static void __cache_set_unregister(struct work_struct *work)
 {
+	struct closure *cl = container_of(work, struct closure, work);
 	struct cache_set *c = container_of(cl, struct cache_set, caching);
 	struct cached_dev *dc;
 	size_t i;

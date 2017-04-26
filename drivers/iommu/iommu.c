@@ -945,7 +945,7 @@ static int iommu_bus_notifier(struct notifier_block *nb,
 static int iommu_bus_init(struct bus_type *bus, const struct iommu_ops *ops)
 {
 	int err;
-	struct notifier_block *nb;
+	notifier_block_no_const *nb;
 	struct iommu_callback_data cb = {
 		.ops = ops,
 	};

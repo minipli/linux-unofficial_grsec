@@ -413,7 +413,7 @@ static int set_flexbg_block_bitmap(struct super_block *sb, handle_t *handle,
 
 	ext4_debug("mark blocks [%llu/%u] used\n", block, count);
 	for (count2 = count; count > 0; count -= count2, block += count2) {
-		ext4_fsblk_t start;
+		ext4_fsblk_t start, diff;
 		struct buffer_head *bh;
 		ext4_group_t group;
 		int err;
@@ -421,10 +421,6 @@ static int set_flexbg_block_bitmap(struct super_block *sb, handle_t *handle,
 		group = ext4_get_group_number(sb, block);
 		start = ext4_group_first_block_no(sb, group);
 		group -= flex_gd->groups[0].group;
-
-		count2 = EXT4_BLOCKS_PER_GROUP(sb) - (block - start);
-		if (count2 > count)
-			count2 = count;
 
 		if (flex_gd->bg_flags[group] & EXT4_BG_BLOCK_UNINIT) {
 			BUG_ON(flex_gd->count > 1);
@@ -443,9 +439,15 @@ static int set_flexbg_block_bitmap(struct super_block *sb, handle_t *handle,
 		err = ext4_journal_get_write_access(handle, bh);
 		if (err)
 			return err;
+
+		diff = block - start;
+		count2 = EXT4_BLOCKS_PER_GROUP(sb) - diff;
+		if (count2 > count)
+			count2 = count;
+
 		ext4_debug("mark block bitmap %#04llx (+%llu/%u)\n", block,
-			   block - start, count2);
-		ext4_set_bits(bh->b_data, block - start, count2);
+			   diff, count2);
+		ext4_set_bits(bh->b_data, diff, count2);
 
 		err = ext4_handle_dirty_metadata(handle, NULL, bh);
 		if (unlikely(err))

@@ -161,7 +161,7 @@ static void show_regwindow(struct pt_regs *regs)
 	printk("i4: %016lx i5: %016lx i6: %016lx i7: %016lx\n",
 	       rwk->ins[4], rwk->ins[5], rwk->ins[6], rwk->ins[7]);
 	if (regs->tstate & TSTATE_PRIV)
-		printk("I7: <%pS>\n", (void *) rwk->ins[7]);
+		printk("I7: <%pA>\n", (void *) rwk->ins[7]);
 }
 
 void show_regs(struct pt_regs *regs)
@@ -170,7 +170,7 @@ void show_regs(struct pt_regs *regs)
 
 	printk("TSTATE: %016lx TPC: %016lx TNPC: %016lx Y: %08x    %s\n", regs->tstate,
 	       regs->tpc, regs->tnpc, regs->y, print_tainted());
-	printk("TPC: <%pS>\n", (void *) regs->tpc);
+	printk("TPC: <%pA>\n", (void *) regs->tpc);
 	printk("g0: %016lx g1: %016lx g2: %016lx g3: %016lx\n",
 	       regs->u_regs[0], regs->u_regs[1], regs->u_regs[2],
 	       regs->u_regs[3]);
@@ -183,7 +183,7 @@ void show_regs(struct pt_regs *regs)
 	printk("o4: %016lx o5: %016lx sp: %016lx ret_pc: %016lx\n",
 	       regs->u_regs[12], regs->u_regs[13], regs->u_regs[14],
 	       regs->u_regs[15]);
-	printk("RPC: <%pS>\n", (void *) regs->u_regs[15]);
+	printk("RPC: <%pA>\n", (void *) regs->u_regs[15]);
 	show_regwindow(regs);
 	show_stack(current, (unsigned long *) regs->u_regs[UREG_FP]);
 }
@@ -278,7 +278,7 @@ void arch_trigger_cpumask_backtrace(const cpumask_t *mask, bool exclude_self)
 		       ((tp && tp->task) ? tp->task->pid : -1));
 
 		if (gp->tstate & TSTATE_PRIV) {
-			printk("             TPC[%pS] O7[%pS] I7[%pS] RPC[%pS]\n",
+			printk("             TPC[%pA] O7[%pA] I7[%pA] RPC[%pA]\n",
 			       (void *) gp->tpc,
 			       (void *) gp->o7,
 			       (void *) gp->i7,

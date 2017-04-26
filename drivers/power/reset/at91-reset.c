@@ -17,6 +17,7 @@
 #include <linux/of_address.h>
 #include <linux/platform_device.h>
 #include <linux/reboot.h>
+#include <asm/pgtable.h>
 
 #include <soc/at91/at91sam9_ddrsdr.h>
 #include <soc/at91/at91sam9_sdramc.h>
@@ -206,7 +207,9 @@ static int __init at91_reset_probe(struct platform_device *pdev)
 	}
 
 	match = of_match_node(at91_reset_of_match, pdev->dev.of_node);
-	at91_restart_nb.notifier_call = match->data;
+	pax_open_kernel();
+	const_cast(at91_restart_nb.notifier_call) = match->data;
+	pax_close_kernel();
 
 	sclk = devm_clk_get(&pdev->dev, NULL);
 	if (IS_ERR(sclk))

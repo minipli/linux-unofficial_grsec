@@ -99,7 +99,7 @@ __be64 mlx4_ib_gen_node_guid(void)
 
 __be64 mlx4_ib_get_new_demux_tid(struct mlx4_ib_demux_ctx *ctx)
 {
-	return cpu_to_be64(atomic_inc_return(&ctx->tid)) |
+	return cpu_to_be64(atomic_inc_return_unchecked(&ctx->tid)) |
 		cpu_to_be64(0xff00000000000000LL);
 }
 

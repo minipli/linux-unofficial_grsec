@@ -38,7 +38,11 @@ static struct power_supply *pda_psy_ac, *pda_psy_usb;
 
 #if IS_ENABLED(CONFIG_USB_PHY)
 static struct usb_phy *transceiver;
-static struct notifier_block otg_nb;
+static int otg_handle_notification(struct notifier_block *nb,
+		unsigned long event, void *unused);
+static struct notifier_block otg_nb = {
+	.notifier_call = otg_handle_notification,
+};
 #endif
 
 static struct regulator *ac_draw;
@@ -373,7 +377,6 @@ static int pda_power_probe(struct platform_device *pdev)
 
 #if IS_ENABLED(CONFIG_USB_PHY)
 	if (!IS_ERR_OR_NULL(transceiver) && pdata->use_otg_notifier) {
-		otg_nb.notifier_call = otg_handle_notification;
 		ret = usb_register_notifier(transceiver, &otg_nb);
 		if (ret) {
 			dev_err(dev, "failure to register otg notifier\n");

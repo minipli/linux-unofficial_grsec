@@ -42,7 +42,7 @@ static struct ctl_table xfrm_table[] = {
 
 int __net_init xfrm_sysctl_init(struct net *net)
 {
-	struct ctl_table *table;
+	ctl_table_no_const *table;
 
 	__xfrm_sysctl_init(net);
 

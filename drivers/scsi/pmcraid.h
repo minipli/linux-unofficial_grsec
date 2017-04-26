@@ -748,7 +748,7 @@ struct pmcraid_instance {
 	struct pmcraid_isr_param hrrq_vector[PMCRAID_NUM_MSIX_VECTORS];
 
 	/* Message id as filled in last fired IOARCB, used to identify HRRQ */
-	atomic_t last_message_id;
+	atomic_unchecked_t last_message_id;
 
 	/* configuration table */
 	struct pmcraid_config_table *cfg_table;
@@ -777,7 +777,7 @@ struct pmcraid_instance {
 	atomic_t outstanding_cmds;
 
 	/* should add/delete resources to mid-layer now ?*/
-	atomic_t expose_resources;
+	atomic_unchecked_t expose_resources;
 
 
 
@@ -813,8 +813,8 @@ struct pmcraid_resource_entry {
 		struct pmcraid_config_table_entry_ext cfg_entry_ext;
 	};
 	struct scsi_device *scsi_dev;	/* Link scsi_device structure */
-	atomic_t read_failures;		/* count of failed READ commands */
-	atomic_t write_failures;	/* count of failed WRITE commands */
+	atomic_unchecked_t read_failures;	/* count of failed READ commands */
+	atomic_unchecked_t write_failures;	/* count of failed WRITE commands */
 
 	/* To indicate add/delete/modify during CCN */
 	u8 change_detected;

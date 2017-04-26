@@ -278,8 +278,9 @@ static inline void inode_detach_wb(struct inode *inode)
 }
 
 static inline void wbc_attach_and_unlock_inode(struct writeback_control *wbc,
+					       struct inode *inode) __releases(&inode->i_lock);
+static inline void wbc_attach_and_unlock_inode(struct writeback_control *wbc,
 					       struct inode *inode)
-	__releases(&inode->i_lock)
 {
 	spin_unlock(&inode->i_lock);
 }

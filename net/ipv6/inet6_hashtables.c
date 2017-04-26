@@ -179,7 +179,7 @@ struct sock *inet6_lookup(struct net *net, struct inet_hashinfo *hashinfo,
 EXPORT_SYMBOL_GPL(inet6_lookup);
 
 static int __inet6_check_established(struct inet_timewait_death_row *death_row,
-				     struct sock *sk, const __u16 lport,
+				     struct sock *sk, __u16 lport,
 				     struct inet_timewait_sock **twp)
 {
 	struct inet_hashinfo *hinfo = death_row->hashinfo;

@@ -156,7 +156,7 @@ static __always_inline __pure bool _static_cpu_has(u16 bit)
 			 " .byte 5f - 4f\n"		/* repl len */
 			 " .byte 3b - 2b\n"		/* pad len */
 			 ".previous\n"
-			 ".section .altinstr_replacement,\"ax\"\n"
+			 ".section .altinstr_replacement,\"a\"\n"
 			 "4: jmp %l[t_no]\n"
 			 "5:\n"
 			 ".previous\n"

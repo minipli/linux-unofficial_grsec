@@ -135,7 +135,7 @@ int vmw_wait_lag(struct vmw_private *dev_priv,
 	while (!vmw_lag_lt(queue, us)) {
 		spin_lock(&queue->lock);
 		if (list_empty(&queue->head))
-			seqno = atomic_read(&dev_priv->marker_seq);
+			seqno = atomic_read_unchecked(&dev_priv->marker_seq);
 		else {
 			marker = list_first_entry(&queue->head,
 						 struct vmw_marker, head);

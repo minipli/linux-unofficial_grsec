@@ -585,7 +585,7 @@ void pin_page(struct lg_cpu *cpu, unsigned long vaddr)
 /*:*/
 
 #ifdef CONFIG_X86_PAE
-static void release_pmd(pmd_t *spmd)
+static void __intentional_overflow(-1) release_pmd(pmd_t *spmd)
 {
 	/* If the entry's not present, there's nothing to release. */
 	if (pmd_flags(*spmd) & _PAGE_PRESENT) {

@@ -1499,9 +1499,9 @@ isdn_tty_open(struct tty_struct *tty, struct file *filp)
 
 #ifdef ISDN_DEBUG_MODEM_OPEN
 	printk(KERN_DEBUG "isdn_tty_open %s, count = %d\n", tty->name,
-	       port->count);
+	       atomic_read(&port->count));
 #endif
-	port->count++;
+	atomic_inc(&port->count);
 	port->tty = tty;
 	/*
 	 * Start up serial port
@@ -1545,7 +1545,7 @@ isdn_tty_close(struct tty_struct *tty, struct file *filp)
 #endif
 		return;
 	}
-	if ((tty->count == 1) && (port->count != 1)) {
+	if ((tty->count == 1) && (atomic_read(&port->count) != 1)) {
 		/*
 		 * Uh, oh.  tty->count is 1, which means that the tty
 		 * structure will be freed.  Info->count should always
@@ -1554,15 +1554,15 @@ isdn_tty_close(struct tty_struct *tty, struct file *filp)
 		 * serial port won't be shutdown.
 		 */
 		printk(KERN_ERR "isdn_tty_close: bad port count; tty->count is 1, "
-		       "info->count is %d\n", port->count);
-		port->count = 1;
+		       "info->count is %d\n", atomic_read(&port->count));
+		atomic_set(&port->count, 1);
 	}
-	if (--port->count < 0) {
+	if (atomic_dec_return(&port->count) < 0) {
 		printk(KERN_ERR "isdn_tty_close: bad port count for ttyi%d: %d\n",
-		       info->line, port->count);
-		port->count = 0;
+		       info->line, atomic_read(&port->count));
+		atomic_set(&port->count, 0);
 	}
-	if (port->count) {
+	if (atomic_read(&port->count)) {
 #ifdef ISDN_DEBUG_MODEM_OPEN
 		printk(KERN_DEBUG "isdn_tty_close after info->count != 0\n");
 #endif
@@ -1617,7 +1617,7 @@ isdn_tty_hangup(struct tty_struct *tty)
 	if (isdn_tty_paranoia_check(info, tty->name, "isdn_tty_hangup"))
 		return;
 	isdn_tty_shutdown(info);
-	port->count = 0;
+	atomic_set(&port->count, 0);
 	tty_port_set_active(port, 0);
 	port->tty = NULL;
 	wake_up_interruptible(&port->open_wait);
@@ -1962,7 +1962,7 @@ isdn_tty_find_icall(int di, int ch, setup_parm *setup)
 	for (i = 0; i < ISDN_MAX_CHANNELS; i++) {
 		modem_info *info = &dev->mdm.info[i];
 
-		if (info->port.count == 0)
+		if (atomic_read(&info->port.count) == 0)
 			continue;
 		if ((info->emu.mdmreg[REG_SI1] & si2bit[si1]) &&  /* SI1 is matching */
 		    (info->emu.mdmreg[REG_SI2] == si2))	{         /* SI2 is matching */

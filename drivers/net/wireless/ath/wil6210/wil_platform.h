@@ -37,7 +37,7 @@ struct wil_platform_ops {
 	int (*resume)(void *handle);
 	void (*uninit)(void *handle);
 	int (*notify)(void *handle, enum wil_platform_event evt);
-};
+} __no_const;
 
 /**
  * struct wil_platform_rops - wil platform module callbacks from

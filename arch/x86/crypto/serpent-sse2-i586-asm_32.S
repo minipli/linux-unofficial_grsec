@@ -25,6 +25,7 @@
  */
 
 #include <linux/linkage.h>
+#include <asm/alternative-asm.h>
 
 .file "serpent-sse2-i586-asm_32.S"
 .text
@@ -568,12 +569,12 @@ ENTRY(__serpent_enc_blk_4way)
 
 	write_blocks(%eax, RA, RB, RC, RD, RT0, RT1, RE);
 
-	ret;
+	pax_ret __serpent_enc_blk_4way;
 
 .L__enc_xor4:
 	xor_blocks(%eax, RA, RB, RC, RD, RT0, RT1, RE);
 
-	ret;
+	pax_ret __serpent_enc_blk_4way;
 ENDPROC(__serpent_enc_blk_4way)
 
 ENTRY(serpent_dec_blk_4way)
@@ -627,5 +628,5 @@ ENTRY(serpent_dec_blk_4way)
 	movl arg_dst(%esp), %eax;
 	write_blocks(%eax, RC, RD, RB, RE, RT0, RT1, RA);
 
-	ret;
+	pax_ret serpent_dec_blk_4way;
 ENDPROC(serpent_dec_blk_4way)

@@ -1,8 +1,10 @@
 .text
 #include <linux/linkage.h>
+#include <asm/alternative-asm.h>
 #include <asm/segment.h>
 #include <asm/page.h>
 #include <asm/pgtable_32.h>
+#include <asm/alternative-asm.h>
 
 	.macro writepost,value
 		movb $0x34, %al
@@ -76,7 +78,7 @@ save_registers:
 	pushfl
 	popl saved_context_eflags
 
-	ret
+	pax_ret save_registers
 
 restore_registers:
 	movl saved_context_ebp, %ebp
@@ -87,17 +89,17 @@ restore_registers:
 	pushl saved_context_eflags
 	popfl
 
-	ret
+	pax_ret restore_registers
 
 ENTRY(do_olpc_suspend_lowlevel)
-	call	save_processor_state
-	call	save_registers
+	pax_direct_call save_processor_state
+	pax_direct_call save_registers
 
 	# This is the stack context we want to remember
 	movl %esp, saved_context_esp
 
 	pushl	$3
-	call	xo1_do_sleep
+	pax_direct_call xo1_do_sleep
 
 	jmp	wakeup_start
 	.p2align 4,,7
@@ -106,9 +108,9 @@ ret_point:
 
 	writepost 0x32
 
-	call	restore_registers
-	call	restore_processor_state
-	ret
+	pax_direct_call restore_registers
+	pax_direct_call restore_processor_state
+	pax_ret do_olpc_suspend_lowlevel
 
 .data
 saved_gdt:             .long   0,0

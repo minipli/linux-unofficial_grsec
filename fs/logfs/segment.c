@@ -54,7 +54,7 @@ static struct page *get_mapping_page(struct super_block *sb, pgoff_t index,
 {
 	struct logfs_super *super = logfs_super(sb);
 	struct address_space *mapping = super->s_mapping_inode->i_mapping;
-	filler_t *filler = super->s_devops->readpage;
+	filler_t *filler = super->s_devops->filler;
 	struct page *page;
 
 	BUG_ON(mapping_gfp_constraint(mapping, __GFP_FS));

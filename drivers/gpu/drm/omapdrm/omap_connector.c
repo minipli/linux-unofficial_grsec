@@ -201,7 +201,7 @@ static int omap_connector_get_modes(struct drm_connector *connector)
 	return n;
 }
 
-static int omap_connector_mode_valid(struct drm_connector *connector,
+static enum drm_mode_status omap_connector_mode_valid(struct drm_connector *connector,
 				 struct drm_display_mode *mode)
 {
 	struct omap_connector *omap_connector = to_omap_connector(connector);

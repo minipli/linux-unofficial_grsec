@@ -430,6 +430,7 @@ static void __used kretprobe_trampoline_holder(void)
 
 void kretprobe_trampoline(void);
 
+#ifdef CONFIG_KRETPROBES
 void __kprobes arch_prepare_kretprobe(struct kretprobe_instance *ri,
 				      struct pt_regs *regs)
 {
@@ -438,6 +439,7 @@ void __kprobes arch_prepare_kretprobe(struct kretprobe_instance *ri,
 	/* Replace the return addr with trampoline addr */
 	regs->lr = (unsigned long)kretprobe_trampoline;
 }
+#endif
 
 /*
  * Called when the probe at kretprobe trampoline is hit.
@@ -507,6 +509,7 @@ static int __kprobes trampoline_probe_handler(struct kprobe *p,
 	return 1;
 }
 
+#ifdef CONFIG_KRETPROBES
 int __kprobes arch_trampoline_kprobe(struct kprobe *p)
 {
 	if (p->addr == (kprobe_opcode_t *)kretprobe_trampoline)
@@ -514,6 +517,7 @@ int __kprobes arch_trampoline_kprobe(struct kprobe *p)
 
 	return 0;
 }
+#endif
 
 static struct kprobe trampoline_p = {
 	.addr = (kprobe_opcode_t *)kretprobe_trampoline,

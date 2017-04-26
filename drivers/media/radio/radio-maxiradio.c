@@ -61,7 +61,7 @@ MODULE_PARM_DESC(radio_nr, "Radio device number");
 /* TEA5757 pin mappings */
 static const int clk = 1, data = 2, wren = 4, mo_st = 8, power = 16;
 
-static atomic_t maxiradio_instance = ATOMIC_INIT(0);
+static atomic_unchecked_t maxiradio_instance = ATOMIC_INIT(0);
 
 #define PCI_VENDOR_ID_GUILLEMOT 0x5046
 #define PCI_DEVICE_ID_GUILLEMOT_MAXIRADIO 0x1001

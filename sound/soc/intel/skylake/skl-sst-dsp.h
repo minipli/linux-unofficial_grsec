@@ -143,7 +143,7 @@ struct skl_dsp_fw_ops {
 	int (*load_mod)(struct sst_dsp *ctx, u16 mod_id, u8 *mod_name);
 	int (*unload_mod)(struct sst_dsp *ctx, u16 mod_id);
 
-};
+} __no_const;
 
 struct skl_dsp_loader_ops {
 	int stream_tag;

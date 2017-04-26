@@ -16,6 +16,7 @@
 #include <linux/module.h>
 #include <linux/rtc.h>
 #include <linux/sched.h>
+#include <linux/grsecurity.h>
 #include "rtc-core.h"
 
 static dev_t rtc_devt;
@@ -346,6 +347,8 @@ static long rtc_dev_ioctl(struct file *file,
 
 		if (copy_from_user(&tm, uarg, sizeof(tm)))
 			return -EFAULT;
+
+		gr_log_timechange();
 
 		return rtc_set_time(rtc, &tm);
 

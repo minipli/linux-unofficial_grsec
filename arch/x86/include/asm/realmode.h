@@ -22,16 +22,14 @@ struct real_mode_header {
 #endif
 	/* APM/BIOS reboot */
 	u32	machine_real_restart_asm;
-#ifdef CONFIG_X86_64
 	u32	machine_real_restart_seg;
-#endif
 };
 
 /* This must match data at trampoline_32/64.S */
 struct trampoline_header {
 #ifdef CONFIG_X86_32
 	u32 start;
-	u16 gdt_pad;
+	u16 boot_cs;
 	u16 gdt_limit;
 	u32 gdt_base;
 #else

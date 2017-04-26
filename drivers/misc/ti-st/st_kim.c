@@ -581,9 +581,10 @@ static int show_list(struct seq_file *s, void *unused)
 	return 0;
 }
 
-static ssize_t show_install(struct device *dev,
-		struct device_attribute *attr, char *buf)
+static ssize_t show_install(struct kobject *_dev,
+		struct kobj_attribute *attr, char *buf)
 {
+	struct device *dev = (struct device *)_dev;
 	struct kim_data_s *kim_data = dev_get_drvdata(dev);
 	return sprintf(buf, "%d\n", kim_data->ldisc_install);
 }
@@ -610,47 +611,50 @@ static ssize_t store_baud_rate(struct device *dev,
 }
 #endif	/* if DEBUG */
 
-static ssize_t show_dev_name(struct device *dev,
-		struct device_attribute *attr, char *buf)
+static ssize_t show_dev_name(struct kobject *_dev,
+		struct kobj_attribute *attr, char *buf)
 {
+	struct device *dev = (struct device *)_dev;
 	struct kim_data_s *kim_data = dev_get_drvdata(dev);
 	return sprintf(buf, "%s\n", kim_data->dev_name);
 }
 
-static ssize_t show_baud_rate(struct device *dev,
-		struct device_attribute *attr, char *buf)
+static ssize_t show_baud_rate(struct kobject *_dev,
+		struct kobj_attribute *attr, char *buf)
 {
+	struct device *dev = (struct device *)_dev;
 	struct kim_data_s *kim_data = dev_get_drvdata(dev);
 	return sprintf(buf, "%d\n", kim_data->baud_rate);
 }
 
-static ssize_t show_flow_cntrl(struct device *dev,
-		struct device_attribute *attr, char *buf)
+static ssize_t show_flow_cntrl(struct kobject *_dev,
+		struct kobj_attribute *attr, char *buf)
 {
+	struct device *dev = (struct device *)_dev;
 	struct kim_data_s *kim_data = dev_get_drvdata(dev);
 	return sprintf(buf, "%d\n", kim_data->flow_cntrl);
 }
 
 /* structures specific for sysfs entries */
 static struct kobj_attribute ldisc_install =
-__ATTR(install, 0444, (void *)show_install, NULL);
+__ATTR(install, 0444, show_install, NULL);
 
 static struct kobj_attribute uart_dev_name =
 #ifdef DEBUG	/* TODO: move this to debug-fs if possible */
-__ATTR(dev_name, 0644, (void *)show_dev_name, (void *)store_dev_name);
+__ATTR(dev_name, 0644, show_dev_name, store_dev_name);
 #else
-__ATTR(dev_name, 0444, (void *)show_dev_name, NULL);
+__ATTR(dev_name, 0444, show_dev_name, NULL);
 #endif
 
 static struct kobj_attribute uart_baud_rate =
 #ifdef DEBUG	/* TODO: move to debugfs */
-__ATTR(baud_rate, 0644, (void *)show_baud_rate, (void *)store_baud_rate);
+__ATTR(baud_rate, 0644, show_baud_rate, store_baud_rate);
 #else
-__ATTR(baud_rate, 0444, (void *)show_baud_rate, NULL);
+__ATTR(baud_rate, 0444, show_baud_rate, NULL);
 #endif
 
 static struct kobj_attribute uart_flow_cntrl =
-__ATTR(flow_cntrl, 0444, (void *)show_flow_cntrl, NULL);
+__ATTR(flow_cntrl, 0444, show_flow_cntrl, NULL);
 
 static struct attribute *uim_attrs[] = {
 	&ldisc_install.attr,

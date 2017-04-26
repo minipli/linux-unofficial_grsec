@@ -2502,7 +2502,7 @@ static int lpphy_b2063_tune(struct b43_wldev *dev,
 {
 	struct ssb_bus *bus = dev->dev->sdev->bus;
 
-	static const struct b206x_channel *chandata = NULL;
+	const struct b206x_channel *chandata = NULL;
 	u32 crystal_freq = bus->chipco.pmu.crystalfreq * 1000;
 	u32 freqref, vco_freq, val1, val2, val3, timeout, timeoutref, count;
 	u16 old_comm15, scale;

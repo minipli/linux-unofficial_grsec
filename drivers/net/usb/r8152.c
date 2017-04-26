@@ -632,7 +632,7 @@ struct r8152 {
 		bool (*in_nway)(struct r8152 *);
 		void (*hw_phy_cfg)(struct r8152 *);
 		void (*autosuspend_en)(struct r8152 *tp, bool enable);
-	} rtl_ops;
+	} __no_const rtl_ops;
 
 	int intr_interval;
 	u32 saved_wolopts;

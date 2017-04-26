@@ -771,6 +771,7 @@ struct libfc_function_template {
 	 */
 	void (*disc_stop_final) (struct fc_lport *);
 };
+typedef struct libfc_function_template __no_const libfc_function_template_no_const;
 
 /**
  * struct fc_disc - Discovery context
@@ -875,7 +876,7 @@ struct fc_lport {
 	struct fc_vport		       *vport;
 
 	/* Operational Information */
-	struct libfc_function_template tt;
+	libfc_function_template_no_const tt;
 	u8			       link_up;
 	u8			       qfull;
 	u16			       vlan;

@@ -30,31 +30,83 @@
 #define __SC_DELOUSE(t,v) ((t)(unsigned long)(v))
 #endif
 
-#define COMPAT_SYSCALL_DEFINE0(name) \
+#ifdef CONFIG_PAX_RAP
+#define RAP_SYS32_SYSCALL_DEFINE0(name) \
+	asmlinkage long rap_sys32_##name(unsigned long a, unsigned long b, unsigned long c, unsigned long d, unsigned long e, unsigned long f)\
+	{								\
+		return sys32_##name();					\
+	}
+#else
+#define RAP_SYS32_SYSCALL_DEFINE0(name)
+#endif
+
+#define SYS32_SYSCALL_DEFINE0(name) \
+	asmlinkage long sys32_##name(void);				\
+	RAP_SYS32_SYSCALL_DEFINE0(name)					\
+	asmlinkage long sys32_##name(void)
+
+#define SYS32_SYSCALL_DEFINE1(name, ...) \
+	COMPAT_SYSCALL_DEFINEx(1, sys32, , _##name, __VA_ARGS__)
+#define SYS32_SYSCALL_DEFINE2(name, ...) \
+	COMPAT_SYSCALL_DEFINEx(2, sys32, , _##name, __VA_ARGS__)
+#define SYS32_SYSCALL_DEFINE3(name, ...) \
+	COMPAT_SYSCALL_DEFINEx(3, sys32, , _##name, __VA_ARGS__)
+#define SYS32_SYSCALL_DEFINE4(name, ...) \
+	COMPAT_SYSCALL_DEFINEx(4, sys32, , _##name, __VA_ARGS__)
+#define SYS32_SYSCALL_DEFINE5(name, ...) \
+	COMPAT_SYSCALL_DEFINEx(5, sys32, , _##name, __VA_ARGS__)
+#define SYS32_SYSCALL_DEFINE6(name, ...) \
+	COMPAT_SYSCALL_DEFINEx(6, sys32, , _##name, __VA_ARGS__)
+
+#ifdef CONFIG_PAX_RAP
+#define RAP_COMPAT_SYSCALL_DEFINE0(name) \
+	asmlinkage long rap_compat_sys_##name(unsigned long a, unsigned long b, unsigned long c, unsigned long d, unsigned long e, unsigned long f)\
+	{								\
+		return compat_sys_##name();				\
+	}
+#else
+#define RAP_COMPAT_SYSCALL_DEFINE0(name)
+#endif
+
+#define COMPAT_SYSCALL_DEFINE0(name)					\
+	RAP_COMPAT_SYSCALL_DEFINE0(name)				\
 	asmlinkage long compat_sys_##name(void)
 
 #define COMPAT_SYSCALL_DEFINE1(name, ...) \
-        COMPAT_SYSCALL_DEFINEx(1, _##name, __VA_ARGS__)
+	COMPAT_SYSCALL_DEFINEx(1, compat, _sys, _##name, __VA_ARGS__)
 #define COMPAT_SYSCALL_DEFINE2(name, ...) \
-	COMPAT_SYSCALL_DEFINEx(2, _##name, __VA_ARGS__)
+	COMPAT_SYSCALL_DEFINEx(2, compat, _sys, _##name, __VA_ARGS__)
 #define COMPAT_SYSCALL_DEFINE3(name, ...) \
-	COMPAT_SYSCALL_DEFINEx(3, _##name, __VA_ARGS__)
+	COMPAT_SYSCALL_DEFINEx(3, compat, _sys, _##name, __VA_ARGS__)
 #define COMPAT_SYSCALL_DEFINE4(name, ...) \
-	COMPAT_SYSCALL_DEFINEx(4, _##name, __VA_ARGS__)
+	COMPAT_SYSCALL_DEFINEx(4, compat, _sys, _##name, __VA_ARGS__)
 #define COMPAT_SYSCALL_DEFINE5(name, ...) \
-	COMPAT_SYSCALL_DEFINEx(5, _##name, __VA_ARGS__)
+	COMPAT_SYSCALL_DEFINEx(5, compat, _sys, _##name, __VA_ARGS__)
 #define COMPAT_SYSCALL_DEFINE6(name, ...) \
-	COMPAT_SYSCALL_DEFINEx(6, _##name, __VA_ARGS__)
+	COMPAT_SYSCALL_DEFINEx(6, compat, _sys, _##name, __VA_ARGS__)
 
-#define COMPAT_SYSCALL_DEFINEx(x, name, ...)				\
-	asmlinkage long compat_sys##name(__MAP(x,__SC_DECL,__VA_ARGS__))\
-		__attribute__((alias(__stringify(compat_SyS##name))));  \
+#ifdef CONFIG_PAX_RAP
+#define RAP_COMPAT_SYSCALL_DEFINEx(x, prefix, sys, name, ...)		\
+	asmlinkage __intentional_overflow(-1)				\
+	long rap_##prefix##sys##name(__RAP_MAP(x,__RAP_SC_LONG,__VA_ARGS__))\
+	{								\
+		return prefix##sys##name(__MAP(x,__SC_CAST,__VA_ARGS__));\
+	}
+#else
+#define RAP_COMPAT_SYSCALL_DEFINEx(x, prefix, sys, name, ...)
+#endif
+
+#define COMPAT_SYSCALL_DEFINEx(x, prefix, sys, name, ...)		\
 	static inline long C_SYSC##name(__MAP(x,__SC_DECL,__VA_ARGS__));\
-	asmlinkage long compat_SyS##name(__MAP(x,__SC_LONG,__VA_ARGS__));\
-	asmlinkage long compat_SyS##name(__MAP(x,__SC_LONG,__VA_ARGS__))\
+	static inline asmlinkage long prefix##_SyS##name(__MAP(x,__SC_LONG,__VA_ARGS__))\
 	{								\
 		return C_SYSC##name(__MAP(x,__SC_DELOUSE,__VA_ARGS__));	\
 	}								\
+	asmlinkage long prefix##sys##name(__MAP(x,__SC_DECL,__VA_ARGS__))\
+	{								\
+		return prefix##_SyS##name(__MAP(x,__SC_ARGS,__VA_ARGS__));\
+	}								\
+	RAP_COMPAT_SYSCALL_DEFINEx(x,prefix,sys,name,__VA_ARGS__)	\
 	static inline long C_SYSC##name(__MAP(x,__SC_DECL,__VA_ARGS__))
 
 #ifndef compat_user_stack_pointer
@@ -318,7 +370,7 @@ compat_sys_get_robust_list(int pid, compat_uptr_t __user *head_ptr,
 			   compat_size_t __user *len_ptr);
 
 asmlinkage long compat_sys_ipc(u32, int, int, u32, compat_uptr_t, u32);
-asmlinkage long compat_sys_shmat(int shmid, compat_uptr_t shmaddr, int shmflg);
+asmlinkage long compat_sys_shmat(int shmid, compat_uptr_t shmaddr, int shmflg) __intentional_overflow(0);
 asmlinkage long compat_sys_semctl(int semid, int semnum, int cmd, int arg);
 asmlinkage long compat_sys_msgsnd(int msqid, compat_uptr_t msgp,
 		compat_ssize_t msgsz, int msgflg);
@@ -327,7 +379,7 @@ asmlinkage long compat_sys_msgrcv(int msqid, compat_uptr_t msgp,
 long compat_sys_msgctl(int first, int second, void __user *uptr);
 long compat_sys_shmctl(int first, int second, void __user *uptr);
 long compat_sys_semtimedop(int semid, struct sembuf __user *tsems,
-		unsigned nsems, const struct compat_timespec __user *timeout);
+		compat_long_t nsems, const struct compat_timespec __user *timeout);
 asmlinkage long compat_sys_keyctl(u32 option,
 			      u32 arg2, u32 arg3, u32 arg4, u32 arg5);
 asmlinkage long compat_sys_ustat(unsigned dev, struct compat_ustat __user *u32);
@@ -446,7 +498,7 @@ extern int compat_ptrace_request(struct task_struct *child,
 extern long compat_arch_ptrace(struct task_struct *child, compat_long_t request,
 			       compat_ulong_t addr, compat_ulong_t data);
 asmlinkage long compat_sys_ptrace(compat_long_t request, compat_long_t pid,
-				  compat_long_t addr, compat_long_t data);
+				  compat_ulong_t addr, compat_ulong_t data);
 
 asmlinkage long compat_sys_lookup_dcookie(u32, u32, char __user *, compat_size_t);
 /*

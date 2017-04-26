@@ -143,7 +143,15 @@ void __init proc_root_init(void)
 	proc_create_mount_point("openprom");
 #endif
 	proc_tty_init();
+#ifdef CONFIG_GRKERNSEC_PROC_ADD
+#ifdef CONFIG_GRKERNSEC_PROC_USER
+	proc_mkdir_mode("bus", S_IRUSR | S_IXUSR, NULL);
+#elif defined(CONFIG_GRKERNSEC_PROC_USERGROUP)
+	proc_mkdir_mode("bus", S_IRUSR | S_IXUSR | S_IRGRP | S_IXGRP, NULL);
+#endif
+#else
 	proc_mkdir("bus", NULL);
+#endif
 	proc_sys_init();
 }
 

@@ -720,7 +720,7 @@ int gb_operation_request_send(struct gb_operation *operation,
 	if (gb_operation_is_unidirectional(operation)) {
 		operation->id = 0;
 	} else {
-		cycle = (unsigned int)atomic_inc_return(&connection->op_cycle);
+		cycle = (unsigned int)atomic_inc_return_unchecked(&connection->op_cycle);
 		operation->id = (u16)(cycle % U16_MAX + 1);
 	}
 

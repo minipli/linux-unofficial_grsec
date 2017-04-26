@@ -961,6 +961,10 @@ static void empty(void)
 {
 }
 
+static void empty2(int i)
+{
+}
+
 static void (*floppy_work_fn)(void);
 
 static void floppy_work_workfn(struct work_struct *work)
@@ -1953,14 +1957,14 @@ static const struct cont_t wakeup_cont = {
 	.interrupt	= empty,
 	.redo		= do_wakeup,
 	.error		= empty,
-	.done		= (done_f)empty
+	.done		= empty2
 };
 
 static const struct cont_t intr_cont = {
 	.interrupt	= empty,
 	.redo		= process_fd_request,
 	.error		= empty,
-	.done		= (done_f)empty
+	.done		= empty2
 };
 
 static int wait_til_done(void (*handler)(void), bool interruptible)

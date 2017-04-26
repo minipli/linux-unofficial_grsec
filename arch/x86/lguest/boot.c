@@ -262,7 +262,7 @@ PV_CALLEE_SAVE_REGS_THUNK(lguest_irq_disable);
 /*:*/
 
 /* These are in head_32.S */
-extern void lg_irq_enable(void);
+extern asmlinkage void lg_irq_enable(void);
 extern void lg_restore_fl(unsigned long flags);
 
 /*M:003
@@ -1329,9 +1329,10 @@ static __init int early_put_chars(u32 vtermno, const char *buf, int count)
  * Rebooting also tells the Host we're finished, but the RESTART flag tells the
  * Launcher to reboot us.
  */
-static void lguest_restart(char *reason)
+static __noreturn void lguest_restart(char *reason)
 {
 	hcall(LHCALL_SHUTDOWN, __pa(reason), LGUEST_SHUTDOWN_RESTART, 0, 0);
+	BUG();
 }
 
 /*G:050
@@ -1392,6 +1393,11 @@ static unsigned lguest_patch(u8 type, u16 clobber, void *ibuf,
 	return insn_len;
 }
 
+#ifdef CONFIG_PAX_RAP
+PV_CALLEE_SAVE_REGS_THUNK(lg_restore_fl);
+PV_CALLEE_SAVE_REGS_THUNK(lg_irq_enable);
+#endif
+
 /*G:029
  * Once we get to lguest_init(), we know we're a Guest.  The various
  * pv_ops structures in the kernel provide points for (almost) every routine we
@@ -1412,10 +1418,10 @@ __init void lguest_init(void)
 	 */
 
 	/* Interrupt-related operations */
-	pv_irq_ops.save_fl = PV_CALLEE_SAVE(lguest_save_fl);
-	pv_irq_ops.restore_fl = __PV_IS_CALLEE_SAVE(lg_restore_fl);
-	pv_irq_ops.irq_disable = PV_CALLEE_SAVE(lguest_irq_disable);
-	pv_irq_ops.irq_enable = __PV_IS_CALLEE_SAVE(lg_irq_enable);
+	pv_irq_ops.save_fl = PV_CALLEE_SAVE(save_fl, lguest_save_fl);
+	pv_irq_ops.restore_fl = __PV_IS_CALLEE_SAVE(restore_fl, lg_restore_fl);
+	pv_irq_ops.irq_disable = PV_CALLEE_SAVE(irq_disable, lguest_irq_disable);
+	pv_irq_ops.irq_enable = __PV_IS_CALLEE_SAVE(irq_enable, lg_irq_enable);
 	pv_irq_ops.safe_halt = lguest_safe_halt;
 
 	/* Setup operations */

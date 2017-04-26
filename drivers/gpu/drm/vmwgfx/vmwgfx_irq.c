@@ -103,7 +103,7 @@ bool vmw_seqno_passed(struct vmw_private *dev_priv,
 	 * emitted. Then the fence is stale and signaled.
 	 */
 
-	ret = ((atomic_read(&dev_priv->marker_seq) - seqno)
+	ret = ((atomic_read_unchecked(&dev_priv->marker_seq) - seqno)
 	       > VMW_FENCE_WRAP);
 
 	return ret;
@@ -142,7 +142,7 @@ int vmw_fallback_wait(struct vmw_private *dev_priv,
 		}
 	}
 
-	signal_seq = atomic_read(&dev_priv->marker_seq);
+	signal_seq = atomic_read_unchecked(&dev_priv->marker_seq);
 	ret = 0;
 
 	for (;;) {

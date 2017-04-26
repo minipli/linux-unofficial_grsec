@@ -287,7 +287,7 @@ struct key *key_alloc(struct key_type *type, const char *desc,
 
 	atomic_set(&key->usage, 1);
 	init_rwsem(&key->sem);
-	lockdep_set_class(&key->sem, &type->lock_class);
+	lockdep_set_class(&key->sem, (struct lock_class_key *)&type->lock_class);
 	key->index_key.type = type;
 	key->user = user;
 	key->quotalen = quotalen;
@@ -1101,7 +1101,9 @@ int register_key_type(struct key_type *ktype)
 	struct key_type *p;
 	int ret;
 
-	memset(&ktype->lock_class, 0, sizeof(ktype->lock_class));
+	pax_open_kernel();
+	memset((void *)&ktype->lock_class, 0, sizeof(ktype->lock_class));
+	pax_close_kernel();
 
 	ret = -EEXIST;
 	down_write(&key_types_sem);
@@ -1113,7 +1115,7 @@ int register_key_type(struct key_type *ktype)
 	}
 
 	/* store the type */
-	list_add(&ktype->link, &key_types_list);
+	pax_list_add((struct list_head *)&ktype->link, &key_types_list);
 
 	pr_notice("Key type %s registered\n", ktype->name);
 	ret = 0;
@@ -1135,7 +1137,7 @@ EXPORT_SYMBOL(register_key_type);
 void unregister_key_type(struct key_type *ktype)
 {
 	down_write(&key_types_sem);
-	list_del_init(&ktype->link);
+	pax_list_del_init((struct list_head *)&ktype->link);
 	downgrade_write(&key_types_sem);
 	key_gc_keytype(ktype);
 	pr_notice("Key type %s unregistered\n", ktype->name);
@@ -1153,10 +1155,10 @@ void __init key_init(void)
 			0, SLAB_HWCACHE_ALIGN|SLAB_PANIC, NULL);
 
 	/* add the special key types */
-	list_add_tail(&key_type_keyring.link, &key_types_list);
-	list_add_tail(&key_type_dead.link, &key_types_list);
-	list_add_tail(&key_type_user.link, &key_types_list);
-	list_add_tail(&key_type_logon.link, &key_types_list);
+	pax_list_add_tail((struct list_head *)&key_type_keyring.link, &key_types_list);
+	pax_list_add_tail((struct list_head *)&key_type_dead.link, &key_types_list);
+	pax_list_add_tail((struct list_head *)&key_type_user.link, &key_types_list);
+	pax_list_add_tail((struct list_head *)&key_type_logon.link, &key_types_list);
 
 	/* record the root user tracking */
 	rb_link_node(&root_key_user.node,

@@ -21,9 +21,11 @@
 #ifndef __ASM_CACHE_H
 #define __ASM_CACHE_H
 
+#include <linux/const.h>
+
 /* Bytes per L1 cache line */
-#define L1_CACHE_SHIFT		(5)
-#define L1_CACHE_BYTES		(1 << L1_CACHE_SHIFT)
+#define L1_CACHE_SHIFT		5
+#define L1_CACHE_BYTES		(_AC(1,UL) << L1_CACHE_SHIFT)
 
 #define ARCH_DMA_MINALIGN	L1_CACHE_BYTES
 

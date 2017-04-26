@@ -130,9 +130,19 @@ enum cpuhp_state {
 	CPUHP_ONLINE,
 };
 
+union cpuhp_step_startup {
+	int (*single)(unsigned int cpu);
+	int (*multi)(unsigned int cpu, struct hlist_node *node);
+} __no_const;
+
+union cpuhp_step_teardown {
+	int (*single)(unsigned int cpu);
+	int (*multi)(unsigned int cpu, struct hlist_node *node);
+} __no_const;
+
 int __cpuhp_setup_state(enum cpuhp_state state,	const char *name, bool invoke,
-			int (*startup)(unsigned int cpu),
-			int (*teardown)(unsigned int cpu), bool multi_instance);
+			union cpuhp_step_startup startup,
+			union cpuhp_step_teardown teardown, bool multi_instance);
 
 /**
  * cpuhp_setup_state - Setup hotplug state callbacks with calling the callbacks
@@ -146,9 +156,12 @@ int __cpuhp_setup_state(enum cpuhp_state state,	const char *name, bool invoke,
  */
 static inline int cpuhp_setup_state(enum cpuhp_state state,
 				    const char *name,
-				    int (*startup)(unsigned int cpu),
-				    int (*teardown)(unsigned int cpu))
+				    int (*_startup)(unsigned int cpu),
+				    int (*_teardown)(unsigned int cpu))
 {
+	union cpuhp_step_startup startup = { .single = _startup };
+	union cpuhp_step_teardown teardown = { .single = _teardown };
+
 	return __cpuhp_setup_state(state, name, true, startup, teardown, false);
 }
 
@@ -165,9 +178,12 @@ static inline int cpuhp_setup_state(enum cpuhp_state state,
  */
 static inline int cpuhp_setup_state_nocalls(enum cpuhp_state state,
 					    const char *name,
-					    int (*startup)(unsigned int cpu),
-					    int (*teardown)(unsigned int cpu))
+					    int (*_startup)(unsigned int cpu),
+					    int (*_teardown)(unsigned int cpu))
 {
+	union cpuhp_step_startup startup = { .single = _startup };
+	union cpuhp_step_teardown teardown = { .single = _teardown };
+
 	return __cpuhp_setup_state(state, name, false, startup, teardown,
 				   false);
 }
@@ -186,14 +202,15 @@ static inline int cpuhp_setup_state_nocalls(enum cpuhp_state state,
  */
 static inline int cpuhp_setup_state_multi(enum cpuhp_state state,
 					  const char *name,
-					  int (*startup)(unsigned int cpu,
+					  int (*_startup)(unsigned int cpu,
 							 struct hlist_node *node),
-					  int (*teardown)(unsigned int cpu,
+					  int (*_teardown)(unsigned int cpu,
 							  struct hlist_node *node))
 {
-	return __cpuhp_setup_state(state, name, false,
-				   (void *) startup,
-				   (void *) teardown, true);
+	union cpuhp_step_startup startup = { .multi = _startup };
+	union cpuhp_step_teardown teardown = { .multi = _teardown };
+
+	return __cpuhp_setup_state(state, name, false, startup, teardown, true);
 }
 
 int __cpuhp_state_add_instance(enum cpuhp_state state, struct hlist_node *node,

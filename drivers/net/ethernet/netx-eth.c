@@ -107,7 +107,7 @@ static void netx_eth_set_multicast_list(struct net_device *ndev)
 	/* implement me */
 }
 
-static int
+static netdev_tx_t
 netx_eth_hard_start_xmit(struct sk_buff *skb, struct net_device *ndev)
 {
 	struct netx_eth_priv *priv = netdev_priv(ndev);

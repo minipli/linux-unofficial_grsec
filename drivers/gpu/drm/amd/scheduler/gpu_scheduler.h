@@ -44,7 +44,7 @@ struct amd_sched_entity {
 	spinlock_t			queue_lock;
 	struct kfifo                    job_queue;
 
-	atomic_t			fence_seq;
+	atomic_unchecked_t		fence_seq;
 	uint64_t                        fence_context;
 
 	struct fence			*dependency;

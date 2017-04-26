@@ -1624,7 +1624,7 @@ static int create_cache_proc_entries(struct cache_detail *cd, struct net *net)
 	struct sunrpc_net *sn;
 
 	sn = net_generic(net, sunrpc_net_id);
-	cd->u.procfs.proc_ent = proc_mkdir(cd->name, sn->proc_net_rpc);
+	cd->u.procfs.proc_ent = proc_mkdir_restrict(cd->name, sn->proc_net_rpc);
 	if (cd->u.procfs.proc_ent == NULL)
 		goto out_nomem;
 	cd->u.procfs.channel_ent = NULL;

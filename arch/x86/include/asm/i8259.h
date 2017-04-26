@@ -63,7 +63,7 @@ struct legacy_pic {
 	int (*probe)(void);
 	int (*irq_pending)(unsigned int irq);
 	void (*make_irq)(unsigned int irq);
-};
+} __do_const;
 
 extern struct legacy_pic *legacy_pic;
 extern struct legacy_pic null_legacy_pic;

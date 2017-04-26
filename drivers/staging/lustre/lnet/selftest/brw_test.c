@@ -324,7 +324,7 @@ brw_client_done_rpc(struct sfw_test_unit *tsu, struct srpc_client_rpc *rpc)
 		CERROR("BRW RPC to %s failed with %d\n",
 		       libcfs_id2str(rpc->crpc_dest), rpc->crpc_status);
 		if (!tsi->tsi_stopping)	/* rpc could have been aborted */
-			atomic_inc(&sn->sn_brw_errors);
+			atomic_inc_unchecked(&sn->sn_brw_errors);
 		return;
 	}
 
@@ -338,7 +338,7 @@ brw_client_done_rpc(struct sfw_test_unit *tsu, struct srpc_client_rpc *rpc)
 	       libcfs_id2str(rpc->crpc_dest), reply->brw_status);
 
 	if (reply->brw_status) {
-		atomic_inc(&sn->sn_brw_errors);
+		atomic_inc_unchecked(&sn->sn_brw_errors);
 		rpc->crpc_status = -(int)reply->brw_status;
 		return;
 	}
@@ -349,7 +349,7 @@ brw_client_done_rpc(struct sfw_test_unit *tsu, struct srpc_client_rpc *rpc)
 	if (brw_check_bulk(&rpc->crpc_bulk, reqst->brw_flags, magic)) {
 		CERROR("Bulk data from %s is corrupted!\n",
 		       libcfs_id2str(rpc->crpc_dest));
-		atomic_inc(&sn->sn_brw_errors);
+		atomic_inc_unchecked(&sn->sn_brw_errors);
 		rpc->crpc_status = -EBADMSG;
 	}
 }
@@ -484,14 +484,11 @@ brw_server_handle(struct srpc_server_rpc *rpc)
 	return 0;
 }
 
-struct sfw_test_client_ops brw_test_client;
-
-void brw_init_test_client(void)
-{
-	brw_test_client.tso_init = brw_client_init;
-	brw_test_client.tso_fini = brw_client_fini;
-	brw_test_client.tso_prep_rpc = brw_client_prep_rpc;
-	brw_test_client.tso_done_rpc = brw_client_done_rpc;
+struct sfw_test_client_ops brw_test_client = {
+	.tso_init = brw_client_init,
+	.tso_fini = brw_client_fini,
+	.tso_prep_rpc = brw_client_prep_rpc,
+	.tso_done_rpc = brw_client_done_rpc,
 };
 
 struct srpc_service brw_test_service;

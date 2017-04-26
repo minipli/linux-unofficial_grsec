@@ -69,10 +69,15 @@ typedef struct { pteval_t pte; } pte_t;
 #define MODULES_VADDR    (__START_KERNEL_map + KERNEL_IMAGE_SIZE)
 #define MODULES_END      _AC(0xffffffffff000000, UL)
 #define MODULES_LEN   (MODULES_END - MODULES_VADDR)
+#define MODULES_EXEC_VADDR MODULES_VADDR
+#define MODULES_EXEC_END MODULES_END
 #define ESPFIX_PGD_ENTRY _AC(-2, UL)
 #define ESPFIX_BASE_ADDR (ESPFIX_PGD_ENTRY << PGDIR_SHIFT)
 #define EFI_VA_START	 ( -4 * (_AC(1, UL) << 30))
 #define EFI_VA_END	 (-68 * (_AC(1, UL) << 30))
+
+#define ktla_ktva(addr)		(addr)
+#define ktva_ktla(addr)		(addr)
 
 #define EARLY_DYNAMIC_PAGE_TABLES	64
 

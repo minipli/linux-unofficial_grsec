@@ -109,7 +109,7 @@ static int pkt_seq_show(struct seq_file *m, void *p);
 
 static sector_t get_zone(sector_t sector, struct pktcdvd_device *pd)
 {
-	return (sector + pd->offset) & ~(sector_t)(pd->settings.size - 1);
+	return (sector + pd->offset) & ~(sector_t)(pd->settings.size - 1UL);
 }
 
 /*
@@ -1890,7 +1890,7 @@ static noinline_for_stack int pkt_probe_settings(struct pktcdvd_device *pd)
 		return -EROFS;
 	}
 	pd->settings.fp = ti.fp;
-	pd->offset = (be32_to_cpu(ti.track_start) << 2) & (pd->settings.size - 1);
+	pd->offset = (be32_to_cpu(ti.track_start) << 2) & (pd->settings.size - 1UL);
 
 	if (ti.nwa_v) {
 		pd->nwa = be32_to_cpu(ti.next_writable);

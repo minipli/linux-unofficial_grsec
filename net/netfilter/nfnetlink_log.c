@@ -85,7 +85,7 @@ static int nfnl_log_net_id __read_mostly;
 struct nfnl_log_net {
 	spinlock_t instances_lock;
 	struct hlist_head instance_table[INSTANCE_BUCKETS];
-	atomic_t global_seq;
+	atomic_unchecked_t global_seq;
 };
 
 static struct nfnl_log_net *nfnl_log_pernet(struct net *net)
@@ -574,7 +574,7 @@ __build_packet_message(struct nfnl_log_net *log,
 	/* global sequence number */
 	if ((inst->flags & NFULNL_CFG_F_SEQ_GLOBAL) &&
 	    nla_put_be32(inst->skb, NFULA_SEQ_GLOBAL,
-			 htonl(atomic_inc_return(&log->global_seq))))
+			 htonl(atomic_inc_return_unchecked(&log->global_seq))))
 		goto nla_put_failure;
 
 	if (ct && nfnl_ct->build(inst->skb, ct, ctinfo,

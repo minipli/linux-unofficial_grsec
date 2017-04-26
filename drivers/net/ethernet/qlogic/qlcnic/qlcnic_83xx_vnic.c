@@ -207,17 +207,23 @@ int qlcnic_83xx_config_vnic_opmode(struct qlcnic_adapter *adapter)
 	case QLCNIC_NON_PRIV_FUNC:
 		ahw->op_mode = QLCNIC_NON_PRIV_FUNC;
 		ahw->idc.state_entry = qlcnic_83xx_idc_ready_state_entry;
-		nic_ops->init_driver = qlcnic_83xx_init_non_privileged_vnic;
+		pax_open_kernel();
+		const_cast(nic_ops->init_driver) = qlcnic_83xx_init_non_privileged_vnic;
+		pax_close_kernel();
 		break;
 	case QLCNIC_PRIV_FUNC:
 		ahw->op_mode = QLCNIC_PRIV_FUNC;
 		ahw->idc.state_entry = qlcnic_83xx_idc_vnic_pf_entry;
-		nic_ops->init_driver = qlcnic_83xx_init_privileged_vnic;
+		pax_open_kernel();
+		const_cast(nic_ops->init_driver) = qlcnic_83xx_init_privileged_vnic;
+		pax_close_kernel();
 		break;
 	case QLCNIC_MGMT_FUNC:
 		ahw->op_mode = QLCNIC_MGMT_FUNC;
 		ahw->idc.state_entry = qlcnic_83xx_idc_ready_state_entry;
-		nic_ops->init_driver = qlcnic_83xx_init_mgmt_vnic;
+		pax_open_kernel();
+		const_cast(nic_ops->init_driver) = qlcnic_83xx_init_mgmt_vnic;
+		pax_close_kernel();
 		break;
 	default:
 		dev_err(&adapter->pdev->dev, "Invalid Virtual NIC opmode\n");

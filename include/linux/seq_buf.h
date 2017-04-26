@@ -16,7 +16,7 @@
  * @readpos:	The next position to read in the buffer.
  */
 struct seq_buf {
-	char			*buffer;
+	unsigned char		*buffer;
 	size_t			size;
 	size_t			len;
 	loff_t			readpos;
@@ -78,7 +78,7 @@ static inline unsigned int seq_buf_used(struct seq_buf *s)
  * Return the number of bytes available in the buffer, or zero if
  * there's no space.
  */
-static inline size_t seq_buf_get_buf(struct seq_buf *s, char **bufp)
+static inline size_t seq_buf_get_buf(struct seq_buf *s, unsigned char **bufp)
 {
 	WARN_ON(s->len > s->size + 1);
 

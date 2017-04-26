@@ -44,7 +44,7 @@
 struct ip_options {
 	__be32		faddr;
 	__be32		nexthop;
-	unsigned char	optlen;
+	unsigned char	optlen __intentional_overflow(0);
 	unsigned char	srr;
 	unsigned char	rr;
 	unsigned char	ts;

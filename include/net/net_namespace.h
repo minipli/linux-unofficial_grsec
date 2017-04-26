@@ -53,7 +53,7 @@ struct net {
 						 */
 	spinlock_t		rules_mod_lock;
 
-	atomic64_t		cookie_gen;
+	atomic64_unchecked_t	cookie_gen;
 
 	struct list_head	list;		/* list of network namespaces */
 	struct list_head	cleanup_list;	/* namespaces on death row */
@@ -142,8 +142,8 @@ struct net {
 	struct netns_mpls	mpls;
 #endif
 	struct sock		*diag_nlsk;
-	atomic_t		fnhe_genid;
-};
+	atomic_unchecked_t	fnhe_genid;
+} __randomize_layout;
 
 #include <linux/seq_file_net.h>
 
@@ -278,7 +278,11 @@ static inline struct net *read_pnet(const possible_net_t *pnet)
 #define __net_init	__init
 #define __net_exit	__ref
 #define __net_initdata	__initdata
+#ifdef CONSTIFY_PLUGIN
 #define __net_initconst	__initconst
+#else
+#define __net_initconst	__initdata
+#endif
 #endif
 
 int peernet2id_alloc(struct net *net, struct net *peer);
@@ -293,7 +297,7 @@ struct pernet_operations {
 	void (*exit_batch)(struct list_head *net_exit_list);
 	int *id;
 	size_t size;
-};
+} __do_const;
 
 /*
  * Use these carefully.  If you implement a network device and it
@@ -341,12 +345,12 @@ static inline void unregister_net_sysctl_table(struct ctl_table_header *header)
 
 static inline int rt_genid_ipv4(struct net *net)
 {
-	return atomic_read(&net->ipv4.rt_genid);
+	return atomic_read_unchecked(&net->ipv4.rt_genid);
 }
 
 static inline void rt_genid_bump_ipv4(struct net *net)
 {
-	atomic_inc(&net->ipv4.rt_genid);
+	atomic_inc_unchecked(&net->ipv4.rt_genid);
 }
 
 extern void (*__fib6_flush_trees)(struct net *net);
@@ -373,12 +377,12 @@ static inline void rt_genid_bump_all(struct net *net)
 
 static inline int fnhe_genid(struct net *net)
 {
-	return atomic_read(&net->fnhe_genid);
+	return atomic_read_unchecked(&net->fnhe_genid);
 }
 
 static inline void fnhe_genid_bump(struct net *net)
 {
-	atomic_inc(&net->fnhe_genid);
+	atomic_inc_unchecked(&net->fnhe_genid);
 }
 
 #endif /* __NET_NET_NAMESPACE_H */

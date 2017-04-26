@@ -666,7 +666,7 @@ nla_put_failure:
 	return -EMSGSIZE;
 }
 
-struct rtnl_link_ops bond_link_ops __read_mostly = {
+struct rtnl_link_ops bond_link_ops = {
 	.kind			= "bond",
 	.priv_size		= sizeof(struct bonding),
 	.setup			= bond_setup,

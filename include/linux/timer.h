@@ -28,7 +28,7 @@ struct timer_list {
 #ifdef CONFIG_LOCKDEP
 	struct lockdep_map	lockdep_map;
 #endif
-};
+} __randomize_layout;
 
 #ifdef CONFIG_LOCKDEP
 /*

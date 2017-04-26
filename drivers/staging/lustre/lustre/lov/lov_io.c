@@ -821,12 +821,32 @@ static void lov_empty_io_fini(const struct lu_env *env,
 }
 
 static void lov_empty_impossible(const struct lu_env *env,
-				 struct cl_io_slice *ios)
+				 const struct cl_io_slice *ios)
 {
 	LBUG();
 }
 
-#define LOV_EMPTY_IMPOSSIBLE ((void *)lov_empty_impossible)
+static int lov_empty_impossible2(const struct lu_env *env,
+				 const struct cl_io_slice *ios)
+{
+	LBUG();
+}
+
+static int lov_empty_impossible3(const struct lu_env *env,
+				 const struct cl_io_slice *slice,
+				 enum cl_req_type crt,
+				 struct cl_2queue *queue)
+{
+	LBUG();
+}
+
+static int lov_empty_impossible4(const struct lu_env *env,
+				 const struct cl_io_slice *slice,
+				 struct cl_page_list *queue, int from, int to,
+				 cl_commit_cbt cb)
+{
+	LBUG();
+}
 
 /**
  * An io operation vector for files without stripes.
@@ -836,32 +856,32 @@ static const struct cl_io_operations lov_empty_io_ops = {
 		[CIT_READ] = {
 			.cio_fini       = lov_empty_io_fini,
 #if 0
-			.cio_iter_init  = LOV_EMPTY_IMPOSSIBLE,
-			.cio_lock       = LOV_EMPTY_IMPOSSIBLE,
-			.cio_start      = LOV_EMPTY_IMPOSSIBLE,
-			.cio_end	= LOV_EMPTY_IMPOSSIBLE
+			.cio_iter_init  = lov_empty_impossible2,
+			.cio_lock       = lov_empty_impossible2,
+			.cio_start      = lov_empty_impossible2,
+			.cio_end	= lov_empty_impossible
 #endif
 		},
 		[CIT_WRITE] = {
 			.cio_fini      = lov_empty_io_fini,
-			.cio_iter_init = LOV_EMPTY_IMPOSSIBLE,
-			.cio_lock      = LOV_EMPTY_IMPOSSIBLE,
-			.cio_start     = LOV_EMPTY_IMPOSSIBLE,
-			.cio_end       = LOV_EMPTY_IMPOSSIBLE
+			.cio_iter_init = lov_empty_impossible2,
+			.cio_lock      = lov_empty_impossible2,
+			.cio_start     = lov_empty_impossible2,
+			.cio_end       = lov_empty_impossible
 		},
 		[CIT_SETATTR] = {
 			.cio_fini      = lov_empty_io_fini,
-			.cio_iter_init = LOV_EMPTY_IMPOSSIBLE,
-			.cio_lock      = LOV_EMPTY_IMPOSSIBLE,
-			.cio_start     = LOV_EMPTY_IMPOSSIBLE,
-			.cio_end       = LOV_EMPTY_IMPOSSIBLE
+			.cio_iter_init = lov_empty_impossible2,
+			.cio_lock      = lov_empty_impossible2,
+			.cio_start     = lov_empty_impossible2,
+			.cio_end       = lov_empty_impossible
 		},
 		[CIT_FAULT] = {
 			.cio_fini      = lov_empty_io_fini,
-			.cio_iter_init = LOV_EMPTY_IMPOSSIBLE,
-			.cio_lock      = LOV_EMPTY_IMPOSSIBLE,
-			.cio_start     = LOV_EMPTY_IMPOSSIBLE,
-			.cio_end       = LOV_EMPTY_IMPOSSIBLE
+			.cio_iter_init = lov_empty_impossible2,
+			.cio_lock      = lov_empty_impossible2,
+			.cio_start     = lov_empty_impossible2,
+			.cio_end       = lov_empty_impossible
 		},
 		[CIT_FSYNC] = {
 			.cio_fini   = lov_empty_io_fini
@@ -870,8 +890,8 @@ static const struct cl_io_operations lov_empty_io_ops = {
 			.cio_fini   = lov_empty_io_fini
 		}
 	},
-	.cio_submit                    = LOV_EMPTY_IMPOSSIBLE,
-	.cio_commit_async              = LOV_EMPTY_IMPOSSIBLE
+	.cio_submit                    = lov_empty_impossible3,
+	.cio_commit_async              = lov_empty_impossible4
 };
 
 int lov_io_init_raid0(const struct lu_env *env, struct cl_object *obj,

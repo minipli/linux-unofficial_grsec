@@ -126,7 +126,7 @@ struct nf_sockopt_ops {
 #endif
 	/* Use the module struct to lock set/get code in place */
 	struct module *owner;
-};
+} __do_const;
 
 /* Function to register/unregister hook points. */
 int nf_register_net_hook(struct net *net, const struct nf_hook_ops *ops);

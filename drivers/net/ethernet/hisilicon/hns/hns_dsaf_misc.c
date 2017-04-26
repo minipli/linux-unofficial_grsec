@@ -582,56 +582,54 @@ hns_mac_config_sds_loopback_acpi(struct hns_mac_cb *mac_cb, bool en)
 	return 0;
 }
 
-struct dsaf_misc_op *hns_misc_op_get(struct dsaf_device *dsaf_dev)
+const struct dsaf_misc_op *hns_misc_op_get(struct dsaf_device *dsaf_dev)
 {
-	struct dsaf_misc_op *misc_op;
+	static const struct dsaf_misc_op dsaf_misc_ops = {
+		.cpld_set_led = hns_cpld_set_led,
+		.cpld_reset_led = cpld_led_reset,
+		.cpld_set_led_id = cpld_set_led_id,
 
-	misc_op = devm_kzalloc(dsaf_dev->dev, sizeof(*misc_op), GFP_KERNEL);
-	if (!misc_op)
-		return NULL;
+		.dsaf_reset = hns_dsaf_rst,
+		.xge_srst = hns_dsaf_xge_srst_by_port,
+		.xge_core_srst = hns_dsaf_xge_core_srst_by_port,
+		.ge_srst = hns_dsaf_ge_srst_by_port,
+		.ppe_srst = hns_ppe_srst_by_port,
+		.ppe_comm_srst = hns_ppe_com_srst,
+		.hns_dsaf_srst_chns = hns_dsaf_srst_chns,
+		.hns_dsaf_roce_srst = hns_dsaf_roce_srst,
 
-	if (dev_of_node(dsaf_dev->dev)) {
-		misc_op->cpld_set_led = hns_cpld_set_led;
-		misc_op->cpld_reset_led = cpld_led_reset;
-		misc_op->cpld_set_led_id = cpld_set_led_id;
+		.get_phy_if = hns_mac_get_phy_if,
+		.get_sfp_prsnt = hns_mac_get_sfp_prsnt,
 
-		misc_op->dsaf_reset = hns_dsaf_rst;
-		misc_op->xge_srst = hns_dsaf_xge_srst_by_port;
-		misc_op->xge_core_srst = hns_dsaf_xge_core_srst_by_port;
-		misc_op->ge_srst = hns_dsaf_ge_srst_by_port;
-		misc_op->ppe_srst = hns_ppe_srst_by_port;
-		misc_op->ppe_comm_srst = hns_ppe_com_srst;
-		misc_op->hns_dsaf_srst_chns = hns_dsaf_srst_chns;
-		misc_op->hns_dsaf_roce_srst = hns_dsaf_roce_srst;
+		.cfg_serdes_loopback = hns_mac_config_sds_loopback,
+	};
 
-		misc_op->get_phy_if = hns_mac_get_phy_if;
-		misc_op->get_sfp_prsnt = hns_mac_get_sfp_prsnt;
+	static const struct dsaf_misc_op dsaf_misc_ops_acpi = {
+		.cpld_set_led = hns_cpld_set_led,
+		.cpld_reset_led = cpld_led_reset,
+		.cpld_set_led_id = cpld_set_led_id,
 
-		misc_op->cfg_serdes_loopback = hns_mac_config_sds_loopback;
-	} else if (is_acpi_node(dsaf_dev->dev->fwnode)) {
-		misc_op->cpld_set_led = hns_cpld_set_led;
-		misc_op->cpld_reset_led = cpld_led_reset;
-		misc_op->cpld_set_led_id = cpld_set_led_id;
+		.dsaf_reset = hns_dsaf_rst_acpi,
+		.xge_srst = hns_dsaf_xge_srst_by_port_acpi,
+		.xge_core_srst = hns_dsaf_xge_core_srst_by_port_acpi,
+		.ge_srst = hns_dsaf_ge_srst_by_port_acpi,
+		.ppe_srst = hns_ppe_srst_by_port_acpi,
+		.ppe_comm_srst = hns_ppe_com_srst,
+		.hns_dsaf_srst_chns = hns_dsaf_srst_chns_acpi,
+		.hns_dsaf_roce_srst = hns_dsaf_roce_srst_acpi,
 
-		misc_op->dsaf_reset = hns_dsaf_rst_acpi;
-		misc_op->xge_srst = hns_dsaf_xge_srst_by_port_acpi;
-		misc_op->xge_core_srst = hns_dsaf_xge_core_srst_by_port_acpi;
-		misc_op->ge_srst = hns_dsaf_ge_srst_by_port_acpi;
-		misc_op->ppe_srst = hns_ppe_srst_by_port_acpi;
-		misc_op->ppe_comm_srst = hns_ppe_com_srst;
-		misc_op->hns_dsaf_srst_chns = hns_dsaf_srst_chns_acpi;
-		misc_op->hns_dsaf_roce_srst = hns_dsaf_roce_srst_acpi;
+		.get_phy_if = hns_mac_get_phy_if_acpi,
+		.get_sfp_prsnt = hns_mac_get_sfp_prsnt,
 
-		misc_op->get_phy_if = hns_mac_get_phy_if_acpi;
-		misc_op->get_sfp_prsnt = hns_mac_get_sfp_prsnt;
+		.cfg_serdes_loopback = hns_mac_config_sds_loopback_acpi,
+	};
 
-		misc_op->cfg_serdes_loopback = hns_mac_config_sds_loopback_acpi;
-	} else {
-		devm_kfree(dsaf_dev->dev, (void *)misc_op);
-		misc_op = NULL;
-	}
+	if (dev_of_node(dsaf_dev->dev))
+		return &dsaf_misc_ops;
+	else if (is_acpi_node(dsaf_dev->dev->fwnode))
+		return &dsaf_misc_ops_acpi;
 
-	return (void *)misc_op;
+	return NULL;
 }
 
 static int hns_dsaf_dev_match(struct device *dev, void *fwnode)

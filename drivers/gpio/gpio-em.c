@@ -274,7 +274,7 @@ static int em_gio_probe(struct platform_device *pdev)
 	struct em_gio_priv *p;
 	struct resource *io[2], *irq[2];
 	struct gpio_chip *gpio_chip;
-	struct irq_chip *irq_chip;
+	irq_chip_no_const *irq_chip;
 	const char *name = dev_name(&pdev->dev);
 	unsigned int ngpios;
 	int ret;

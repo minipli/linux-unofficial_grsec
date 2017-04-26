@@ -969,9 +969,9 @@ struct ldlm_ast_work {
 struct ldlm_enqueue_info {
 	__u32 ei_type;   /** Type of the lock being enqueued. */
 	__u32 ei_mode;   /** Mode of the lock being enqueued. */
-	void *ei_cb_bl;  /** blocking lock callback */
-	void *ei_cb_cp;  /** lock completion callback */
-	void *ei_cb_gl;  /** lock glimpse callback */
+	ldlm_blocking_callback ei_cb_bl;  /** blocking lock callback */
+	ldlm_completion_callback ei_cb_cp;  /** lock completion callback */
+	ldlm_glimpse_callback ei_cb_gl;  /** lock glimpse callback */
 	void *ei_cbdata; /** Data to be passed into callbacks. */
 	unsigned int ei_enq_slave:1; /* whether enqueue slave stripes */
 };
@@ -1066,7 +1066,7 @@ struct ldlm_callback_suite {
 	ldlm_completion_callback lcs_completion;
 	ldlm_blocking_callback   lcs_blocking;
 	ldlm_glimpse_callback    lcs_glimpse;
-};
+} __no_const;
 
 /* ldlm_lockd.c */
 int ldlm_get_ref(void);

@@ -127,7 +127,7 @@ static DEFINE_RAW_SPINLOCK(dbg_slave_lock);
  */
 static atomic_t			masters_in_kgdb;
 static atomic_t			slaves_in_kgdb;
-static atomic_t			kgdb_break_tasklet_var;
+static atomic_unchecked_t	kgdb_break_tasklet_var;
 atomic_t			kgdb_setting_breakpoint;
 
 struct task_struct		*kgdb_usethread;
@@ -137,7 +137,7 @@ int				kgdb_single_step;
 static pid_t			kgdb_sstep_pid;
 
 /* to keep track of the CPU which is doing the single stepping*/
-atomic_t			kgdb_cpu_doing_single_step = ATOMIC_INIT(-1);
+atomic_unchecked_t		kgdb_cpu_doing_single_step = ATOMIC_INIT(-1);
 
 /*
  * If you are debugging a problem where roundup (the collection of
@@ -552,7 +552,7 @@ return_normal:
 	 * kernel will only try for the value of sstep_tries before
 	 * giving up and continuing on.
 	 */
-	if (atomic_read(&kgdb_cpu_doing_single_step) != -1 &&
+	if (atomic_read_unchecked(&kgdb_cpu_doing_single_step) != -1 &&
 	    (kgdb_info[cpu].task &&
 	     kgdb_info[cpu].task->pid != kgdb_sstep_pid) && --sstep_tries) {
 		atomic_set(&kgdb_active, -1);
@@ -654,8 +654,8 @@ cpu_master_loop:
 	}
 
 kgdb_restore:
-	if (atomic_read(&kgdb_cpu_doing_single_step) != -1) {
-		int sstep_cpu = atomic_read(&kgdb_cpu_doing_single_step);
+	if (atomic_read_unchecked(&kgdb_cpu_doing_single_step) != -1) {
+		int sstep_cpu = atomic_read_unchecked(&kgdb_cpu_doing_single_step);
 		if (kgdb_info[sstep_cpu].task)
 			kgdb_sstep_pid = kgdb_info[sstep_cpu].task->pid;
 		else
@@ -949,18 +949,18 @@ static void kgdb_unregister_callbacks(void)
 static void kgdb_tasklet_bpt(unsigned long ing)
 {
 	kgdb_breakpoint();
-	atomic_set(&kgdb_break_tasklet_var, 0);
+	atomic_set_unchecked(&kgdb_break_tasklet_var, 0);
 }
 
 static DECLARE_TASKLET(kgdb_tasklet_breakpoint, kgdb_tasklet_bpt, 0);
 
 void kgdb_schedule_breakpoint(void)
 {
-	if (atomic_read(&kgdb_break_tasklet_var) ||
+	if (atomic_read_unchecked(&kgdb_break_tasklet_var) ||
 		atomic_read(&kgdb_active) != -1 ||
 		atomic_read(&kgdb_setting_breakpoint))
 		return;
-	atomic_inc(&kgdb_break_tasklet_var);
+	atomic_inc_unchecked(&kgdb_break_tasklet_var);
 	tasklet_schedule(&kgdb_tasklet_breakpoint);
 }
 EXPORT_SYMBOL_GPL(kgdb_schedule_breakpoint);

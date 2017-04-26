@@ -354,7 +354,7 @@ static struct nf_ct_ext_type event_extend __read_mostly = {
 #ifdef CONFIG_SYSCTL
 static int nf_conntrack_event_init_sysctl(struct net *net)
 {
-	struct ctl_table *table;
+	ctl_table_no_const *table;
 
 	table = kmemdup(event_sysctl_table, sizeof(event_sysctl_table),
 			GFP_KERNEL);

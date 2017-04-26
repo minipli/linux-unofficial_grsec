@@ -722,7 +722,7 @@ bool batadv_tt_local_add(struct net_device *soft_iface, const u8 *addr,
 	batadv_dbg(BATADV_DBG_TT, bat_priv,
 		   "Creating new local tt entry: %pM (vid: %d, ttvn: %d)\n",
 		   addr, BATADV_PRINT_VID(vid),
-		   (u8)atomic_read(&bat_priv->tt.vn));
+		   (u8)atomic_read_unchecked(&bat_priv->tt.vn));
 
 	ether_addr_copy(tt_local->common.addr, addr);
 	/* The local entry has to be marked as NEW to avoid to send it in
@@ -952,7 +952,7 @@ batadv_tt_prepare_tvlv_local_data(struct batadv_priv *bat_priv,
 	}
 
 	(*tt_data)->flags = BATADV_NO_FLAGS;
-	(*tt_data)->ttvn = atomic_read(&bat_priv->tt.vn);
+	(*tt_data)->ttvn = atomic_read_unchecked(&bat_priv->tt.vn);
 	(*tt_data)->num_vlan = htons(num_vlan);
 
 	tt_vlan = (struct batadv_tvlv_tt_vlan_data *)(*tt_data + 1);
@@ -1070,7 +1070,7 @@ int batadv_tt_local_seq_print_text(struct seq_file *seq, void *offset)
 
 	seq_printf(seq,
 		   "Locally retrieved addresses (from %s) announced via TT (TTVN: %u):\n",
-		   net_dev->name, (u8)atomic_read(&bat_priv->tt.vn));
+		   net_dev->name, (u8)atomic_read_unchecked(&bat_priv->tt.vn));
 	seq_puts(seq,
 		 "       Client         VID Flags    Last seen (CRC       )\n");
 
@@ -3251,7 +3251,7 @@ static bool batadv_send_my_tt_response(struct batadv_priv *bat_priv,
 
 	spin_lock_bh(&bat_priv->tt.commit_lock);
 
-	my_ttvn = (u8)atomic_read(&bat_priv->tt.vn);
+	my_ttvn = (u8)atomic_read_unchecked(&bat_priv->tt.vn);
 	req_ttvn = tt_data->ttvn;
 
 	orig_node = batadv_orig_hash_find(bat_priv, req_src);
@@ -3290,7 +3290,7 @@ static bool batadv_send_my_tt_response(struct batadv_priv *bat_priv,
 		       bat_priv->tt.last_changeset_len);
 		spin_unlock_bh(&bat_priv->tt.last_changeset_lock);
 	} else {
-		req_ttvn = (u8)atomic_read(&bat_priv->tt.vn);
+		req_ttvn = (u8)atomic_read_unchecked(&bat_priv->tt.vn);
 
 		/* allocate the tvlv, put the tt_data and all the tt_vlan_data
 		 * in the initial part
@@ -3810,10 +3810,10 @@ static void batadv_tt_local_commit_changes_nolock(struct batadv_priv *bat_priv)
 	batadv_tt_local_update_crc(bat_priv);
 
 	/* Increment the TTVN only once per OGM interval */
-	atomic_inc(&bat_priv->tt.vn);
+	atomic_inc_unchecked(&bat_priv->tt.vn);
 	batadv_dbg(BATADV_DBG_TT, bat_priv,
 		   "Local changes committed, updating to ttvn %u\n",
-		   (u8)atomic_read(&bat_priv->tt.vn));
+		   (u8)atomic_read_unchecked(&bat_priv->tt.vn));
 
 	/* reset the sending counter */
 	atomic_set(&bat_priv->tt.ogm_append_cnt, BATADV_TT_OGM_APPEND_MAX);

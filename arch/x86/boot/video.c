@@ -100,7 +100,7 @@ static void store_mode_params(void)
 static unsigned int get_entry(void)
 {
 	char entry_buf[4];
-	int i, len = 0;
+	unsigned int i, len = 0;
 	int key;
 	unsigned int v;
 

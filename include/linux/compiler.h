@@ -5,11 +5,14 @@
 
 #ifdef __CHECKER__
 # define __user		__attribute__((noderef, address_space(1)))
+# define __force_user	__force __user
 # define __kernel	__attribute__((address_space(0)))
+# define __force_kernel	__force __kernel
 # define __safe		__attribute__((safe))
 # define __force	__attribute__((force))
 # define __nocast	__attribute__((nocast))
 # define __iomem	__attribute__((noderef, address_space(2)))
+# define __force_iomem	__force __iomem
 # define __must_hold(x)	__attribute__((context(x,1,1)))
 # define __acquires(x)	__attribute__((context(x,0,1)))
 # define __releases(x)	__attribute__((context(x,1,0)))
@@ -17,33 +20,76 @@
 # define __release(x)	__context__(x,-1)
 # define __cond_lock(x,c)	((c) ? ({ __acquire(x); 1; }) : 0)
 # define __percpu	__attribute__((noderef, address_space(3)))
+# define __force_percpu	__force __percpu
 #ifdef CONFIG_SPARSE_RCU_POINTER
 # define __rcu		__attribute__((noderef, address_space(4)))
+# define __force_rcu	__force __rcu
 #else /* CONFIG_SPARSE_RCU_POINTER */
 # define __rcu
+# define __force_rcu
 #endif /* CONFIG_SPARSE_RCU_POINTER */
 # define __private	__attribute__((noderef))
 extern void __chk_user_ptr(const volatile void __user *);
 extern void __chk_io_ptr(const volatile void __iomem *);
 # define ACCESS_PRIVATE(p, member) (*((typeof((p)->member) __force *) &(p)->member))
 #else /* __CHECKER__ */
-# define __user
-# define __kernel
+# ifdef CHECKER_PLUGIN
+#  ifdef CHECKER_PLUGIN_USER
+//#  define __user
+//#  define __force_user
+//#  define __kernel
+//#  define __force_kernel
+#  else
+#  define __user
+#  define __force_user
+#  define __kernel
+#  define __force_kernel
+#  endif
+#  ifdef CHECKER_PLUGIN_CONTEXT
+#  define __must_hold(x)	__attribute__((context(#x,1,1)))
+#  define __acquires(x)	__attribute__((context(#x,0,1)))
+#  define __releases(x)	__attribute__((context(#x,1,0)))
+#  define __acquire(x)	__context__(#x,1)
+#  define __release(x)	__context__(#x,-1)
+#  define __cond_lock(x,c)	((c) ? ({ __acquire(x); 1; }) : 0)
+#  define __cond_unlock(x,c)	((c) ? ({ __release(x); 1; }) : 0)
+#  else
+#  define __must_hold(x)
+#  define __acquires(x)
+#  define __releases(x)
+#  define __acquire(x) (void)0
+#  define __release(x) (void)0
+#  define __cond_lock(x,c) (c)
+#  define __cond_unlock(x,c) (c)
+#  endif
+# else
+#  ifdef STRUCTLEAK_PLUGIN
+#   define __user __attribute__((user))
+#  else
+#   define __user
+#  endif
+#  define __force_user
+#  define __kernel
+#  define __force_kernel
+#  define __must_hold(x)
+#  define __acquires(x)
+#  define __releases(x)
+#  define __acquire(x) (void)0
+#  define __release(x) (void)0
+#  define __cond_lock(x,c) (c)
+# endif
 # define __safe
 # define __force
 # define __nocast
 # define __iomem
+# define __force_iomem
 # define __chk_user_ptr(x) (void)0
 # define __chk_io_ptr(x) (void)0
 # define __builtin_warning(x, y...) (1)
-# define __must_hold(x)
-# define __acquires(x)
-# define __releases(x)
-# define __acquire(x) (void)0
-# define __release(x) (void)0
-# define __cond_lock(x,c) (c)
 # define __percpu
+# define __force_percpu
 # define __rcu
+# define __force_rcu
 # define __private
 # define ACCESS_PRIVATE(p, member) ((p)->member)
 #endif /* __CHECKER__ */
@@ -223,29 +269,20 @@ void ftrace_likely_update(struct ftrace_branch_data *f, int val, int expect);
 
 #include <uapi/linux/types.h>
 
-#define __READ_ONCE_SIZE						\
-({									\
-	switch (size) {							\
-	case 1: *(__u8 *)res = *(volatile __u8 *)p; break;		\
-	case 2: *(__u16 *)res = *(volatile __u16 *)p; break;		\
-	case 4: *(__u32 *)res = *(volatile __u32 *)p; break;		\
-	case 8: *(__u64 *)res = *(volatile __u64 *)p; break;		\
-	default:							\
-		barrier();						\
-		__builtin_memcpy((void *)res, (const void *)p, size);	\
-		barrier();						\
-	}								\
-})
-
-static __always_inline
-void __read_once_size(const volatile void *p, void *res, int size)
-{
-	__READ_ONCE_SIZE;
-}
-
 #ifdef CONFIG_KASAN
 /*
- * This function is not 'inline' because __no_sanitize_address confilcts
+ * Use READ_ONCE_NOCHECK() instead of READ_ONCE() if you need
+ * to hide memory access from KASAN.
+ */
+#define READ_ONCE_NOCHECK(x)					\
+({								\
+	union { typeof(x) __val; char __c[sizeof(x)]; } __u;	\
+	__read_once_size_nocheck(&(x), __u.__c, sizeof(x));	\
+	__u.__val;						\
+})
+
+/*
+ * This function is not 'inline' because __no_sanitize_address conflicts
  * with inlining. Attempt to inline it may cause a build failure.
  * 	https://gcc.gnu.org/bugzilla/show_bug.cgi?id=67368
  * '__maybe_unused' allows us to avoid defined-but-not-used warnings.
@@ -253,29 +290,20 @@ void __read_once_size(const volatile void *p, void *res, int size)
 static __no_sanitize_address __maybe_unused
 void __read_once_size_nocheck(const volatile void *p, void *res, int size)
 {
-	__READ_ONCE_SIZE;
-}
-#else
-static __always_inline
-void __read_once_size_nocheck(const volatile void *p, void *res, int size)
-{
-	__READ_ONCE_SIZE;
-}
-#endif
-
-static __always_inline void __write_once_size(volatile void *p, void *res, int size)
-{
 	switch (size) {
-	case 1: *(volatile __u8 *)p = *(__u8 *)res; break;
-	case 2: *(volatile __u16 *)p = *(__u16 *)res; break;
-	case 4: *(volatile __u32 *)p = *(__u32 *)res; break;
-	case 8: *(volatile __u64 *)p = *(__u64 *)res; break;
+	case 1: *(__u8 *)res = *(const volatile __u8 *)p; break;
+	case 2: *(__u16 *)res = *(const volatile __u16 *)p; break;
+	case 4: *(__u32 *)res = *(const volatile __u32 *)p; break;
+	case 8: *(__u64 *)res = *(const volatile __u64 *)p; break;
 	default:
 		barrier();
-		__builtin_memcpy((void *)p, (const void *)res, size);
+		__builtin_memcpy(res, (const void *)p, size);
 		barrier();
 	}
 }
+#else
+#define READ_ONCE_NOCHECK(x) READ_ONCE(x)
+#endif
 
 /*
  * Prevent the compiler from merging or refetching reads or writes. The
@@ -300,29 +328,15 @@ static __always_inline void __write_once_size(volatile void *p, void *res, int s
  * required ordering.
  */
 
-#define __READ_ONCE(x, check)						\
-({									\
-	union { typeof(x) __val; char __c[1]; } __u;			\
-	if (check)							\
-		__read_once_size(&(x), __u.__c, sizeof(x));		\
-	else								\
-		__read_once_size_nocheck(&(x), __u.__c, sizeof(x));	\
-	__u.__val;							\
+#define READ_ONCE(x) ({					\
+	typeof(x) __val = *(volatile typeof(x) *)&(x);	\
+	__val;						\
 })
-#define READ_ONCE(x) __READ_ONCE(x, 1)
 
-/*
- * Use READ_ONCE_NOCHECK() instead of READ_ONCE() if you need
- * to hide memory access from KASAN.
- */
-#define READ_ONCE_NOCHECK(x) __READ_ONCE(x, 0)
-
-#define WRITE_ONCE(x, val) \
-({							\
-	union { typeof(x) __val; char __c[1]; } __u =	\
-		{ .__val = (__force typeof(x)) (val) }; \
-	__write_once_size(&(x), __u.__c, sizeof(x));	\
-	__u.__val;					\
+#define WRITE_ONCE(x, val) ({				\
+	typeof(x) __val = (val);			\
+	(x) = *(volatile typeof(x) *)&__val;		\
+	__val;						\
 })
 
 #endif /* __KERNEL__ */
@@ -433,6 +447,46 @@ static __always_inline void __write_once_size(volatile void *p, void *res, int s
 # define __latent_entropy
 #endif
 
+#ifndef __randomize_layout
+# define __randomize_layout
+#endif
+
+#ifndef __no_randomize_layout
+# define __no_randomize_layout
+#endif
+
+#ifndef __no_const
+# define __no_const
+#endif
+
+#ifndef __do_const
+# define __do_const
+#endif
+
+#ifndef __size_overflow
+# define __size_overflow(...)
+#endif
+
+#ifndef __intentional_overflow
+# define __intentional_overflow(...)
+#endif
+
+#ifndef const_cast
+# define const_cast(x)	(x)
+#endif
+
+#ifndef __nocapture
+# define __nocapture(...)
+#endif
+
+#ifndef __unverified_nocapture
+# define __unverified_nocapture(...)
+#endif
+
+#ifndef __rap_hash
+#define __rap_hash
+#endif
+
 /*
  * Tell gcc if a function is cold. The compiler will assume any path
  * directly leading to the call is unlikely.
@@ -440,6 +494,22 @@ static __always_inline void __write_once_size(volatile void *p, void *res, int s
 
 #ifndef __cold
 #define __cold
+#endif
+
+#ifndef __alloc_size
+#define __alloc_size(...)
+#endif
+
+#ifndef __bos
+#define __bos(ptr, arg)
+#endif
+
+#ifndef __bos0
+#define __bos0(ptr)
+#endif
+
+#ifndef __bos1
+#define __bos1(ptr)
 #endif
 
 /* Simple shorthand for a section definition */
@@ -463,6 +533,8 @@ static __always_inline void __write_once_size(volatile void *p, void *res, int s
 #ifndef __same_type
 # define __same_type(a, b) __builtin_types_compatible_p(typeof(a), typeof(b))
 #endif
+
+#define __type_is_unsigned(t) (__same_type((t)0, 0UL) || __same_type((t)0, 0U) || __same_type((t)0, (unsigned short)0) || __same_type((t)0, (unsigned char)0))
 
 /* Is this type a native word size -- useful for atomic operations */
 #ifndef __native_word
@@ -543,8 +615,9 @@ static __always_inline void __write_once_size(volatile void *p, void *res, int s
  */
 #define __ACCESS_ONCE(x) ({ \
 	 __maybe_unused typeof(x) __var = (__force typeof(x)) 0; \
-	(volatile typeof(x) *)&(x); })
+	(volatile const typeof(x) *)&(x); })
 #define ACCESS_ONCE(x) (*__ACCESS_ONCE(x))
+#define ACCESS_ONCE_RW(x) (*(volatile typeof(x) *)&(x))
 
 /**
  * lockless_dereference() - safely load a pointer for later dereference

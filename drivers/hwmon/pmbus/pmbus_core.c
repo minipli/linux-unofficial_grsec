@@ -824,7 +824,7 @@ static int pmbus_add_attribute(struct pmbus_data *data, struct attribute *attr)
 	return 0;
 }
 
-static void pmbus_dev_attr_init(struct device_attribute *dev_attr,
+static void pmbus_dev_attr_init(device_attribute_no_const *dev_attr,
 				const char *name,
 				umode_t mode,
 				ssize_t (*show)(struct device *dev,
@@ -841,7 +841,7 @@ static void pmbus_dev_attr_init(struct device_attribute *dev_attr,
 	dev_attr->store = store;
 }
 
-static void pmbus_attr_init(struct sensor_device_attribute *a,
+static void pmbus_attr_init(sensor_device_attribute_no_const *a,
 			    const char *name,
 			    umode_t mode,
 			    ssize_t (*show)(struct device *dev,
@@ -863,7 +863,7 @@ static int pmbus_add_boolean(struct pmbus_data *data,
 			     u16 reg, u8 mask)
 {
 	struct pmbus_boolean *boolean;
-	struct sensor_device_attribute *a;
+	sensor_device_attribute_no_const *a;
 
 	boolean = devm_kzalloc(data->dev, sizeof(*boolean), GFP_KERNEL);
 	if (!boolean)
@@ -888,7 +888,7 @@ static struct pmbus_sensor *pmbus_add_sensor(struct pmbus_data *data,
 					     bool update, bool readonly)
 {
 	struct pmbus_sensor *sensor;
-	struct device_attribute *a;
+	device_attribute_no_const *a;
 
 	sensor = devm_kzalloc(data->dev, sizeof(*sensor), GFP_KERNEL);
 	if (!sensor)
@@ -919,7 +919,7 @@ static int pmbus_add_label(struct pmbus_data *data,
 			   const char *lstring, int index)
 {
 	struct pmbus_label *label;
-	struct device_attribute *a;
+	device_attribute_no_const *a;
 
 	label = devm_kzalloc(data->dev, sizeof(*label), GFP_KERNEL);
 	if (!label)

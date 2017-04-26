@@ -136,7 +136,7 @@ struct cpuinfo_x86 {
 	/* Index into per_cpu list: */
 	u16			cpu_index;
 	u32			microcode;
-};
+} __randomize_layout;
 
 #define X86_VENDOR_INTEL	0
 #define X86_VENDOR_CYRIX	1
@@ -160,7 +160,7 @@ extern __u32			cpu_caps_cleared[NCAPINTS];
 extern __u32			cpu_caps_set[NCAPINTS];
 
 #ifdef CONFIG_SMP
-DECLARE_PER_CPU_READ_MOSTLY(struct cpuinfo_x86, cpu_info);
+DECLARE_PER_CPU_READ_ONLY(struct cpuinfo_x86, cpu_info);
 #define cpu_data(cpu)		per_cpu(cpu_info, cpu)
 #else
 #define cpu_info		boot_cpu_data
@@ -206,9 +206,13 @@ static inline void native_cpuid(unsigned int *eax, unsigned int *ebx,
 	    : "memory");
 }
 
+#define PCID_KERNEL		0UL
+#define PCID_USER		1UL
+#define PCID_NOFLUSH		(1UL << 63)
+
 static inline void load_cr3(pgd_t *pgdir)
 {
-	write_cr3(__pa(pgdir));
+	write_cr3(__pa(pgdir) | PCID_KERNEL);
 }
 
 #ifdef CONFIG_X86_32
@@ -308,11 +312,9 @@ struct tss_struct {
 
 } ____cacheline_aligned;
 
-DECLARE_PER_CPU_SHARED_ALIGNED(struct tss_struct, cpu_tss);
+extern struct tss_struct cpu_tss[NR_CPUS];
 
-#ifdef CONFIG_X86_32
 DECLARE_PER_CPU(unsigned long, cpu_current_top_of_stack);
-#endif
 
 /*
  * Save the original ist values for checking stack pointers during debugging
@@ -341,6 +343,7 @@ DECLARE_PER_CPU_FIRST(union irq_stack_union, irq_stack_union) __visible;
 DECLARE_INIT_PER_CPU(irq_stack_union);
 
 DECLARE_PER_CPU(char *, irq_stack_ptr);
+DECLARE_PER_CPU(char *, irq_stack_ptr_lowmem);
 DECLARE_PER_CPU(unsigned int, irq_count);
 extern asmlinkage void ignore_sysret(void);
 #else	/* X86_64 */
@@ -389,6 +392,7 @@ struct thread_struct {
 	unsigned short		ds;
 	unsigned short		fsindex;
 	unsigned short		gsindex;
+	unsigned short		ss;
 #endif
 
 	u32			status;		/* thread synchronous flags */
@@ -404,6 +408,9 @@ struct thread_struct {
 	unsigned long fs;
 	unsigned long gs;
 #endif
+
+	/* Floating point and extended processor state */
+	struct fpu		fpu;
 
 	/* Save middle states of ptrace breakpoints */
 	struct perf_event	*ptrace_bps[HBP_NUM];
@@ -426,17 +433,11 @@ struct thread_struct {
 	unsigned		io_bitmap_max;
 
 	mm_segment_t		addr_limit;
+	unsigned long		lowest_stack;
 
 	unsigned int		sig_on_uaccess_err:1;
 	unsigned int		uaccess_err:1;	/* uaccess failed */
-
-	/* Floating point and extended processor state */
-	struct fpu		fpu;
-	/*
-	 * WARNING: 'fpu' is dynamically-sized.  It *MUST* be at
-	 * the end.
-	 */
-};
+} __randomize_layout;
 
 /*
  * Thread-synchronous status.
@@ -488,12 +489,8 @@ static inline void native_swapgs(void)
 
 static inline unsigned long current_top_of_stack(void)
 {
-#ifdef CONFIG_X86_64
-	return this_cpu_read_stable(cpu_tss.x86_tss.sp0);
-#else
 	/* sp0 on x86_32 is special in and around vm86 mode. */
 	return this_cpu_read_stable(cpu_current_top_of_stack);
-#endif
 }
 
 #ifdef CONFIG_PARAVIRT
@@ -718,20 +715,30 @@ static inline void spin_lock_prefetch(const void *x)
 #define TOP_OF_INIT_STACK ((unsigned long)&init_stack + sizeof(init_stack) - \
 			   TOP_OF_KERNEL_STACK_PADDING)
 
+extern union fpregs_state init_fpregs_state;
+
 #ifdef CONFIG_X86_32
 /*
  * User space process size: 3GB (default).
  */
 #define TASK_SIZE		PAGE_OFFSET
 #define TASK_SIZE_MAX		TASK_SIZE
+
+#ifdef CONFIG_PAX_SEGMEXEC
+#define SEGMEXEC_TASK_SIZE	(TASK_SIZE / 2)
+#define STACK_TOP		((current->mm->pax_flags & MF_PAX_SEGMEXEC)?SEGMEXEC_TASK_SIZE:TASK_SIZE)
+#else
 #define STACK_TOP		TASK_SIZE
-#define STACK_TOP_MAX		STACK_TOP
+#endif
+
+#define STACK_TOP_MAX		TASK_SIZE
 
 #define INIT_THREAD  {							  \
 	.sp0			= TOP_OF_INIT_STACK,			  \
 	.sysenter_cs		= __KERNEL_CS,				  \
 	.io_bitmap_ptr		= NULL,					  \
 	.addr_limit		= KERNEL_DS,				  \
+	.fpu.state		= &init_fpregs_state,			  \
 }
 
 /*
@@ -744,12 +751,7 @@ static inline void spin_lock_prefetch(const void *x)
  * "struct pt_regs" is possible, but they may contain the
  * completely wrong values.
  */
-#define task_pt_regs(task) \
-({									\
-	unsigned long __ptr = (unsigned long)task_stack_page(task);	\
-	__ptr += THREAD_SIZE - TOP_OF_KERNEL_STACK_PADDING;		\
-	((struct pt_regs *)__ptr) - 1;					\
-})
+#define task_pt_regs(tsk)	((struct pt_regs *)(tsk)->thread.sp0 - 1)
 
 #define KSTK_ESP(task)		(task_pt_regs(task)->sp)
 
@@ -763,13 +765,13 @@ static inline void spin_lock_prefetch(const void *x)
  * particular problem by preventing anything from being mapped
  * at the maximum canonical address.
  */
-#define TASK_SIZE_MAX	((1UL << 47) - PAGE_SIZE)
+#define TASK_SIZE_MAX	((1UL << TASK_SIZE_MAX_SHIFT) - PAGE_SIZE)
 
 /* This decides where the kernel will search for a free chunk of vm
  * space during mmap's.
  */
 #define IA32_PAGE_OFFSET	((current->personality & ADDR_LIMIT_3GB) ? \
-					0xc0000000 : 0xFFFFe000)
+					0xc0000000 : 0xFFFFf000)
 
 #define TASK_SIZE		(test_thread_flag(TIF_ADDR32) ? \
 					IA32_PAGE_OFFSET : TASK_SIZE_MAX)
@@ -782,6 +784,7 @@ static inline void spin_lock_prefetch(const void *x)
 #define INIT_THREAD  {						\
 	.sp0			= TOP_OF_INIT_STACK,		\
 	.addr_limit		= KERNEL_DS,			\
+	.fpu.state		= &init_fpregs_state,		\
 }
 
 #define task_pt_regs(tsk)	((struct pt_regs *)(tsk)->thread.sp0 - 1)
@@ -799,6 +802,10 @@ extern void start_thread(struct pt_regs *regs, unsigned long new_ip,
  * space during mmap's.
  */
 #define TASK_UNMAPPED_BASE	(PAGE_ALIGN(TASK_SIZE / 3))
+
+#ifdef CONFIG_PAX_SEGMEXEC
+#define SEGMEXEC_TASK_UNMAPPED_BASE	(PAGE_ALIGN(SEGMEXEC_TASK_SIZE / 3))
+#endif
 
 #define KSTK_EIP(task)		(task_pt_regs(task)->ip)
 
@@ -845,7 +852,7 @@ static inline uint32_t hypervisor_cpuid_base(const char *sig, uint32_t leaves)
 	return 0;
 }
 
-extern unsigned long arch_align_stack(unsigned long sp);
+#define arch_align_stack(x) ((x) & ~0xfUL)
 extern void free_init_pages(char *what, unsigned long begin, unsigned long end);
 
 void default_idle(void);
@@ -855,6 +862,6 @@ bool xen_set_default_idle(void);
 #define xen_set_default_idle 0
 #endif
 
-void stop_this_cpu(void *dummy);
+void stop_this_cpu(void *dummy) __noreturn;
 void df_debug(struct pt_regs *regs, long error_code);
 #endif /* _ASM_X86_PROCESSOR_H */

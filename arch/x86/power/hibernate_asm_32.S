@@ -11,6 +11,7 @@
 #include <asm/page_types.h>
 #include <asm/asm-offsets.h>
 #include <asm/processor-flags.h>
+#include <asm/smap.h>
 
 .text
 
@@ -23,8 +24,8 @@ ENTRY(swsusp_arch_suspend)
 	pushfl
 	popl saved_context_eflags
 
-	call swsusp_save
-	ret
+	pax_direct_call swsusp_save
+	pax_ret swsusp_arch_suspend
 
 ENTRY(restore_image)
 	movl	mmu_cr4_features, %ecx
@@ -74,6 +75,7 @@ done:
 
 	pushl saved_context_eflags
 	popfl
+	ASM_CLAC
 
 	/* Saved in save_processor_state. */
 	movl $saved_context, %eax
@@ -81,4 +83,4 @@ done:
 
 	xorl	%eax, %eax
 
-	ret
+	pax_ret restore_image

@@ -636,7 +636,7 @@ static int rxkad_issue_challenge(struct rxrpc_connection *conn)
 
 	len = iov[0].iov_len + iov[1].iov_len;
 
-	serial = atomic_inc_return(&conn->serial);
+	serial = atomic_inc_return_unchecked(&conn->serial);
 	whdr.serial = htonl(serial);
 	_proto("Tx CHALLENGE %%%u", serial);
 
@@ -690,7 +690,7 @@ static int rxkad_send_response(struct rxrpc_connection *conn,
 
 	len = iov[0].iov_len + iov[1].iov_len + iov[2].iov_len;
 
-	serial = atomic_inc_return(&conn->serial);
+	serial = atomic_inc_return_unchecked(&conn->serial);
 	whdr.serial = htonl(serial);
 	_proto("Tx RESPONSE %%%u", serial);
 

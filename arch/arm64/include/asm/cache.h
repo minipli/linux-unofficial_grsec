@@ -16,10 +16,14 @@
 #ifndef __ASM_CACHE_H
 #define __ASM_CACHE_H
 
+#include <linux/const.h>
+
 #include <asm/cachetype.h>
 
+#include <linux/const.h>
+
 #define L1_CACHE_SHIFT		7
-#define L1_CACHE_BYTES		(1 << L1_CACHE_SHIFT)
+#define L1_CACHE_BYTES		(_AC(1,UL) << L1_CACHE_SHIFT)
 
 /*
  * Memory returned by kmalloc() may be used for DMA, so we must make

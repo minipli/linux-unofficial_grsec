@@ -146,6 +146,16 @@ static inline void atomic64_dec(atomic64_t *v)
 #define atomic64_cmpxchg(v, old, new)	(__cmpxchg_64(old, new, &(v)->counter))
 #define atomic64_xchg(v, new)		(__xchg_64(new, &(v)->counter))
 
+#define atomic64_read_unchecked(v)		atomic64_read(v)
+#define atomic64_set_unchecked(v, i)		atomic64_set((v), (i))
+#define atomic64_add_unchecked(a, v)		atomic64_add((a), (v))
+#define atomic64_add_return_unchecked(a, v)	atomic64_add_return((a), (v))
+#define atomic64_sub_unchecked(a, v)		atomic64_sub((a), (v))
+#define atomic64_inc_unchecked(v)		atomic64_inc(v)
+#define atomic64_inc_return_unchecked(v)	atomic64_inc_return(v)
+#define atomic64_dec_unchecked(v)		atomic64_dec(v)
+#define atomic64_cmpxchg_unchecked(v, o, n)	atomic64_cmpxchg((v), (o), (n))
+
 static __inline__ int __atomic_add_unless(atomic_t *v, int a, int u)
 {
 	int c, old;

@@ -181,7 +181,7 @@ static ssize_t rtpm_status_show(struct device *dev,
 			return -EIO;
 		}
 	}
-	return sprintf(buf, p);
+	return sprintf(buf, "%s", p);
 }
 
 static DEVICE_ATTR(runtime_status, 0444, rtpm_status_show, NULL);

@@ -60,7 +60,7 @@ struct amd_sched_fence *amd_sched_fence_create(struct amd_sched_entity *entity,
 	fence->sched = entity->sched;
 	spin_lock_init(&fence->lock);
 
-	seq = atomic_inc_return(&entity->fence_seq);
+	seq = atomic_inc_return_unchecked(&entity->fence_seq);
 	fence_init(&fence->scheduled, &amd_sched_fence_ops_scheduled,
 		   &fence->lock, entity->fence_context, seq);
 	fence_init(&fence->finished, &amd_sched_fence_ops_finished,

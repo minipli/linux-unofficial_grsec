@@ -24,8 +24,6 @@
 
 extern const unsigned long sigreturn_codes[7];
 
-static unsigned long signal_return_offset;
-
 #ifdef CONFIG_CRUNCH
 static int preserve_crunch_context(struct crunch_sigframe __user *frame)
 {
@@ -388,8 +386,7 @@ setup_return(struct pt_regs *regs, struct ksignal *ksig,
 			 * except when the MPU has protected the vectors
 			 * page from PL0
 			 */
-			retcode = mm->context.sigpage + signal_return_offset +
-				  (idx << 2) + thumb;
+			retcode = mm->context.sigpage + (idx << 2) + thumb;
 		} else
 #endif
 		{
@@ -600,34 +597,4 @@ do_work_pending(struct pt_regs *regs, unsigned int thread_flags, int syscall)
 		thread_flags = current_thread_info()->flags;
 	} while (thread_flags & _TIF_WORK_MASK);
 	return 0;
-}
-
-struct page *get_signal_page(void)
-{
-	unsigned long ptr;
-	unsigned offset;
-	struct page *page;
-	void *addr;
-
-	page = alloc_pages(GFP_KERNEL, 0);
-
-	if (!page)
-		return NULL;
-
-	addr = page_address(page);
-
-	/* Give the signal return code some randomness */
-	offset = 0x200 + (get_random_int() & 0x7fc);
-	signal_return_offset = offset;
-
-	/*
-	 * Copy signal return handlers into the vector page, and
-	 * set sigreturn to be a pointer to these.
-	 */
-	memcpy(addr + offset, sigreturn_codes, sizeof(sigreturn_codes));
-
-	ptr = (unsigned long)addr + offset;
-	flush_icache_range(ptr, ptr + sizeof(sigreturn_codes));
-
-	return page;
 }

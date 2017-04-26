@@ -563,7 +563,7 @@ static int tvout_dbg_show(struct seq_file *s, void *data)
 	return 0;
 }
 
-static struct drm_info_list tvout_debugfs_files[] = {
+static drm_info_list_no_const tvout_debugfs_files[] __read_only = {
 	{ "tvout", tvout_dbg_show, 0, NULL },
 };
 
@@ -578,8 +578,10 @@ static int tvout_debugfs_init(struct sti_tvout *tvout, struct drm_minor *minor)
 {
 	unsigned int i;
 
+	pax_open_kernel();
 	for (i = 0; i < ARRAY_SIZE(tvout_debugfs_files); i++)
 		tvout_debugfs_files[i].data = tvout;
+	pax_close_kernel();
 
 	return drm_debugfs_create_files(tvout_debugfs_files,
 					ARRAY_SIZE(tvout_debugfs_files),

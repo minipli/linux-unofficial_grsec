@@ -149,6 +149,7 @@
 #ifdef CONFIG_ISA_DMA_API
 extern spinlock_t  dma_spin_lock;
 
+static inline unsigned long claim_dma_lock(void) __acquires(&dma_spin_lock);
 static inline unsigned long claim_dma_lock(void)
 {
 	unsigned long flags;
@@ -156,6 +157,7 @@ static inline unsigned long claim_dma_lock(void)
 	return flags;
 }
 
+static inline void release_dma_lock(unsigned long flags) __releases(&dma_spin_lock);
 static inline void release_dma_lock(unsigned long flags)
 {
 	spin_unlock_irqrestore(&dma_spin_lock, flags);

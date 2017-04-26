@@ -944,10 +944,10 @@ static inline u32 next_command(struct ctlr_info *h, u8 q)
 	struct reply_queue_buffer *rq = &h->reply_queue[q];
 
 	if (h->transMethod & CFGTBL_Trans_io_accel1)
-		return h->access.command_completed(h, q);
+		return h->access->command_completed(h, q);
 
 	if (unlikely(!(h->transMethod & CFGTBL_Trans_Performant)))
-		return h->access.command_completed(h, q);
+		return h->access->command_completed(h, q);
 
 	if ((rq->head[rq->current_entry] & 1) == rq->wraparound) {
 		a = rq->head[rq->current_entry];
@@ -1129,7 +1129,7 @@ static void __enqueue_cmd_and_start_io(struct ctlr_info *h,
 		break;
 	default:
 		set_performant_mode(h, c, reply_queue);
-		h->access.submit_command(h, c);
+		h->access->submit_command(h, c);
 	}
 }
 
@@ -7111,17 +7111,17 @@ static void __iomem *remap_pci_mem(ulong base, ulong size)
 
 static inline unsigned long get_next_completion(struct ctlr_info *h, u8 q)
 {
-	return h->access.command_completed(h, q);
+	return h->access->command_completed(h, q);
 }
 
 static inline bool interrupt_pending(struct ctlr_info *h)
 {
-	return h->access.intr_pending(h);
+	return h->access->intr_pending(h);
 }
 
 static inline long interrupt_not_for_us(struct ctlr_info *h)
 {
-	return (h->access.intr_pending(h) == 0) ||
+	return (h->access->intr_pending(h) == 0) ||
 		(h->interrupts_enabled == 0);
 }
 
@@ -8049,7 +8049,7 @@ static int hpsa_pci_init(struct ctlr_info *h)
 	if (prod_index < 0)
 		return prod_index;
 	h->product_name = products[prod_index].product_name;
-	h->access = *(products[prod_index].access);
+	h->access = products[prod_index].access;
 
 	h->needs_abort_tags_swizzled =
 		ctlr_needs_abort_tags_swizzled(h->board_id);
@@ -8448,7 +8448,7 @@ static void controller_lockup_detected(struct ctlr_info *h)
 	unsigned long flags;
 	u32 lockup_detected;
 
-	h->access.set_intr_mask(h, HPSA_INTR_OFF);
+	h->access->set_intr_mask(h, HPSA_INTR_OFF);
 	spin_lock_irqsave(&h->lock, flags);
 	lockup_detected = readl(h->vaddr + SA5_SCRATCHPAD_OFFSET);
 	if (!lockup_detected) {
@@ -8786,7 +8786,7 @@ reinit_after_soft_reset:
 	}
 
 	/* make sure the board interrupts are off */
-	h->access.set_intr_mask(h, HPSA_INTR_OFF);
+	h->access->set_intr_mask(h, HPSA_INTR_OFF);
 
 	rc = hpsa_request_irqs(h, do_hpsa_intr_msi, do_hpsa_intr_intx);
 	if (rc)
@@ -8839,7 +8839,7 @@ reinit_after_soft_reset:
 		 * fake ones to scoop up any residual completions.
 		 */
 		spin_lock_irqsave(&h->lock, flags);
-		h->access.set_intr_mask(h, HPSA_INTR_OFF);
+		h->access->set_intr_mask(h, HPSA_INTR_OFF);
 		spin_unlock_irqrestore(&h->lock, flags);
 		hpsa_free_irqs(h);
 		rc = hpsa_request_irqs(h, hpsa_msix_discard_completions,
@@ -8869,9 +8869,9 @@ reinit_after_soft_reset:
 		dev_info(&h->pdev->dev, "Board READY.\n");
 		dev_info(&h->pdev->dev,
 			"Waiting for stale completions to drain.\n");
-		h->access.set_intr_mask(h, HPSA_INTR_ON);
+		h->access->set_intr_mask(h, HPSA_INTR_ON);
 		msleep(10000);
-		h->access.set_intr_mask(h, HPSA_INTR_OFF);
+		h->access->set_intr_mask(h, HPSA_INTR_OFF);
 
 		rc = controller_reset_failed(h->cfgtable);
 		if (rc)
@@ -8898,7 +8898,7 @@ reinit_after_soft_reset:
 
 
 	/* Turn the interrupts on so we can service requests */
-	h->access.set_intr_mask(h, HPSA_INTR_ON);
+	h->access->set_intr_mask(h, HPSA_INTR_ON);
 
 	hpsa_hba_inquiry(h);
 
@@ -8924,7 +8924,7 @@ reinit_after_soft_reset:
 
 clean7: /* perf, sg, cmd, irq, shost, pci, lu, aer/h */
 	hpsa_free_performant_mode(h);
-	h->access.set_intr_mask(h, HPSA_INTR_OFF);
+	h->access->set_intr_mask(h, HPSA_INTR_OFF);
 clean6: /* sg, cmd, irq, pci, lockup, wq/aer/h */
 	hpsa_free_sg_chain_blocks(h);
 clean5: /* cmd, irq, shost, pci, lu, aer/h */
@@ -9059,7 +9059,7 @@ static void hpsa_shutdown(struct pci_dev *pdev)
 	 * To write all data in the battery backed cache to disks
 	 */
 	hpsa_flush_cache(h);
-	h->access.set_intr_mask(h, HPSA_INTR_OFF);
+	h->access->set_intr_mask(h, HPSA_INTR_OFF);
 	hpsa_free_irqs(h);			/* init_one 4 */
 	hpsa_disable_interrupt_mode(h);		/* pci_init 2 */
 }
@@ -9201,7 +9201,7 @@ static int hpsa_enter_performant_mode(struct ctlr_info *h, u32 trans_support)
 				CFGTBL_Trans_enable_directed_msix |
 			(trans_support & (CFGTBL_Trans_io_accel1 |
 				CFGTBL_Trans_io_accel2));
-	struct access_method access = SA5_performant_access;
+	struct access_method *access = &SA5_performant_access;
 
 	/* This is a bit complicated.  There are 8 registers on
 	 * the controller which we write to to tell it 8 different
@@ -9243,7 +9243,7 @@ static int hpsa_enter_performant_mode(struct ctlr_info *h, u32 trans_support)
 	 * perform the superfluous readl() after each command submission.
 	 */
 	if (trans_support & (CFGTBL_Trans_io_accel1 | CFGTBL_Trans_io_accel2))
-		access = SA5_performant_access_no_read;
+		access = &SA5_performant_access_no_read;
 
 	/* Controller spec: zero out this buffer. */
 	for (i = 0; i < h->nreply_queues; i++)
@@ -9273,12 +9273,12 @@ static int hpsa_enter_performant_mode(struct ctlr_info *h, u32 trans_support)
 	 * enable outbound interrupt coalescing in accelerator mode;
 	 */
 	if (trans_support & CFGTBL_Trans_io_accel1) {
-		access = SA5_ioaccel_mode1_access;
+		access = &SA5_ioaccel_mode1_access;
 		writel(10, &h->cfgtable->HostWrite.CoalIntDelay);
 		writel(4, &h->cfgtable->HostWrite.CoalIntCount);
 	} else {
 		if (trans_support & CFGTBL_Trans_io_accel2) {
-			access = SA5_ioaccel_mode2_access;
+			access = &SA5_ioaccel_mode2_access;
 			writel(10, &h->cfgtable->HostWrite.CoalIntDelay);
 			writel(4, &h->cfgtable->HostWrite.CoalIntCount);
 		}

@@ -17,7 +17,7 @@ int atm_charge(struct atm_vcc *vcc, int truesize)
 	if (atomic_read(&sk_atm(vcc)->sk_rmem_alloc) <= sk_atm(vcc)->sk_rcvbuf)
 		return 1;
 	atm_return(vcc, truesize);
-	atomic_inc(&vcc->stats->rx_drop);
+	atomic_inc_unchecked(&vcc->stats->rx_drop);
 	return 0;
 }
 EXPORT_SYMBOL(atm_charge);
@@ -39,7 +39,7 @@ struct sk_buff *atm_alloc_charge(struct atm_vcc *vcc, int pdu_size,
 		}
 	}
 	atm_return(vcc, guess);
-	atomic_inc(&vcc->stats->rx_drop);
+	atomic_inc_unchecked(&vcc->stats->rx_drop);
 	return NULL;
 }
 EXPORT_SYMBOL(atm_alloc_charge);
@@ -86,7 +86,7 @@ EXPORT_SYMBOL(atm_pcr_goal);
 
 void sonet_copy_stats(struct k_sonet_stats *from, struct sonet_stats *to)
 {
-#define __HANDLE_ITEM(i) to->i = atomic_read(&from->i)
+#define __HANDLE_ITEM(i) to->i = atomic_read_unchecked(&from->i)
 	__SONET_ITEMS
 #undef __HANDLE_ITEM
 }
@@ -94,7 +94,7 @@ EXPORT_SYMBOL(sonet_copy_stats);
 
 void sonet_subtract_stats(struct k_sonet_stats *from, struct sonet_stats *to)
 {
-#define __HANDLE_ITEM(i) atomic_sub(to->i, &from->i)
+#define __HANDLE_ITEM(i) atomic_sub_unchecked(to->i,&from->i)
 	__SONET_ITEMS
 #undef __HANDLE_ITEM
 }

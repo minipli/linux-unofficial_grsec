@@ -21,6 +21,7 @@
  */
 
 #include <linux/linkage.h>
+#include <asm/alternative-asm.h>
 
 .file "blowfish-x86_64-asm.S"
 .text
@@ -149,13 +150,13 @@ ENTRY(__blowfish_enc_blk)
 	jnz .L__enc_xor;
 
 	write_block();
-	ret;
+	pax_ret __blowfish_enc_blk;
 .L__enc_xor:
 	xor_block();
-	ret;
+	pax_ret __blowfish_enc_blk;
 ENDPROC(__blowfish_enc_blk)
 
-ENTRY(blowfish_dec_blk)
+RAP_ENTRY(blowfish_dec_blk)
 	/* input:
 	 *	%rdi: ctx, CTX
 	 *	%rsi: dst
@@ -183,7 +184,7 @@ ENTRY(blowfish_dec_blk)
 
 	movq %r11, %rbp;
 
-	ret;
+	pax_ret blowfish_dec_blk;
 ENDPROC(blowfish_dec_blk)
 
 /**********************************************************************
@@ -334,17 +335,17 @@ ENTRY(__blowfish_enc_blk_4way)
 
 	popq %rbx;
 	popq %rbp;
-	ret;
+	pax_ret __blowfish_enc_blk_4way;
 
 .L__enc_xor4:
 	xor_block4();
 
 	popq %rbx;
 	popq %rbp;
-	ret;
+	pax_ret __blowfish_enc_blk_4way;
 ENDPROC(__blowfish_enc_blk_4way)
 
-ENTRY(blowfish_dec_blk_4way)
+RAP_ENTRY(blowfish_dec_blk_4way)
 	/* input:
 	 *	%rdi: ctx, CTX
 	 *	%rsi: dst
@@ -375,5 +376,5 @@ ENTRY(blowfish_dec_blk_4way)
 	popq %rbx;
 	popq %rbp;
 
-	ret;
+	pax_ret blowfish_dec_blk_4way;
 ENDPROC(blowfish_dec_blk_4way)

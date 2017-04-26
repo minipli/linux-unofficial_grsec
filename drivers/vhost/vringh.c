@@ -551,7 +551,7 @@ static inline void __vringh_notify_disable(struct vringh *vrh,
 static inline int getu16_user(const struct vringh *vrh, u16 *val, const __virtio16 *p)
 {
 	__virtio16 v = 0;
-	int rc = get_user(v, (__force __virtio16 __user *)p);
+	int rc = get_user(v, (__force_user __virtio16 *)p);
 	*val = vringh16_to_cpu(vrh, v);
 	return rc;
 }
@@ -559,12 +559,12 @@ static inline int getu16_user(const struct vringh *vrh, u16 *val, const __virtio
 static inline int putu16_user(const struct vringh *vrh, __virtio16 *p, u16 val)
 {
 	__virtio16 v = cpu_to_vringh16(vrh, val);
-	return put_user(v, (__force __virtio16 __user *)p);
+	return put_user(v, (__force_user __virtio16 *)p);
 }
 
 static inline int copydesc_user(void *dst, const void *src, size_t len)
 {
-	return copy_from_user(dst, (__force void __user *)src, len) ?
+	return copy_from_user(dst, (void __force_user *)src, len) ?
 		-EFAULT : 0;
 }
 
@@ -572,19 +572,19 @@ static inline int putused_user(struct vring_used_elem *dst,
 			       const struct vring_used_elem *src,
 			       unsigned int num)
 {
-	return copy_to_user((__force void __user *)dst, src,
+	return copy_to_user((void __force_user *)dst, src,
 			    sizeof(*dst) * num) ? -EFAULT : 0;
 }
 
 static inline int xfer_from_user(void *src, void *dst, size_t len)
 {
-	return copy_from_user(dst, (__force void __user *)src, len) ?
+	return copy_from_user(dst, (void __force_user *)src, len) ?
 		-EFAULT : 0;
 }
 
 static inline int xfer_to_user(void *dst, void *src, size_t len)
 {
-	return copy_to_user((__force void __user *)dst, src, len) ?
+	return copy_to_user((void __force_user *)dst, src, len) ?
 		-EFAULT : 0;
 }
 
@@ -621,9 +621,9 @@ int vringh_init_user(struct vringh *vrh, u64 features,
 	vrh->last_used_idx = 0;
 	vrh->vring.num = num;
 	/* vring expects kernel addresses, but only used via accessors. */
-	vrh->vring.desc = (__force struct vring_desc *)desc;
-	vrh->vring.avail = (__force struct vring_avail *)avail;
-	vrh->vring.used = (__force struct vring_used *)used;
+	vrh->vring.desc = (__force_kernel struct vring_desc *)desc;
+	vrh->vring.avail = (__force_kernel struct vring_avail *)avail;
+	vrh->vring.used = (__force_kernel struct vring_used *)used;
 	return 0;
 }
 EXPORT_SYMBOL(vringh_init_user);
@@ -826,7 +826,7 @@ static inline int getu16_kern(const struct vringh *vrh,
 
 static inline int putu16_kern(const struct vringh *vrh, __virtio16 *p, u16 val)
 {
-	ACCESS_ONCE(*p) = cpu_to_vringh16(vrh, val);
+	ACCESS_ONCE_RW(*p) = cpu_to_vringh16(vrh, val);
 	return 0;
 }
 

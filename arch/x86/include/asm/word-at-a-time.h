@@ -11,7 +11,7 @@
  * and shift, for example.
  */
 struct word_at_a_time {
-	const unsigned long one_bits, high_bits;
+	unsigned long one_bits, high_bits;
 };
 
 #define WORD_AT_A_TIME_CONSTANTS { REPEAT_BYTE(0x01), REPEAT_BYTE(0x80) }

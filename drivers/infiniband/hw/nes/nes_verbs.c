@@ -46,9 +46,9 @@
 
 #include <rdma/ib_umem.h>
 
-atomic_t mod_qp_timouts;
-atomic_t qps_created;
-atomic_t sw_qps_destroyed;
+atomic_unchecked_t mod_qp_timouts;
+atomic_unchecked_t qps_created;
+atomic_unchecked_t sw_qps_destroyed;
 
 static void nes_unregister_ofa_device(struct nes_ib_device *nesibdev);
 static int nes_dereg_mr(struct ib_mr *ib_mr);
@@ -1040,7 +1040,7 @@ static struct ib_qp *nes_create_qp(struct ib_pd *ibpd,
 	if (init_attr->create_flags)
 		return ERR_PTR(-EINVAL);
 
-	atomic_inc(&qps_created);
+	atomic_inc_unchecked(&qps_created);
 	switch (init_attr->qp_type) {
 		case IB_QPT_RC:
 			if (nes_drv_opt & NES_DRV_OPT_NO_INLINE_DATA) {
@@ -1376,7 +1376,7 @@ static int nes_destroy_qp(struct ib_qp *ibqp)
 	struct iw_cm_event cm_event;
 	int ret = 0;
 
-	atomic_inc(&sw_qps_destroyed);
+	atomic_inc_unchecked(&sw_qps_destroyed);
 	nesqp->destroyed = 1;
 
 	/* Blow away the connection if it exists. */

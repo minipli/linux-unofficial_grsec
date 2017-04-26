@@ -1187,12 +1187,12 @@ i915_gem_check_execbuffer(struct drm_i915_gem_execbuffer2 *exec)
 static int
 validate_exec_list(struct drm_device *dev,
 		   struct drm_i915_gem_exec_object2 *exec,
-		   int count)
+		   unsigned int count)
 {
 	unsigned relocs_total = 0;
 	unsigned relocs_max = UINT_MAX / sizeof(struct drm_i915_gem_relocation_entry);
 	unsigned invalid_flags;
-	int i;
+	unsigned int i;
 
 	/* INTERNAL flags must not overlap with external ones */
 	BUILD_BUG_ON(__EXEC_OBJECT_INTERNAL_FLAGS & ~__EXEC_OBJECT_UNKNOWN_FLAGS);

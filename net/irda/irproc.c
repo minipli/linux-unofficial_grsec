@@ -66,7 +66,7 @@ void __init irda_proc_register(void)
 {
 	int i;
 
-	proc_irda = proc_mkdir("irda", init_net.proc_net);
+	proc_irda = proc_mkdir_restrict("irda", init_net.proc_net);
 	if (proc_irda == NULL)
 		return;
 

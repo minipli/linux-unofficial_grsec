@@ -111,6 +111,7 @@ struct fw_card_driver {
 
 	int (*stop_iso)(struct fw_iso_context *ctx);
 };
+typedef struct fw_card_driver __no_const fw_card_driver_no_const;
 
 void fw_card_initialize(struct fw_card *card,
 		const struct fw_card_driver *driver, struct device *device);

@@ -331,7 +331,7 @@ static void usbatm_extract_one_cell(struct usbatm_data *instance, unsigned char 
 		if (printk_ratelimit())
 			atm_warn(instance, "%s: OAM not supported (vpi %d, vci %d)!\n",
 				__func__, vpi, vci);
-		atomic_inc(&vcc->stats->rx_err);
+		atomic_inc_unchecked(&vcc->stats->rx_err);
 		return;
 	}
 
@@ -358,7 +358,7 @@ static void usbatm_extract_one_cell(struct usbatm_data *instance, unsigned char 
 		if (length > ATM_MAX_AAL5_PDU) {
 			atm_rldbg(instance, "%s: bogus length %u (vcc: 0x%p)!\n",
 				  __func__, length, vcc);
-			atomic_inc(&vcc->stats->rx_err);
+			atomic_inc_unchecked(&vcc->stats->rx_err);
 			goto out;
 		}
 
@@ -367,14 +367,14 @@ static void usbatm_extract_one_cell(struct usbatm_data *instance, unsigned char 
 		if (sarb->len < pdu_length) {
 			atm_rldbg(instance, "%s: bogus pdu_length %u (sarb->len: %u, vcc: 0x%p)!\n",
 				  __func__, pdu_length, sarb->len, vcc);
-			atomic_inc(&vcc->stats->rx_err);
+			atomic_inc_unchecked(&vcc->stats->rx_err);
 			goto out;
 		}
 
 		if (crc32_be(~0, skb_tail_pointer(sarb) - pdu_length, pdu_length) != 0xc704dd7b) {
 			atm_rldbg(instance, "%s: packet failed crc check (vcc: 0x%p)!\n",
 				  __func__, vcc);
-			atomic_inc(&vcc->stats->rx_err);
+			atomic_inc_unchecked(&vcc->stats->rx_err);
 			goto out;
 		}
 
@@ -387,7 +387,7 @@ static void usbatm_extract_one_cell(struct usbatm_data *instance, unsigned char 
 			if (printk_ratelimit())
 				atm_err(instance, "%s: no memory for skb (length: %u)!\n",
 					__func__, length);
-			atomic_inc(&vcc->stats->rx_drop);
+			atomic_inc_unchecked(&vcc->stats->rx_drop);
 			goto out;
 		}
 
@@ -415,7 +415,7 @@ static void usbatm_extract_one_cell(struct usbatm_data *instance, unsigned char 
 
 		vcc->push(vcc, skb);
 
-		atomic_inc(&vcc->stats->rx);
+		atomic_inc_unchecked(&vcc->stats->rx);
 	out:
 		skb_trim(sarb, 0);
 	}
@@ -613,7 +613,7 @@ static void usbatm_tx_process(unsigned long data)
 			struct atm_vcc *vcc = UDSL_SKB(skb)->atm.vcc;
 
 			usbatm_pop(vcc, skb);
-			atomic_inc(&vcc->stats->tx);
+			atomic_inc_unchecked(&vcc->stats->tx);
 
 			skb = skb_dequeue(&instance->sndqueue);
 		}
@@ -757,11 +757,11 @@ static int usbatm_atm_proc_read(struct atm_dev *atm_dev, loff_t *pos, char *page
 	if (!left--)
 		return sprintf(page,
 			       "AAL5: tx %d ( %d err ), rx %d ( %d err, %d drop )\n",
-			       atomic_read(&atm_dev->stats.aal5.tx),
-			       atomic_read(&atm_dev->stats.aal5.tx_err),
-			       atomic_read(&atm_dev->stats.aal5.rx),
-			       atomic_read(&atm_dev->stats.aal5.rx_err),
-			       atomic_read(&atm_dev->stats.aal5.rx_drop));
+			       atomic_read_unchecked(&atm_dev->stats.aal5.tx),
+			       atomic_read_unchecked(&atm_dev->stats.aal5.tx_err),
+			       atomic_read_unchecked(&atm_dev->stats.aal5.rx),
+			       atomic_read_unchecked(&atm_dev->stats.aal5.rx_err),
+			       atomic_read_unchecked(&atm_dev->stats.aal5.rx_drop));
 
 	if (!left--) {
 		if (instance->disconnected)

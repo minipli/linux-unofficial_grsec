@@ -22,7 +22,7 @@ static DEFINE_MUTEX(syscore_ops_lock);
 void register_syscore_ops(struct syscore_ops *ops)
 {
 	mutex_lock(&syscore_ops_lock);
-	list_add_tail(&ops->node, &syscore_ops_list);
+	pax_list_add_tail((struct list_head *)&ops->node, &syscore_ops_list);
 	mutex_unlock(&syscore_ops_lock);
 }
 EXPORT_SYMBOL_GPL(register_syscore_ops);
@@ -34,7 +34,7 @@ EXPORT_SYMBOL_GPL(register_syscore_ops);
 void unregister_syscore_ops(struct syscore_ops *ops)
 {
 	mutex_lock(&syscore_ops_lock);
-	list_del(&ops->node);
+	pax_list_del((struct list_head *)&ops->node);
 	mutex_unlock(&syscore_ops_lock);
 }
 EXPORT_SYMBOL_GPL(unregister_syscore_ops);

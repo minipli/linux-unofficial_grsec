@@ -35,7 +35,7 @@ struct snd_seq_fifo {
 	spinlock_t lock;
 	snd_use_lock_t use_lock;
 	wait_queue_head_t input_sleep;
-	atomic_t overflow;
+	atomic_unchecked_t overflow;
 
 };
 

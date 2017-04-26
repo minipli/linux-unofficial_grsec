@@ -511,7 +511,7 @@ typedef struct irnet_ctrl_channel
 /* -------------------------- IRDA PART -------------------------- */
 int irda_irnet_create(irnet_socket *);	/* Initialise an IrNET socket */
 int irda_irnet_connect(irnet_socket *);	/* Try to connect over IrDA */
-void irda_irnet_destroy(irnet_socket *);	/* Teardown an IrNET socket */
+void irda_irnet_destroy(void *);	/* Teardown an IrNET socket */
 int irda_irnet_init(void);		/* Initialise IrDA part of IrNET */
 void irda_irnet_cleanup(void);		/* Teardown IrDA part of IrNET */
 

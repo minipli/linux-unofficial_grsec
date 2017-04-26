@@ -355,7 +355,7 @@ retry_walk:
 		if (unlikely(kvm_is_error_hva(host_addr)))
 			goto error;
 
-		ptep_user = (pt_element_t __user *)((void *)host_addr + offset);
+		ptep_user = (pt_element_t __force_user *)((void *)host_addr + offset);
 		if (unlikely(__copy_from_user(&pte, ptep_user, sizeof(pte))))
 			goto error;
 		walker->ptep_user[walker->level - 1] = ptep_user;

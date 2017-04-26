@@ -656,7 +656,9 @@ static int wl12xx_identify_chip(struct wl1271 *wl)
 		       sizeof(wl->conf.mem));
 
 		/* read data preparation is only needed by wl127x */
-		wl->ops->prepare_read = wl127x_prepare_read;
+		pax_open_kernel();
+		const_cast(wl->ops->prepare_read) = wl127x_prepare_read;
+		pax_close_kernel();
 
 		wlcore_set_min_fw_ver(wl, WL127X_CHIP_VER,
 			      WL127X_IFTYPE_SR_VER,  WL127X_MAJOR_SR_VER,
@@ -681,7 +683,9 @@ static int wl12xx_identify_chip(struct wl1271 *wl)
 		       sizeof(wl->conf.mem));
 
 		/* read data preparation is only needed by wl127x */
-		wl->ops->prepare_read = wl127x_prepare_read;
+		pax_open_kernel();
+		const_cast(wl->ops->prepare_read) = wl127x_prepare_read;
+		pax_close_kernel();
 
 		wlcore_set_min_fw_ver(wl, WL127X_CHIP_VER,
 			      WL127X_IFTYPE_SR_VER,  WL127X_MAJOR_SR_VER,

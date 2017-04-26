@@ -11,16 +11,16 @@
 #include <crypto/b128ops.h>
 
 typedef void (*common_glue_func_t)(void *ctx, u8 *dst, const u8 *src);
-typedef void (*common_glue_cbc_func_t)(void *ctx, u128 *dst, const u128 *src);
+typedef void (*common_glue_cbc_func_t)(void *ctx, u8 *dst, const u8 *src);
 typedef void (*common_glue_ctr_func_t)(void *ctx, u128 *dst, const u128 *src,
 				       le128 *iv);
 typedef void (*common_glue_xts_func_t)(void *ctx, u128 *dst, const u128 *src,
 				       le128 *iv);
 
-#define GLUE_FUNC_CAST(fn) ((common_glue_func_t)(fn))
-#define GLUE_CBC_FUNC_CAST(fn) ((common_glue_cbc_func_t)(fn))
-#define GLUE_CTR_FUNC_CAST(fn) ((common_glue_ctr_func_t)(fn))
-#define GLUE_XTS_FUNC_CAST(fn) ((common_glue_xts_func_t)(fn))
+#define GLUE_FUNC_CAST(fn) (fn)
+#define GLUE_CBC_FUNC_CAST(fn) (fn)
+#define GLUE_CTR_FUNC_CAST(fn) (fn)
+#define GLUE_XTS_FUNC_CAST(fn) (fn)
 
 struct common_glue_func_entry {
 	unsigned int num_blocks; /* number of blocks that @fn will process */

@@ -43,7 +43,7 @@ u32 mga_get_vblank_counter(struct drm_device *dev, unsigned int pipe)
 	if (pipe != 0)
 		return 0;
 
-	return atomic_read(&dev_priv->vbl_received);
+	return atomic_read_unchecked(&dev_priv->vbl_received);
 }
 
 
@@ -59,7 +59,7 @@ irqreturn_t mga_driver_irq_handler(int irq, void *arg)
 	/* VBLANK interrupt */
 	if (status & MGA_VLINEPEN) {
 		MGA_WRITE(MGA_ICLEAR, MGA_VLINEICLR);
-		atomic_inc(&dev_priv->vbl_received);
+		atomic_inc_unchecked(&dev_priv->vbl_received);
 		drm_handle_vblank(dev, 0);
 		handled = 1;
 	}
@@ -78,7 +78,7 @@ irqreturn_t mga_driver_irq_handler(int irq, void *arg)
 		if ((prim_start & ~0x03) != (prim_end & ~0x03))
 			MGA_WRITE(MGA_PRIMEND, prim_end);
 
-		atomic_inc(&dev_priv->last_fence_retired);
+		atomic_inc_unchecked(&dev_priv->last_fence_retired);
 		wake_up(&dev_priv->fence_queue);
 		handled = 1;
 	}
@@ -129,7 +129,7 @@ int mga_driver_fence_wait(struct drm_device *dev, unsigned int *sequence)
 	 * using fences.
 	 */
 	DRM_WAIT_ON(ret, dev_priv->fence_queue, 3 * HZ,
-		    (((cur_fence = atomic_read(&dev_priv->last_fence_retired))
+		    (((cur_fence = atomic_read_unchecked(&dev_priv->last_fence_retired))
 		      - *sequence) <= (1 << 23)));
 
 	*sequence = cur_fence;

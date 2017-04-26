@@ -589,7 +589,7 @@ static int ti_adpll_init_clkout(struct ti_adpll_data *d,
 {
 	struct ti_adpll_clkout_data *co;
 	struct clk_init_data init;
-	struct clk_ops *ops;
+	clk_ops_no_const *ops;
 	const char *parent_names[2];
 	const char *child_name;
 	struct clk *clock;

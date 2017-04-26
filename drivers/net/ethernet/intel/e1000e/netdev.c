@@ -6784,7 +6784,7 @@ static void e1000_netpoll(struct net_device *netdev)
  * this device has been detected.
  */
 static pci_ers_result_t e1000_io_error_detected(struct pci_dev *pdev,
-						pci_channel_state_t state)
+						enum pci_channel_state state)
 {
 	struct net_device *netdev = pci_get_drvdata(pdev);
 	struct e1000_adapter *adapter = netdev_priv(netdev);

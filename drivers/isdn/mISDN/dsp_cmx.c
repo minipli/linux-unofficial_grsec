@@ -1625,8 +1625,8 @@ unsigned long	dsp_spl_jiffies; /* calculate the next time to fire */
 static u16	dsp_count; /* last sample count */
 static int	dsp_count_valid; /* if we have last sample count */
 
-void
-dsp_cmx_send(void *arg)
+void __intentional_overflow(-1)
+dsp_cmx_send(unsigned long arg)
 {
 	struct dsp_conf *conf;
 	struct dsp_conf_member *member;

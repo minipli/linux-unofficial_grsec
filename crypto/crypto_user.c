@@ -490,7 +490,7 @@ static int crypto_user_rcv_msg(struct sk_buff *skb, struct nlmsghdr *nlh)
 			dump_alloc += CRYPTO_REPORT_MAXSIZE;
 
 		{
-			struct netlink_dump_control c = {
+			netlink_dump_control_no_const c = {
 				.dump = link->dump,
 				.done = link->done,
 				.min_dump_alloc = dump_alloc,

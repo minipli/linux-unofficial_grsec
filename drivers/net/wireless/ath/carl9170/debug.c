@@ -223,7 +223,7 @@ static char *carl9170_debugfs_mem_usage_read(struct ar9170 *ar, char *buf,
 
 	ADD(buf, *len, bufsize, "cookies: used:%3d / total:%3d, allocs:%d\n",
 	    bitmap_weight(ar->mem_bitmap, ar->fw.mem_blocks),
-	    ar->fw.mem_blocks, atomic_read(&ar->mem_allocs));
+	    ar->fw.mem_blocks, atomic_read_unchecked(&ar->mem_allocs));
 
 	ADD(buf, *len, bufsize, "memory: free:%3d (%3d KiB) / total:%3d KiB)\n",
 	    atomic_read(&ar->mem_free_blocks),
@@ -674,7 +674,7 @@ static char *carl9170_debugfs_bug_read(struct ar9170 *ar, char *buf,
 	ADD(buf, *ret, bufsize, "reported firmware BUGs:%d\n",
 		ar->fw.bug_counter);
 	ADD(buf, *ret, bufsize, "pending restart requests:%d\n",
-		atomic_read(&ar->pending_restarts));
+		atomic_read_unchecked(&ar->pending_restarts));
 	return buf;
 }
 __DEBUGFS_DECLARE_RW_FILE(bug, 400, CARL9170_STOPPED);
@@ -781,7 +781,7 @@ DEBUGFS_READONLY_FILE(usb_rx_pool_urbs, 20, "%d",
 DEBUGFS_READONLY_FILE(tx_total_queued, 20, "%d",
 		      atomic_read(&ar->tx_total_queued));
 DEBUGFS_READONLY_FILE(tx_ampdu_scheduler, 20, "%d",
-		      atomic_read(&ar->tx_ampdu_scheduler));
+		      atomic_read_unchecked(&ar->tx_ampdu_scheduler));
 
 DEBUGFS_READONLY_FILE(tx_total_pending, 20, "%d",
 		      atomic_read(&ar->tx_total_pending));

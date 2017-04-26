@@ -22,7 +22,7 @@ struct sem_array {
 	int			sem_nsems;	/* no. of semaphores in array */
 	int			complex_count;	/* pending complex operations */
 	bool			complex_mode;	/* no parallel simple ops */
-};
+} __randomize_layout;
 
 #ifdef CONFIG_SYSVIPC
 

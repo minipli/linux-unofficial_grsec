@@ -31,6 +31,7 @@
 #include <linux/export.h>
 #include <linux/string.h>
 #include <linux/thermal.h>
+#include <linux/mm.h>
 
 #include "thermal_core.h"
 
@@ -419,18 +420,20 @@ thermal_zone_of_add_sensor(struct device_node *zone,
 	tz->ops = ops;
 	tz->sensor_data = data;
 
-	tzd->ops->get_temp = of_thermal_get_temp;
-	tzd->ops->get_trend = of_thermal_get_trend;
+	pax_open_kernel();
+	const_cast(tzd->ops->get_temp) = of_thermal_get_temp;
+	const_cast(tzd->ops->get_trend) = of_thermal_get_trend;
 
 	/*
 	 * The thermal zone core will calculate the window if they have set the
 	 * optional set_trips pointer.
 	 */
 	if (ops->set_trips)
-		tzd->ops->set_trips = of_thermal_set_trips;
+		const_cast(tzd->ops->set_trips) = of_thermal_set_trips;
 
 	if (ops->set_emul_temp)
-		tzd->ops->set_emul_temp = of_thermal_set_emul_temp;
+		const_cast(tzd->ops->set_emul_temp) = of_thermal_set_emul_temp;
+	pax_close_kernel();
 
 	mutex_unlock(&tzd->lock);
 
@@ -557,9 +560,11 @@ void thermal_zone_of_sensor_unregister(struct device *dev,
 		return;
 
 	mutex_lock(&tzd->lock);
-	tzd->ops->get_temp = NULL;
-	tzd->ops->get_trend = NULL;
-	tzd->ops->set_emul_temp = NULL;
+	pax_open_kernel();
+	const_cast(tzd->ops->get_temp) = NULL;
+	const_cast(tzd->ops->get_trend) = NULL;
+	const_cast(tzd->ops->set_emul_temp) = NULL;
+	pax_close_kernel();
 
 	tz->ops = NULL;
 	tz->sensor_data = NULL;

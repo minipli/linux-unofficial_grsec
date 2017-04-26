@@ -69,7 +69,7 @@ struct e820map {
 #define ISA_START_ADDRESS	0xa0000
 #define ISA_END_ADDRESS		0x100000
 
-#define BIOS_BEGIN		0x000a0000
+#define BIOS_BEGIN		0x000c0000
 #define BIOS_END		0x00100000
 
 #define BIOS_ROM_BASE		0xffe00000

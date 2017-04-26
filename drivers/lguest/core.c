@@ -87,7 +87,7 @@ static __init int map_switcher(void)
 	 * Copy in the compiled-in Switcher code (from x86/switcher_32.S).
 	 * It goes in the first page, which we map in momentarily.
 	 */
-	memcpy(kmap(lg_switcher_pages[0]), start_switcher_text,
+	memcpy(kmap(lg_switcher_pages[0]), (void *)ktla_ktva((unsigned long)start_switcher_text),
 	       end_switcher_text - start_switcher_text);
 	kunmap(lg_switcher_pages[0]);
 
@@ -106,9 +106,16 @@ static __init int map_switcher(void)
 	 * We want the switcher text to be read-only and executable, and
 	 * the stacks to be read-write and non-executable.
 	 */
+
+#if defined(CONFIG_X86_32) && defined(CONFIG_PAX_KERNEXEC)
+	switcher_text_vma = __get_vm_area(PAGE_SIZE, VM_ALLOC|VM_NO_GUARD|VM_KERNEXEC,
+					  switcher_addr,
+					  switcher_addr + PAGE_SIZE);
+#else
 	switcher_text_vma = __get_vm_area(PAGE_SIZE, VM_ALLOC|VM_NO_GUARD,
 					  switcher_addr,
 					  switcher_addr + PAGE_SIZE);
+#endif
 
 	if (!switcher_text_vma) {
 		err = -ENOMEM;

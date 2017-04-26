@@ -83,6 +83,7 @@
 #include <asm/hvcserver.h>
 #include <asm/uaccess.h>
 #include <asm/vio.h>
+#include <asm/local.h>
 
 /*
  * 1.3.0 -> 1.3.1 In hvcs_open memset(..,0x00,..) instead of memset(..,0x3F,00).
@@ -416,7 +417,7 @@ static ssize_t hvcs_vterm_state_store(struct device *dev, struct device_attribut
 
 	spin_lock_irqsave(&hvcsd->lock, flags);
 
-	if (hvcsd->port.count > 0) {
+	if (atomic_read(&hvcsd->port.count) > 0) {
 		spin_unlock_irqrestore(&hvcsd->lock, flags);
 		printk(KERN_INFO "HVCS: vterm state unchanged.  "
 				"The hvcs device node is still in use.\n");
@@ -1127,7 +1128,7 @@ static int hvcs_install(struct tty_driver *driver, struct tty_struct *tty)
 		}
 	}
 
-	hvcsd->port.count = 0;
+	atomic_set(&hvcsd->port.count, 0);
 	hvcsd->port.tty = tty;
 	tty->driver_data = hvcsd;
 
@@ -1180,7 +1181,7 @@ static int hvcs_open(struct tty_struct *tty, struct file *filp)
 	unsigned long flags;
 
 	spin_lock_irqsave(&hvcsd->lock, flags);
-	hvcsd->port.count++;
+	atomic_inc(&hvcsd->port.count);
 	hvcsd->todo_mask |= HVCS_SCHED_READ;
 	spin_unlock_irqrestore(&hvcsd->lock, flags);
 
@@ -1216,7 +1217,7 @@ static void hvcs_close(struct tty_struct *tty, struct file *filp)
 	hvcsd = tty->driver_data;
 
 	spin_lock_irqsave(&hvcsd->lock, flags);
-	if (--hvcsd->port.count == 0) {
+	if (atomic_dec_and_test(&hvcsd->port.count)) {
 
 		vio_disable_interrupts(hvcsd->vdev);
 
@@ -1241,10 +1242,10 @@ static void hvcs_close(struct tty_struct *tty, struct file *filp)
 
 		free_irq(irq, hvcsd);
 		return;
-	} else if (hvcsd->port.count < 0) {
+	} else if (atomic_read(&hvcsd->port.count) < 0) {
 		printk(KERN_ERR "HVCS: vty-server@%X open_count: %d"
 				" is missmanaged.\n",
-		hvcsd->vdev->unit_address, hvcsd->port.count);
+		hvcsd->vdev->unit_address, atomic_read(&hvcsd->port.count));
 	}
 
 	spin_unlock_irqrestore(&hvcsd->lock, flags);
@@ -1266,7 +1267,7 @@ static void hvcs_hangup(struct tty_struct * tty)
 
 	spin_lock_irqsave(&hvcsd->lock, flags);
 	/* Preserve this so that we know how many kref refs to put */
-	temp_open_count = hvcsd->port.count;
+	temp_open_count = atomic_read(&hvcsd->port.count);
 
 	/*
 	 * Don't kref put inside the spinlock because the destruction
@@ -1281,7 +1282,7 @@ static void hvcs_hangup(struct tty_struct * tty)
 	tty->driver_data = NULL;
 	hvcsd->port.tty = NULL;
 
-	hvcsd->port.count = 0;
+	atomic_set(&hvcsd->port.count, 0);
 
 	/* This will drop any buffered data on the floor which is OK in a hangup
 	 * scenario. */
@@ -1352,7 +1353,7 @@ static int hvcs_write(struct tty_struct *tty,
 	 * the middle of a write operation?  This is a crummy place to do this
 	 * but we want to keep it all in the spinlock.
 	 */
-	if (hvcsd->port.count <= 0) {
+	if (atomic_read(&hvcsd->port.count) <= 0) {
 		spin_unlock_irqrestore(&hvcsd->lock, flags);
 		return -ENODEV;
 	}
@@ -1426,7 +1427,7 @@ static int hvcs_write_room(struct tty_struct *tty)
 {
 	struct hvcs_struct *hvcsd = tty->driver_data;
 
-	if (!hvcsd || hvcsd->port.count <= 0)
+	if (!hvcsd || atomic_read(&hvcsd->port.count) <= 0)
 		return 0;
 
 	return HVCS_BUFF_LEN - hvcsd->chars_in_buffer;

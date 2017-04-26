@@ -2623,7 +2623,6 @@ static int __init cs4297a_init(void)
 {
 	struct cs4297a_state *s;
 	u32 pwr, id;
-	mm_segment_t fs;
 	int rval;
 	u64 cfg;
 	int mdio_val;
@@ -2709,22 +2708,23 @@ static int __init cs4297a_init(void)
         if (!rval) {
 		char *sb1250_duart_present;
 
+#if 0
+                mm_segment_t fs;
                 fs = get_fs();
                 set_fs(KERNEL_DS);
-#if 0
                 val = SOUND_MASK_LINE;
                 mixer_ioctl(s, SOUND_MIXER_WRITE_RECSRC, (unsigned long) &val);
                 for (i = 0; i < ARRAY_SIZE(initvol); i++) {
                         val = initvol[i].vol;
                         mixer_ioctl(s, initvol[i].mixch, (unsigned long) &val);
                 }
+                set_fs(fs);
 //                cs4297a_write_ac97(s, 0x18, 0x0808);
 #else
                 //                cs4297a_write_ac97(s, 0x5e, 0x180);
                 cs4297a_write_ac97(s, 0x02, 0x0808);
                 cs4297a_write_ac97(s, 0x18, 0x0808);
 #endif
-                set_fs(fs);
 
                 list_add(&s->list, &cs4297a_devs);
 

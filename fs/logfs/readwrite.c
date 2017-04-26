@@ -1963,7 +1963,7 @@ int logfs_read_inode(struct inode *inode)
 		return -ENODATA;
 
 	page = read_cache_page(master_inode->i_mapping, ino,
-			(filler_t *)logfs_readpage, NULL);
+			logfs_readpage, NULL);
 	if (IS_ERR(page))
 		return PTR_ERR(page);
 

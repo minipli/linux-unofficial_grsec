@@ -52,7 +52,7 @@ static map_word lf_read(struct map_info *map, unsigned long ofs)
 	return datum;
 }
 
-static void lf_write(struct map_info *map, map_word datum, unsigned long ofs)
+static void lf_write(struct map_info *map, const map_word datum, unsigned long ofs)
 {
 	struct latch_addr_flash_info *info;
 

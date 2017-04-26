@@ -303,7 +303,7 @@ static inline void allow_signal(int sig)
 	 * know it'll be handled, so that they don't get converted to
 	 * SIGKILL or just silently dropped.
 	 */
-	kernel_sigaction(sig, (__force __sighandler_t)2);
+	kernel_sigaction(sig, (__force_user __sighandler_t)2);
 }
 
 static inline void disallow_signal(int sig)

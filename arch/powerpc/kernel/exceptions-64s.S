@@ -1445,10 +1445,10 @@ handle_page_fault:
 11:	ld	r4,_DAR(r1)
 	ld	r5,_DSISR(r1)
 	addi	r3,r1,STACK_FRAME_OVERHEAD
+	bl	save_nvgprs
 	bl	do_page_fault
 	cmpdi	r3,0
 	beq+	12f
-	bl	save_nvgprs
 	mr	r5,r3
 	addi	r3,r1,STACK_FRAME_OVERHEAD
 	lwz	r4,_DAR(r1)

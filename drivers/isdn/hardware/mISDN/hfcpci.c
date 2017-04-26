@@ -301,8 +301,9 @@ reset_hfcpci(struct hfc_pci *hc)
  * Timer function called when kernel timer expires
  */
 static void
-hfcpci_Timer(struct hfc_pci *hc)
+hfcpci_Timer(unsigned long _hc)
 {
+	struct hfc_pci *hc = (struct hfc_pci *)_hc;
 	hc->hw.timer.expires = jiffies + 75;
 	/* WD RESET */
 /*
@@ -1241,8 +1242,9 @@ hfcpci_int(int intno, void *dev_id)
  * timer callback for D-chan busy resolution. Currently no function
  */
 static void
-hfcpci_dbusy_timer(struct hfc_pci *hc)
+hfcpci_dbusy_timer(unsigned long _hc)
 {
+//	struct hfc_pci *hc = (struct hfc_pci *)_hc;
 }
 
 /*
@@ -1717,7 +1719,7 @@ static void
 inithfcpci(struct hfc_pci *hc)
 {
 	printk(KERN_DEBUG "inithfcpci: entered\n");
-	hc->dch.timer.function = (void *) hfcpci_dbusy_timer;
+	hc->dch.timer.function = hfcpci_dbusy_timer;
 	hc->dch.timer.data = (long) &hc->dch;
 	init_timer(&hc->dch.timer);
 	hc->chanlimit = 2;
@@ -2044,7 +2046,7 @@ setup_hw(struct hfc_pci *hc)
 	Write_hfc(hc, HFCPCI_INT_M1, hc->hw.int_m1);
 	/* At this point the needed PCI config is done */
 	/* fifos are still not enabled */
-	hc->hw.timer.function = (void *) hfcpci_Timer;
+	hc->hw.timer.function = hfcpci_Timer;
 	hc->hw.timer.data = (long) hc;
 	init_timer(&hc->hw.timer);
 	/* default PCM master */
@@ -2293,9 +2295,9 @@ _hfcpci_softirq(struct device *dev, void *arg)
 }
 
 static void
-hfcpci_softirq(void *arg)
+hfcpci_softirq(unsigned long arg)
 {
-	WARN_ON_ONCE(driver_for_each_device(&hfc_driver.driver, NULL, arg,
+	WARN_ON_ONCE(driver_for_each_device(&hfc_driver.driver, NULL, (void *)arg,
 				      _hfcpci_softirq) != 0);
 
 	/* if next event would be in the past ... */
@@ -2330,7 +2332,7 @@ HFC_init(void)
 	if (poll != HFCPCI_BTRANS_THRESHOLD) {
 		printk(KERN_INFO "%s: Using alternative poll value of %d\n",
 		       __func__, poll);
-		hfc_tl.function = (void *)hfcpci_softirq;
+		hfc_tl.function = hfcpci_softirq;
 		hfc_tl.data = 0;
 		init_timer(&hfc_tl);
 		hfc_tl.expires = jiffies + tics;

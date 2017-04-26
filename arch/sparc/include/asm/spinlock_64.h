@@ -103,7 +103,12 @@ static inline void arch_read_lock(arch_rwlock_t *lock)
 	__asm__ __volatile__ (
 "1:	ldsw		[%2], %0\n"
 "	brlz,pn		%0, 2f\n"
-"4:	 add		%0, 1, %1\n"
+"4:	 addcc		%0, 1, %1\n"
+
+#ifdef CONFIG_PAX_REFCOUNT
+"	tvs		%%icc, 6\n"
+#endif
+
 "	cas		[%2], %0, %1\n"
 "	cmp		%0, %1\n"
 "	bne,pn		%%icc, 1b\n"
@@ -116,7 +121,7 @@ static inline void arch_read_lock(arch_rwlock_t *lock)
 "	.previous"
 	: "=&r" (tmp1), "=&r" (tmp2)
 	: "r" (lock)
-	: "memory");
+	: "memory", "cc");
 }
 
 static inline int arch_read_trylock(arch_rwlock_t *lock)
@@ -127,7 +132,12 @@ static inline int arch_read_trylock(arch_rwlock_t *lock)
 "1:	ldsw		[%2], %0\n"
 "	brlz,a,pn	%0, 2f\n"
 "	 mov		0, %0\n"
-"	add		%0, 1, %1\n"
+"	addcc		%0, 1, %1\n"
+
+#ifdef CONFIG_PAX_REFCOUNT
+"	tvs		%%icc, 6\n"
+#endif
+
 "	cas		[%2], %0, %1\n"
 "	cmp		%0, %1\n"
 "	bne,pn		%%icc, 1b\n"
@@ -146,7 +156,12 @@ static inline void arch_read_unlock(arch_rwlock_t *lock)
 
 	__asm__ __volatile__(
 "1:	lduw	[%2], %0\n"
-"	sub	%0, 1, %1\n"
+"	subcc	%0, 1, %1\n"
+
+#ifdef CONFIG_PAX_REFCOUNT
+"	tvs	%%icc, 6\n"
+#endif
+
 "	cas	[%2], %0, %1\n"
 "	cmp	%0, %1\n"
 "	bne,pn	%%xcc, 1b\n"

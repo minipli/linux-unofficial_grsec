@@ -179,7 +179,7 @@ static int v9fs_mapped_dotl_flags(int flags)
 {
 	int i;
 	int rflags = 0;
-	struct dotl_openflag_map dotl_oflag_map[] = {
+	static const struct dotl_openflag_map dotl_oflag_map[] = {
 		{ O_CREAT,	P9_DOTL_CREATE },
 		{ O_EXCL,	P9_DOTL_EXCL },
 		{ O_NOCTTY,	P9_DOTL_NOCTTY },
@@ -524,7 +524,7 @@ static int v9fs_mapped_iattr_valid(int iattr_valid)
 {
 	int i;
 	int p9_iattr_valid = 0;
-	struct dotl_iattr_map dotl_iattr_map[] = {
+	static const struct dotl_iattr_map dotl_iattr_map[] = {
 		{ ATTR_MODE,		P9_ATTR_MODE },
 		{ ATTR_UID,		P9_ATTR_UID },
 		{ ATTR_GID,		P9_ATTR_GID },

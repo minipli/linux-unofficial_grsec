@@ -261,7 +261,7 @@ out:
 	if (unlikely(task == current &&
 		     !t->arch.tls_array[idx - GDT_ENTRY_TLS_MIN].flushed)) {
 		printk(KERN_ERR "get_tls_entry: task with pid %d got here "
-				"without flushed TLS.", current->pid);
+				"without flushed TLS.", task_pid_nr(current));
 	}
 
 	return 0;

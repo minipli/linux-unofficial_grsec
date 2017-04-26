@@ -47,7 +47,7 @@ static void put_uts(struct ctl_table *table, int write, void *which)
 static int proc_do_uts_string(struct ctl_table *table, int write,
 		  void __user *buffer, size_t *lenp, loff_t *ppos)
 {
-	struct ctl_table uts_table;
+	ctl_table_no_const uts_table;
 	int r;
 	memcpy(&uts_table, table, sizeof(uts_table));
 	uts_table.data = get_uts(table, write);

@@ -452,7 +452,8 @@ static void jffs2_mark_erased_block(struct jffs2_sb_info *c, struct jffs2_eraseb
 		struct jffs2_unknown_node marker = {
 			.magic =	cpu_to_je16(JFFS2_MAGIC_BITMASK),
 			.nodetype =	cpu_to_je16(JFFS2_NODETYPE_CLEANMARKER),
-			.totlen =	cpu_to_je32(c->cleanmarker_size)
+			.totlen =	cpu_to_je32(c->cleanmarker_size),
+			.hdr_crc =	cpu_to_je32(0)
 		};
 
 		jffs2_prealloc_raw_node_refs(c, jeb, 1);

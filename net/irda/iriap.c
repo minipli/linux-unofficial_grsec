@@ -61,7 +61,7 @@ static const char *const ias_charset_types[] __maybe_unused = {
 static hashbin_t *iriap = NULL;
 static void *service_handle;
 
-static void __iriap_close(struct iriap_cb *self);
+static void __iriap_close(void *_self);
 static int iriap_register_lsap(struct iriap_cb *self, __u8 slsap_sel, int mode);
 static void iriap_disconnect_indication(void *instance, void *sap,
 					LM_REASON reason, struct sk_buff *skb);
@@ -76,7 +76,7 @@ static void iriap_connect_confirm(void *instance, void *sap,
 static int iriap_data_indication(void *instance, void *sap,
 				 struct sk_buff *skb);
 
-static void iriap_watchdog_timer_expired(void *data);
+static void iriap_watchdog_timer_expired(unsigned long data);
 
 static inline void iriap_start_watchdog_timer(struct iriap_cb *self,
 					      int timeout)
@@ -161,8 +161,8 @@ void iriap_cleanup(void)
 {
 	irlmp_unregister_service(service_handle);
 
-	hashbin_delete(iriap, (FREE_FUNC) __iriap_close);
-	hashbin_delete(irias_objects, (FREE_FUNC) __irias_delete_object);
+	hashbin_delete(iriap, __iriap_close);
+	hashbin_delete(irias_objects, __irias_delete_object);
 }
 
 /*
@@ -219,8 +219,10 @@ EXPORT_SYMBOL(iriap_open);
  *    Removes (deallocates) the IrIAP instance
  *
  */
-static void __iriap_close(struct iriap_cb *self)
+static void __iriap_close(void *_self)
 {
+	struct iriap_cb *self = _self;
+
 	IRDA_ASSERT(self != NULL, return;);
 	IRDA_ASSERT(self->magic == IAS_MAGIC, return;);
 
@@ -946,7 +948,7 @@ void iriap_call_indication(struct iriap_cb *self, struct sk_buff *skb)
  *    Query has taken too long time, so abort
  *
  */
-static void iriap_watchdog_timer_expired(void *data)
+static void iriap_watchdog_timer_expired(unsigned long data)
 {
 	struct iriap_cb *self = (struct iriap_cb *) data;
 

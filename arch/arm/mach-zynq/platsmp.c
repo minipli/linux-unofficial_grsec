@@ -24,6 +24,7 @@
 #include <linux/io.h>
 #include <asm/cacheflush.h>
 #include <asm/smp_scu.h>
+#include <linux/irq.h>
 #include <linux/irqchip/arm-gic.h>
 #include "common.h"
 

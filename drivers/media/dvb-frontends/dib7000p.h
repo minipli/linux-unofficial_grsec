@@ -62,7 +62,7 @@ struct dib7000p_ops {
 	int (*get_adc_power)(struct dvb_frontend *fe);
 	int (*slave_reset)(struct dvb_frontend *fe);
 	struct dvb_frontend *(*init)(struct i2c_adapter *i2c_adap, u8 i2c_addr, struct dib7000p_config *cfg);
-};
+} __no_const;
 
 #if IS_REACHABLE(CONFIG_DVB_DIB7000P)
 void *dib7000p_attach(struct dib7000p_ops *ops);

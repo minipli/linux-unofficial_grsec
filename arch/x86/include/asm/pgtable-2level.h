@@ -18,7 +18,9 @@ static inline void native_set_pte(pte_t *ptep , pte_t pte)
 
 static inline void native_set_pmd(pmd_t *pmdp, pmd_t pmd)
 {
+	pax_open_kernel();
 	*pmdp = pmd;
+	pax_close_kernel();
 }
 
 static inline void native_set_pte_atomic(pte_t *ptep, pte_t pte)

@@ -87,7 +87,7 @@ int snd_seq_dump_var_event(const struct snd_seq_event *event,
 
 	if (event->data.ext.len & SNDRV_SEQ_EXT_USRPTR) {
 		char buf[32];
-		char __user *curptr = (char __force __user *)event->data.ext.ptr;
+		char __user *curptr = (char __force_user *)event->data.ext.ptr;
 		while (len > 0) {
 			int size = sizeof(buf);
 			if (len < size)
@@ -126,15 +126,19 @@ EXPORT_SYMBOL(snd_seq_dump_var_event);
  * expand the variable length event to linear buffer space.
  */
 
-static int seq_copy_in_kernel(char **bufptr, const void *src, int size)
+static int seq_copy_in_kernel(void *_bufptr, const void *src, int size)
 {
+	char **bufptr = (char **)_bufptr;
+
 	memcpy(*bufptr, src, size);
 	*bufptr += size;
 	return 0;
 }
 
-static int seq_copy_in_user(char __user **bufptr, const void *src, int size)
+static int seq_copy_in_user(void *_bufptr, const void *src, int size)
 {
+	char __user **bufptr = (char __user **)_bufptr;
+
 	if (copy_to_user(*bufptr, src, size))
 		return -EFAULT;
 	*bufptr += size;
@@ -158,13 +162,13 @@ int snd_seq_expand_var_event(const struct snd_seq_event *event, int count, char 
 	if (event->data.ext.len & SNDRV_SEQ_EXT_USRPTR) {
 		if (! in_kernel)
 			return -EINVAL;
-		if (copy_from_user(buf, (void __force __user *)event->data.ext.ptr, len))
+		if (copy_from_user(buf, (void __force_user *)event->data.ext.ptr, len))
 			return -EFAULT;
 		return newlen;
 	}
 	err = snd_seq_dump_var_event(event,
-				     in_kernel ? (snd_seq_dump_func_t)seq_copy_in_kernel :
-				     (snd_seq_dump_func_t)seq_copy_in_user,
+				     in_kernel ? seq_copy_in_kernel :
+				     seq_copy_in_user,
 				     &buf);
 	return err < 0 ? err : newlen;
 }
@@ -344,7 +348,7 @@ int snd_seq_event_dup(struct snd_seq_pool *pool, struct snd_seq_event *event,
 				tmp->event = src->event;
 				src = src->next;
 			} else if (is_usrptr) {
-				if (copy_from_user(&tmp->event, (char __force __user *)buf, size)) {
+				if (copy_from_user(&tmp->event, (char __force_user *)buf, size)) {
 					err = -EFAULT;
 					goto __error;
 				}

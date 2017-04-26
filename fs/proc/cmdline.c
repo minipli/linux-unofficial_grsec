@@ -23,7 +23,11 @@ static const struct file_operations cmdline_proc_fops = {
 
 static int __init proc_cmdline_init(void)
 {
+#ifdef CONFIG_GRKERNSEC_PROC_ADD
+	proc_create_grsec("cmdline", 0, NULL, &cmdline_proc_fops);
+#else
 	proc_create("cmdline", 0, NULL, &cmdline_proc_fops);
+#endif
 	return 0;
 }
 fs_initcall(proc_cmdline_init);

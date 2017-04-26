@@ -19,13 +19,15 @@
 #ifndef __ASM_OPENRISC_CACHE_H
 #define __ASM_OPENRISC_CACHE_H
 
+#include <linux/const.h>
+
 /* FIXME: How can we replace these with values from the CPU...
  * they shouldn't be hard-coded!
  */
 
 #define __ro_after_init __read_mostly
 
-#define L1_CACHE_BYTES 16
 #define L1_CACHE_SHIFT 4
+#define L1_CACHE_BYTES (_AC(1,UL) << L1_CACHE_SHIFT)
 
 #endif /* __ASM_OPENRISC_CACHE_H */

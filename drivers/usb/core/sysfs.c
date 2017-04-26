@@ -259,7 +259,7 @@ static ssize_t urbnum_show(struct device *dev, struct device_attribute *attr,
 	struct usb_device *udev;
 
 	udev = to_usb_device(dev);
-	return sprintf(buf, "%d\n", atomic_read(&udev->urbnum));
+	return sprintf(buf, "%d\n", atomic_read_unchecked(&udev->urbnum));
 }
 static DEVICE_ATTR_RO(urbnum);
 

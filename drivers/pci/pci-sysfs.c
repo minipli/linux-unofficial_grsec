@@ -1141,7 +1141,7 @@ static int pci_create_attr(struct pci_dev *pdev, int num, int write_combine)
 {
 	/* allocate attribute structure, piggyback attribute name */
 	int name_len = write_combine ? 13 : 10;
-	struct bin_attribute *res_attr;
+	bin_attribute_no_const *res_attr;
 	char *res_attr_name;
 	int retval;
 
@@ -1321,7 +1321,7 @@ static struct device_attribute reset_attr = __ATTR(reset, 0200, NULL, reset_stor
 static int pci_create_capabilities_sysfs(struct pci_dev *dev)
 {
 	int retval;
-	struct bin_attribute *attr;
+	bin_attribute_no_const *attr;
 
 	/* If the device has VPD, try to expose it in sysfs. */
 	if (dev->vpd) {
@@ -1368,7 +1368,7 @@ int __must_check pci_create_sysfs_dev_files(struct pci_dev *pdev)
 {
 	int retval;
 	int rom_size;
-	struct bin_attribute *attr;
+	bin_attribute_no_const *attr;
 
 	if (!sysfs_initialized)
 		return -EACCES;

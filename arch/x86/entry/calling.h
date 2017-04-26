@@ -95,23 +95,26 @@ For 32-bit we have the following conventions - kernel is built with
 	.endm
 
 	.macro SAVE_C_REGS_HELPER offset=0 rax=1 rcx=1 r8910=1 r11=1
+#ifdef CONFIG_PAX_KERNEXEC_PLUGIN_METHOD_OR
+	movq %r12, R12+\offset(%rsp)
+#endif
 	.if \r11
-	movq %r11, 6*8+\offset(%rsp)
+	movq %r11, R11+\offset(%rsp)
 	.endif
 	.if \r8910
-	movq %r10, 7*8+\offset(%rsp)
-	movq %r9,  8*8+\offset(%rsp)
-	movq %r8,  9*8+\offset(%rsp)
+	movq %r10, R10+\offset(%rsp)
+	movq %r9,  R9+\offset(%rsp)
+	movq %r8,  R8+\offset(%rsp)
 	.endif
 	.if \rax
-	movq %rax, 10*8+\offset(%rsp)
+	movq %rax, RAX+\offset(%rsp)
 	.endif
 	.if \rcx
-	movq %rcx, 11*8+\offset(%rsp)
+	movq %rcx, RCX+\offset(%rsp)
 	.endif
-	movq %rdx, 12*8+\offset(%rsp)
-	movq %rsi, 13*8+\offset(%rsp)
-	movq %rdi, 14*8+\offset(%rsp)
+	movq %rdx, RDX+\offset(%rsp)
+	movq %rsi, RSI+\offset(%rsp)
+	movq %rdi, RDI+\offset(%rsp)
 	.endm
 	.macro SAVE_C_REGS offset=0
 	SAVE_C_REGS_HELPER \offset, 1, 1, 1, 1
@@ -130,67 +133,78 @@ For 32-bit we have the following conventions - kernel is built with
 	.endm
 
 	.macro SAVE_EXTRA_REGS offset=0
-	movq %r15, 0*8+\offset(%rsp)
-	movq %r14, 1*8+\offset(%rsp)
-	movq %r13, 2*8+\offset(%rsp)
-	movq %r12, 3*8+\offset(%rsp)
-	movq %rbp, 4*8+\offset(%rsp)
-	movq %rbx, 5*8+\offset(%rsp)
+	movq %r15, R15+\offset(%rsp)
+	movq %r14, R14+\offset(%rsp)
+	movq %r13, R13+\offset(%rsp)
+#ifndef CONFIG_PAX_KERNEXEC_PLUGIN_METHOD_OR
+	movq %r12, R12+\offset(%rsp)
+#endif
+	movq %rbp, RBP+\offset(%rsp)
+	movq %rbx, RBX+\offset(%rsp)
 	.endm
 
 	.macro RESTORE_EXTRA_REGS offset=0
-	movq 0*8+\offset(%rsp), %r15
-	movq 1*8+\offset(%rsp), %r14
-	movq 2*8+\offset(%rsp), %r13
-	movq 3*8+\offset(%rsp), %r12
-	movq 4*8+\offset(%rsp), %rbp
-	movq 5*8+\offset(%rsp), %rbx
+	movq R15+\offset(%rsp), %r15
+	movq R14+\offset(%rsp), %r14
+	movq R13+\offset(%rsp), %r13
+#ifndef CONFIG_PAX_KERNEXEC_PLUGIN_METHOD_OR
+	movq R12+\offset(%rsp), %r12
+#endif
+	movq RBP+\offset(%rsp), %rbp
+	movq RBX+\offset(%rsp), %rbx
 	.endm
 
 	.macro ZERO_EXTRA_REGS
 	xorl	%r15d, %r15d
 	xorl	%r14d, %r14d
 	xorl	%r13d, %r13d
+#ifndef CONFIG_PAX_KERNEXEC_PLUGIN_METHOD_OR
 	xorl	%r12d, %r12d
+#endif
 	xorl	%ebp, %ebp
 	xorl	%ebx, %ebx
 	.endm
 
-	.macro RESTORE_C_REGS_HELPER rstor_rax=1, rstor_rcx=1, rstor_r11=1, rstor_r8910=1, rstor_rdx=1
+	.macro RESTORE_C_REGS_HELPER rstor_rax=1, rstor_rcx=1, rstor_r11=1, rstor_r8910=1, rstor_rdx=1, rstor_r12=1
+#ifdef CONFIG_PAX_KERNEXEC_PLUGIN_METHOD_OR
+	.if \rstor_r12
+	movq R12(%rsp), %r12
+	.endif
+#endif
 	.if \rstor_r11
-	movq 6*8(%rsp), %r11
+	movq R11(%rsp), %r11
 	.endif
 	.if \rstor_r8910
-	movq 7*8(%rsp), %r10
-	movq 8*8(%rsp), %r9
-	movq 9*8(%rsp), %r8
+	movq R10(%rsp), %r10
+	movq R9(%rsp), %r9
+	movq R8(%rsp), %r8
 	.endif
 	.if \rstor_rax
-	movq 10*8(%rsp), %rax
+	movq RAX(%rsp), %rax
 	.endif
 	.if \rstor_rcx
-	movq 11*8(%rsp), %rcx
+	movq RCX(%rsp), %rcx
 	.endif
 	.if \rstor_rdx
-	movq 12*8(%rsp), %rdx
+	movq RDX(%rsp), %rdx
 	.endif
-	movq 13*8(%rsp), %rsi
-	movq 14*8(%rsp), %rdi
+	movq RSI(%rsp), %rsi
+	movq RDI(%rsp), %rdi
 	.endm
 	.macro RESTORE_C_REGS
-	RESTORE_C_REGS_HELPER 1,1,1,1,1
+	RESTORE_C_REGS_HELPER 1,1,1,1,1,1
 	.endm
 	.macro RESTORE_C_REGS_EXCEPT_RAX
-	RESTORE_C_REGS_HELPER 0,1,1,1,1
+	RESTORE_C_REGS_HELPER 0,1,1,1,1,0
 	.endm
 	.macro RESTORE_C_REGS_EXCEPT_RCX
-	RESTORE_C_REGS_HELPER 1,0,1,1,1
+	RESTORE_C_REGS_HELPER 1,0,1,1,1,0
 	.endm
 	.macro RESTORE_C_REGS_EXCEPT_R11
-	RESTORE_C_REGS_HELPER 1,1,0,1,1
+	RESTORE_C_REGS_HELPER 1,1,0,1,1,1
 	.endm
 	.macro RESTORE_C_REGS_EXCEPT_RCX_R11
-	RESTORE_C_REGS_HELPER 1,0,0,1,1
+	RESTORE_C_REGS_HELPER 1,0,0,1,1,1
 	.endm
 
 	.macro REMOVE_PT_GPREGS_FROM_STACK addskip=0
@@ -212,7 +226,7 @@ For 32-bit we have the following conventions - kernel is built with
 #ifdef HAVE_JUMP_LABEL
 	STATIC_JUMP_IF_FALSE .Lafter_call_\@, context_tracking_enabled, def=0
 #endif
-	call enter_from_user_mode
+	pax_direct_call enter_from_user_mode
 .Lafter_call_\@:
 #endif
 .endm

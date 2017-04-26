@@ -336,7 +336,7 @@ static struct pci_driver jsm_driver = {
 };
 
 static pci_ers_result_t jsm_io_error_detected(struct pci_dev *pdev,
-					pci_channel_state_t state)
+					enum pci_channel_state state)
 {
 	struct jsm_board *brd = pci_get_drvdata(pdev);
 

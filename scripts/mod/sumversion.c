@@ -470,7 +470,7 @@ static void write_version(const char *filename, const char *sum,
 		goto out;
 	}
 
-	if (write(fd, sum, strlen(sum)+1) != strlen(sum)+1) {
+	if (write(fd, sum, strlen(sum)+1) != (ssize_t)strlen(sum)+1) {
 		warn("writing sum in %s failed: %s\n",
 			filename, strerror(errno));
 		goto out;

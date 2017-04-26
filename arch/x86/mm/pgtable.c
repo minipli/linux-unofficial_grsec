@@ -98,10 +98,75 @@ static inline void pgd_list_del(pgd_t *pgd)
 	list_del(&page->lru);
 }
 
-#define UNSHARED_PTRS_PER_PGD				\
-	(SHARED_KERNEL_PMD ? KERNEL_PGD_BOUNDARY : PTRS_PER_PGD)
+#if defined(CONFIG_X86_64) && defined(CONFIG_PAX_MEMORY_UDEREF)
+pgdval_t clone_pgd_mask __read_only = ~_PAGE_PRESENT;
 
+void __shadow_user_pgds(pgd_t *dst, const pgd_t *src)
+{
+	unsigned int count = USER_PGD_PTRS;
 
+	if (!pax_user_shadow_base)
+		return;
+
+	while (count--)
+		*dst++ = __pgd((pgd_val(*src++) | (_PAGE_NX & __supported_pte_mask)) & ~_PAGE_USER);
+}
+#endif
+
+#ifdef CONFIG_PAX_PER_CPU_PGD
+void __clone_user_pgds(pgd_t *dst, const pgd_t *src)
+{
+	unsigned int count = USER_PGD_PTRS;
+
+	while (count--) {
+		pgd_t pgd;
+
+#ifdef CONFIG_X86_64
+		pgd = __pgd(pgd_val(*src++) | _PAGE_USER);
+#else
+		pgd = *src++;
+#endif
+
+#if defined(CONFIG_X86_64) && defined(CONFIG_PAX_MEMORY_UDEREF)
+		pgd = __pgd(pgd_val(pgd) & clone_pgd_mask);
+#endif
+
+		*dst++ = pgd;
+	}
+
+}
+#endif
+
+#ifdef CONFIG_X86_64
+#define pxd_t				pud_t
+#define pyd_t				pgd_t
+#define paravirt_release_pxd(pfn)	paravirt_release_pud(pfn)
+#define pgtable_pxd_page_ctor(page)	true
+#define pgtable_pxd_page_dtor(page)	do {} while (0)
+#define pxd_free(mm, pud)		pud_free((mm), (pud))
+#define pyd_populate(mm, pgd, pud)	pgd_populate((mm), (pgd), (pud))
+#define pyd_offset(mm, address)		pgd_offset((mm), (address))
+#define PYD_SIZE			PGDIR_SIZE
+#define mm_inc_nr_pxds(mm)		do {} while (0)
+#define mm_dec_nr_pxds(mm)		do {} while (0)
+#else
+#define pxd_t				pmd_t
+#define pyd_t				pud_t
+#define paravirt_release_pxd(pfn)	paravirt_release_pmd(pfn)
+#define pgtable_pxd_page_ctor(page)	pgtable_pmd_page_ctor(page)
+#define pgtable_pxd_page_dtor(page)	pgtable_pmd_page_dtor(page)
+#define pxd_free(mm, pud)		pmd_free((mm), (pud))
+#define pyd_populate(mm, pgd, pud)	pud_populate((mm), (pgd), (pud))
+#define pyd_offset(mm, address)		pud_offset((mm), (address))
+#define PYD_SIZE			PUD_SIZE
+#define mm_inc_nr_pxds(mm)		mm_inc_nr_pmds(mm)
+#define mm_dec_nr_pxds(mm)		mm_dec_nr_pmds(mm)
+#endif
+
+#ifdef CONFIG_PAX_PER_CPU_PGD
+static inline void pgd_ctor(struct mm_struct *mm, pgd_t *pgd) {}
+static inline void pgd_dtor(pgd_t *pgd) {}
+#else
 static void pgd_set_mm(pgd_t *pgd, struct mm_struct *mm)
 {
 	BUILD_BUG_ON(sizeof(virt_to_page(pgd)->index) < sizeof(mm));
@@ -142,6 +207,7 @@ static void pgd_dtor(pgd_t *pgd)
 	pgd_list_del(pgd);
 	spin_unlock(&pgd_lock);
 }
+#endif
 
 /*
  * List of all pgd's needed for non-PAE so it can invalidate entries
@@ -154,7 +220,7 @@ static void pgd_dtor(pgd_t *pgd)
  * -- nyc
  */
 
-#ifdef CONFIG_X86_PAE
+#if defined(CONFIG_X86_32) && defined(CONFIG_X86_PAE)
 /*
  * In PAE mode, we need to do a cr3 reload (=tlb flush) when
  * updating the top-level pagetable entries to guarantee the
@@ -166,7 +232,7 @@ static void pgd_dtor(pgd_t *pgd)
  * not shared between pagetables (!SHARED_KERNEL_PMDS), we allocate
  * and initialize the kernel pmds here.
  */
-#define PREALLOCATED_PMDS	UNSHARED_PTRS_PER_PGD
+#define PREALLOCATED_PXDS	(SHARED_KERNEL_PMD ? KERNEL_PGD_BOUNDARY : PTRS_PER_PGD)
 
 void pud_populate(struct mm_struct *mm, pud_t *pudp, pmd_t *pmd)
 {
@@ -184,26 +250,28 @@ void pud_populate(struct mm_struct *mm, pud_t *pudp, pmd_t *pmd)
 	 */
 	flush_tlb_mm(mm);
 }
+#elif defined(CONFIG_X86_64) && defined(CONFIG_PAX_PER_CPU_PGD)
+#define PREALLOCATED_PXDS	USER_PGD_PTRS
 #else  /* !CONFIG_X86_PAE */
 
 /* No need to prepopulate any pagetable entries in non-PAE modes. */
-#define PREALLOCATED_PMDS	0
+#define PREALLOCATED_PXDS	0
 
 #endif	/* CONFIG_X86_PAE */
 
-static void free_pmds(struct mm_struct *mm, pmd_t *pmds[])
+static void free_pxds(struct mm_struct *mm, pxd_t *pxds[])
 {
 	int i;
 
-	for(i = 0; i < PREALLOCATED_PMDS; i++)
-		if (pmds[i]) {
-			pgtable_pmd_page_dtor(virt_to_page(pmds[i]));
-			free_page((unsigned long)pmds[i]);
-			mm_dec_nr_pmds(mm);
+	for(i = 0; i < PREALLOCATED_PXDS; i++)
+		if (pxds[i]) {
+			pgtable_pxd_page_dtor(virt_to_page(pxds[i]));
+			free_page((unsigned long)pxds[i]);
+			mm_dec_nr_pxds(mm);
 		}
 }
 
-static int preallocate_pmds(struct mm_struct *mm, pmd_t *pmds[])
+static int preallocate_pxds(struct mm_struct *mm, pxd_t *pxds[])
 {
 	int i;
 	bool failed = false;
@@ -212,22 +280,22 @@ static int preallocate_pmds(struct mm_struct *mm, pmd_t *pmds[])
 	if (mm == &init_mm)
 		gfp &= ~__GFP_ACCOUNT;
 
-	for(i = 0; i < PREALLOCATED_PMDS; i++) {
-		pmd_t *pmd = (pmd_t *)__get_free_page(gfp);
-		if (!pmd)
+	for(i = 0; i < PREALLOCATED_PXDS; i++) {
+		pxd_t *pxd = (pxd_t *)__get_free_page(gfp);
+		if (!pxd)
 			failed = true;
-		if (pmd && !pgtable_pmd_page_ctor(virt_to_page(pmd))) {
-			free_page((unsigned long)pmd);
-			pmd = NULL;
+		if (pxd && !pgtable_pxd_page_ctor(virt_to_page(pxd))) {
+			free_page((unsigned long)pxd);
+			pxd = NULL;
 			failed = true;
 		}
-		if (pmd)
-			mm_inc_nr_pmds(mm);
-		pmds[i] = pmd;
+		if (pxd)
+			mm_inc_nr_pxds(mm);
+		pxds[i] = pxd;
 	}
 
 	if (failed) {
-		free_pmds(mm, pmds);
+		free_pxds(mm, pxds);
 		return -ENOMEM;
 	}
 
@@ -240,43 +308,47 @@ static int preallocate_pmds(struct mm_struct *mm, pmd_t *pmds[])
  * preallocate which never got a corresponding vma will need to be
  * freed manually.
  */
-static void pgd_mop_up_pmds(struct mm_struct *mm, pgd_t *pgdp)
+static void pgd_mop_up_pxds(struct mm_struct *mm, pgd_t *pgdp)
 {
 	int i;
 
-	for(i = 0; i < PREALLOCATED_PMDS; i++) {
+	for(i = 0; i < PREALLOCATED_PXDS; i++) {
 		pgd_t pgd = pgdp[i];
 
 		if (pgd_val(pgd) != 0) {
-			pmd_t *pmd = (pmd_t *)pgd_page_vaddr(pgd);
+			pxd_t *pxd = (pxd_t *)pgd_page_vaddr(pgd);
 
-			pgdp[i] = native_make_pgd(0);
+			set_pgd(pgdp + i, native_make_pgd(0));
 
-			paravirt_release_pmd(pgd_val(pgd) >> PAGE_SHIFT);
-			pmd_free(mm, pmd);
-			mm_dec_nr_pmds(mm);
+			paravirt_release_pxd(pgd_val(pgd) >> PAGE_SHIFT);
+			pxd_free(mm, pxd);
+			mm_dec_nr_pxds(mm);
 		}
 	}
 }
 
-static void pgd_prepopulate_pmd(struct mm_struct *mm, pgd_t *pgd, pmd_t *pmds[])
+static void pgd_prepopulate_pxd(struct mm_struct *mm, pgd_t *pgd, pxd_t *pxds[])
 {
-	pud_t *pud;
+	pyd_t *pyd;
 	int i;
 
-	if (PREALLOCATED_PMDS == 0) /* Work around gcc-3.4.x bug */
+	if (PREALLOCATED_PXDS == 0) /* Work around gcc-3.4.x bug */
 		return;
 
-	pud = pud_offset(pgd, 0);
+#ifdef CONFIG_X86_64
+	pyd = pyd_offset(mm, 0L);
+#else
+	pyd = pyd_offset(pgd, 0L);
+#endif
 
-	for (i = 0; i < PREALLOCATED_PMDS; i++, pud++) {
-		pmd_t *pmd = pmds[i];
+	for (i = 0; i < PREALLOCATED_PXDS; i++, pyd++) {
+		pxd_t *pxd = pxds[i];
 
 		if (i >= KERNEL_PGD_BOUNDARY)
-			memcpy(pmd, (pmd_t *)pgd_page_vaddr(swapper_pg_dir[i]),
-			       sizeof(pmd_t) * PTRS_PER_PMD);
+			memcpy(pxd, (pxd_t *)pgd_page_vaddr(swapper_pg_dir[i]),
+			       sizeof(pxd_t) * PTRS_PER_PMD);
 
-		pud_populate(mm, pud, pmd);
+		pyd_populate(mm, pyd, pxd);
 	}
 }
 
@@ -358,7 +430,7 @@ static inline void _pgd_free(pgd_t *pgd)
 pgd_t *pgd_alloc(struct mm_struct *mm)
 {
 	pgd_t *pgd;
-	pmd_t *pmds[PREALLOCATED_PMDS];
+	pxd_t *pxds[PREALLOCATED_PXDS];
 
 	pgd = _pgd_alloc();
 
@@ -367,11 +439,11 @@ pgd_t *pgd_alloc(struct mm_struct *mm)
 
 	mm->pgd = pgd;
 
-	if (preallocate_pmds(mm, pmds) != 0)
+	if (preallocate_pxds(mm, pxds) != 0)
 		goto out_free_pgd;
 
 	if (paravirt_pgd_alloc(mm) != 0)
-		goto out_free_pmds;
+		goto out_free_pxds;
 
 	/*
 	 * Make sure that pre-populating the pmds is atomic with
@@ -381,14 +453,14 @@ pgd_t *pgd_alloc(struct mm_struct *mm)
 	spin_lock(&pgd_lock);
 
 	pgd_ctor(mm, pgd);
-	pgd_prepopulate_pmd(mm, pgd, pmds);
+	pgd_prepopulate_pxd(mm, pgd, pxds);
 
 	spin_unlock(&pgd_lock);
 
 	return pgd;
 
-out_free_pmds:
-	free_pmds(mm, pmds);
+out_free_pxds:
+	free_pxds(mm, pxds);
 out_free_pgd:
 	_pgd_free(pgd);
 out:
@@ -397,7 +469,7 @@ out:
 
 void pgd_free(struct mm_struct *mm, pgd_t *pgd)
 {
-	pgd_mop_up_pmds(mm, pgd);
+	pgd_mop_up_pxds(mm, pgd);
 	pgd_dtor(pgd);
 	paravirt_pgd_free(mm, pgd);
 	_pgd_free(pgd);
@@ -530,6 +602,50 @@ void __init reserve_top_address(unsigned long reserve)
 
 int fixmaps_set;
 
+static void fix_user_fixmap(enum fixed_addresses idx, unsigned long address)
+{
+#ifdef CONFIG_X86_64
+	pgd_t *pgd;
+	pud_t *pud;
+	pmd_t *pmd;
+
+	switch (idx) {
+	default:
+		return;
+
+#ifdef CONFIG_X86_VSYSCALL_EMULATION
+	case VSYSCALL_PAGE:
+		break;
+#endif
+	}
+
+	pgd = pgd_offset_k(address);
+	if (!(pgd_val(*pgd) & _PAGE_USER)) {
+#ifdef CONFIG_PAX_PER_CPU_PGD
+		unsigned int cpu;
+		pgd_t *pgd_cpu;
+
+		for_each_possible_cpu(cpu) {
+			pgd_cpu = pgd_offset_cpu(cpu, kernel, address);
+			set_pgd(pgd_cpu, __pgd(pgd_val(*pgd_cpu) | _PAGE_USER));
+
+			pgd_cpu = pgd_offset_cpu(cpu, user, address);
+			set_pgd(pgd_cpu, __pgd(pgd_val(*pgd_cpu) | _PAGE_USER));
+		}
+#endif
+		set_pgd(pgd, __pgd(pgd_val(*pgd) | _PAGE_USER));
+	}
+
+	pud = pud_offset(pgd, address);
+	if (!(pud_val(*pud) & _PAGE_USER))
+		set_pud(pud, __pud(pud_val(*pud) | _PAGE_USER));
+
+	pmd = pmd_offset(pud, address);
+	if (!(pmd_val(*pmd) & _PAGE_USER))
+		set_pmd(pmd, __pmd(pmd_val(*pmd) | _PAGE_USER));
+#endif
+}
+
 void __native_set_fixmap(enum fixed_addresses idx, pte_t pte)
 {
 	unsigned long address = __fix_to_virt(idx);
@@ -540,9 +656,10 @@ void __native_set_fixmap(enum fixed_addresses idx, pte_t pte)
 	}
 	set_pte_vaddr(address, pte);
 	fixmaps_set++;
+	fix_user_fixmap(idx, address);
 }
 
-void native_set_fixmap(enum fixed_addresses idx, phys_addr_t phys,
+void native_set_fixmap(unsigned int idx, phys_addr_t phys,
 		       pgprot_t flags)
 {
 	__native_set_fixmap(idx, pfn_pte(phys >> PAGE_SHIFT, flags));
@@ -606,9 +723,11 @@ int pmd_set_huge(pmd_t *pmd, phys_addr_t addr, pgprot_t prot)
 
 	prot = pgprot_4k_2_large(prot);
 
+	pax_open_kernel();
 	set_pte((pte_t *)pmd, pfn_pte(
 		(u64)addr >> PAGE_SHIFT,
 		__pgprot(pgprot_val(prot) | _PAGE_PSE)));
+	pax_close_kernel();
 
 	return 1;
 }

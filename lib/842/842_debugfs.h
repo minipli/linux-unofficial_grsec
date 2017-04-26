@@ -7,7 +7,7 @@
 static bool sw842_template_counts;
 module_param_named(template_counts, sw842_template_counts, bool, 0444);
 
-static atomic_t template_count[OPS_MAX], template_repeat_count,
+static atomic_unchecked_t template_count[OPS_MAX], template_repeat_count,
 	template_zeros_count, template_short_data_count, template_end_count;
 
 static struct dentry *sw842_debugfs_root;
@@ -28,16 +28,16 @@ static int __init sw842_debugfs_create(void)
 		char name[32];
 
 		snprintf(name, 32, "template_%02x", i);
-		debugfs_create_atomic_t(name, m, sw842_debugfs_root,
+		debugfs_create_atomic_unchecked_t(name, m, sw842_debugfs_root,
 					&template_count[i]);
 	}
-	debugfs_create_atomic_t("template_repeat", m, sw842_debugfs_root,
+	debugfs_create_atomic_unchecked_t("template_repeat", m, sw842_debugfs_root,
 				&template_repeat_count);
-	debugfs_create_atomic_t("template_zeros", m, sw842_debugfs_root,
+	debugfs_create_atomic_unchecked_t("template_zeros", m, sw842_debugfs_root,
 				&template_zeros_count);
-	debugfs_create_atomic_t("template_short_data", m, sw842_debugfs_root,
+	debugfs_create_atomic_unchecked_t("template_short_data", m, sw842_debugfs_root,
 				&template_short_data_count);
-	debugfs_create_atomic_t("template_end", m, sw842_debugfs_root,
+	debugfs_create_atomic_unchecked_t("template_end", m, sw842_debugfs_root,
 				&template_end_count);
 
 	return 0;

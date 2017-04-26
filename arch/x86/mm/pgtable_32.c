@@ -46,10 +46,13 @@ void set_pte_vaddr(unsigned long vaddr, pte_t pteval)
 		return;
 	}
 	pte = pte_offset_kernel(pmd, vaddr);
+
+	pax_open_kernel();
 	if (!pte_none(pteval))
 		set_pte_at(&init_mm, vaddr, pte, pteval);
 	else
 		pte_clear(&init_mm, vaddr, pte);
+	pax_close_kernel();
 
 	/*
 	 * It's enough to flush this one mapping.

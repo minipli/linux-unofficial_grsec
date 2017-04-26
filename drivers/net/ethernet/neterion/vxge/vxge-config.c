@@ -3457,7 +3457,10 @@ __vxge_hw_fifo_create(struct __vxge_hw_vpath_handle *vp,
 	struct __vxge_hw_fifo *fifo;
 	struct vxge_hw_fifo_config *config;
 	u32 txdl_size, txdl_per_memblock;
-	struct vxge_hw_mempool_cbs fifo_mp_callback;
+	static struct vxge_hw_mempool_cbs fifo_mp_callback = {
+		.item_func_alloc = __vxge_hw_fifo_mempool_item_alloc,
+	};
+
 	struct __vxge_hw_virtualpath *vpath;
 
 	if ((vp == NULL) || (attr == NULL)) {
@@ -3539,8 +3542,6 @@ __vxge_hw_fifo_create(struct __vxge_hw_vpath_handle *vp,
 		status = VXGE_HW_ERR_INVALID_BLOCK_SIZE;
 		goto exit;
 	}
-
-	fifo_mp_callback.item_func_alloc = __vxge_hw_fifo_mempool_item_alloc;
 
 	fifo->mempool =
 		__vxge_hw_mempool_create(vpath->hldev,

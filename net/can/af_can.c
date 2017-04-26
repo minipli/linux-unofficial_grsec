@@ -898,7 +898,7 @@ static const struct net_proto_family can_family_ops = {
 };
 
 /* notifier block for netdevice event */
-static struct notifier_block can_netdev_notifier __read_mostly = {
+static struct notifier_block can_netdev_notifier = {
 	.notifier_call = can_notifier,
 };
 

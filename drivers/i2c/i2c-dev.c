@@ -274,7 +274,7 @@ static noinline int i2cdev_ioctl_rdwr(struct i2c_client *client,
 			break;
 		}
 
-		data_ptrs[i] = (u8 __user *)rdwr_pa[i].buf;
+		data_ptrs[i] = (u8 __force_user *)rdwr_pa[i].buf;
 		rdwr_pa[i].buf = memdup_user(data_ptrs[i], rdwr_pa[i].len);
 		if (IS_ERR(rdwr_pa[i].buf)) {
 			res = PTR_ERR(rdwr_pa[i].buf);

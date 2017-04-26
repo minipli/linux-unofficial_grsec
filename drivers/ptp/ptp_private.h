@@ -51,7 +51,7 @@ struct ptp_clock {
 	struct mutex pincfg_mux; /* protect concurrent info->pin_config access */
 	wait_queue_head_t tsev_wq;
 	int defunct; /* tells readers to go away when clock is being removed */
-	struct device_attribute *pin_dev_attr;
+	device_attribute_no_const *pin_dev_attr;
 	struct attribute **pin_attr;
 	struct attribute_group pin_attr_group;
 };

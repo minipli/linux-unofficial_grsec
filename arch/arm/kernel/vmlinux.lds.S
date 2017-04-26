@@ -44,7 +44,8 @@
 #endif
 
 #if (defined(CONFIG_SMP_ON_UP) && !defined(CONFIG_DEBUG_SPINLOCK)) || \
-	defined(CONFIG_GENERIC_BUG) || defined(CONFIG_JUMP_LABEL)
+	defined(CONFIG_GENERIC_BUG) || defined(CONFIG_JUMP_LABEL) || \
+	defined(CONFIG_PAX_REFCOUNT)
 #define ARM_EXIT_KEEP(x)	x
 #define ARM_EXIT_DISCARD(x)
 #else

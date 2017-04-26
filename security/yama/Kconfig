@@ -1,6 +1,6 @@
 config SECURITY_YAMA
 	bool "Yama support"
-	depends on SECURITY
+	depends on SECURITY && !GRKERNSEC
 	default n
 	help
 	  This selects Yama, which extends DAC support with additional

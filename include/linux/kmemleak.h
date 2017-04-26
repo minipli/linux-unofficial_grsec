@@ -27,7 +27,7 @@
 
 extern void kmemleak_init(void) __init;
 extern void kmemleak_alloc(const void *ptr, size_t size, int min_count,
-			   gfp_t gfp) __ref;
+			   gfp_t gfp) __ref __size_overflow(2);
 extern void kmemleak_alloc_percpu(const void __percpu *ptr, size_t size,
 				  gfp_t gfp) __ref;
 extern void kmemleak_free(const void *ptr) __ref;
@@ -68,7 +68,7 @@ static inline void kmemleak_erase(void **ptr)
 static inline void kmemleak_init(void)
 {
 }
-static inline void kmemleak_alloc(const void *ptr, size_t size, int min_count,
+static inline void __size_overflow(2) kmemleak_alloc(const void *ptr, size_t size, int min_count,
 				  gfp_t gfp)
 {
 }

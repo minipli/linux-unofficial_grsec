@@ -29,12 +29,12 @@ static inline void closure_put_after_sub(struct closure *cl, int flags)
 			closure_queue(cl);
 		} else {
 			struct closure *parent = cl->parent;
-			closure_fn *destructor = cl->fn;
+			work_func_t destructor = cl->fn;
 
 			closure_debug_destroy(cl);
 
 			if (destructor)
-				destructor(cl);
+				destructor(&cl->work);
 
 			if (parent)
 				closure_put(parent);

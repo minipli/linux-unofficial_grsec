@@ -510,7 +510,7 @@ static int nfnl_cthelper_get(struct net *net, struct sock *nfnl,
 	bool tuple_set = false;
 
 	if (nlh->nlmsg_flags & NLM_F_DUMP) {
-		struct netlink_dump_control c = {
+		static struct netlink_dump_control c = {
 			.dump = nfnl_cthelper_dump_table,
 		};
 		return netlink_dump_start(nfnl, skb, nlh, &c);

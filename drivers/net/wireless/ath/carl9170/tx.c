@@ -193,7 +193,7 @@ static int carl9170_alloc_dev_space(struct ar9170 *ar, struct sk_buff *skb)
 	unsigned int chunks;
 	int cookie = -1;
 
-	atomic_inc(&ar->mem_allocs);
+	atomic_inc_unchecked(&ar->mem_allocs);
 
 	chunks = DIV_ROUND_UP(skb->len, ar->fw.mem_block_size);
 	if (unlikely(atomic_sub_return(chunks, &ar->mem_free_blocks) < 0)) {
@@ -1130,7 +1130,7 @@ static void carl9170_tx_ampdu(struct ar9170 *ar)
 	unsigned int i = 0, done_ampdus = 0;
 	u16 seq, queue, tmpssn;
 
-	atomic_inc(&ar->tx_ampdu_scheduler);
+	atomic_inc_unchecked(&ar->tx_ampdu_scheduler);
 	ar->tx_ampdu_schedule = false;
 
 	if (atomic_read(&ar->tx_ampdu_upload))

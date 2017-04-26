@@ -22,6 +22,9 @@
 #include <linux/interrupt.h>
 #include <linux/kdebug.h>
 #include <linux/uaccess.h>
+#include <linux/slab.h>
+#include <linux/pagemap.h>
+#include <linux/compiler.h>
 
 #include <asm/page.h>
 #include <asm/pgtable.h>
@@ -156,6 +159,277 @@ static unsigned long compute_si_addr(struct pt_regs *regs, int text_fault)
 	return safe_compute_effective_address(regs, insn);
 }
 
+#ifdef CONFIG_PAX_PAGEEXEC
+#ifdef CONFIG_PAX_DLRESOLVE
+static void pax_emuplt_close(struct vm_area_struct *vma)
+{
+	vma->vm_mm->call_dl_resolve = 0UL;
+}
+
+static int pax_emuplt_fault(struct vm_area_struct *vma, struct vm_fault *vmf)
+{
+	unsigned int *kaddr;
+
+	vmf->page = alloc_page(GFP_HIGHUSER);
+	if (!vmf->page)
+		return VM_FAULT_OOM;
+
+	kaddr = kmap(vmf->page);
+	memset(kaddr, 0, PAGE_SIZE);
+	kaddr[0] = 0x9DE3BFA8U; /* save */
+	flush_dcache_page(vmf->page);
+	kunmap(vmf->page);
+	return VM_FAULT_MAJOR;
+}
+
+static const struct vm_operations_struct pax_vm_ops = {
+	.close = pax_emuplt_close,
+	.fault = pax_emuplt_fault
+};
+
+static int pax_insert_vma(struct vm_area_struct *vma, unsigned long addr)
+{
+	int ret;
+
+	INIT_LIST_HEAD(&vma->anon_vma_chain);
+	vma->vm_mm = current->mm;
+	vma->vm_start = addr;
+	vma->vm_end = addr + PAGE_SIZE;
+	vma->vm_flags = VM_READ | VM_EXEC | VM_MAYREAD | VM_MAYEXEC;
+	vma->vm_page_prot = vm_get_page_prot(vma->vm_flags);
+	vma->vm_ops = &pax_vm_ops;
+
+	ret = insert_vm_struct(current->mm, vma);
+	if (ret)
+		return ret;
+
+	++current->mm->total_vm;
+	return 0;
+}
+#endif
+
+/*
+ * PaX: decide what to do with offenders (regs->pc = fault address)
+ *
+ * returns 1 when task should be killed
+ *         2 when patched PLT trampoline was detected
+ *         3 when unpatched PLT trampoline was detected
+ */
+static int pax_handle_fetch_fault(struct pt_regs *regs)
+{
+
+#ifdef CONFIG_PAX_EMUPLT
+	int err;
+
+	do { /* PaX: patched PLT emulation #1 */
+		unsigned int sethi1, sethi2, jmpl;
+
+		err = get_user(sethi1, (unsigned int *)regs->pc);
+		err |= get_user(sethi2, (unsigned int *)(regs->pc+4));
+		err |= get_user(jmpl, (unsigned int *)(regs->pc+8));
+
+		if (err)
+			break;
+
+		if ((sethi1 & 0xFFC00000U) == 0x03000000U &&
+		    (sethi2 & 0xFFC00000U) == 0x03000000U &&
+		    (jmpl & 0xFFFFE000U) == 0x81C06000U)
+		{
+			unsigned int addr;
+
+			regs->u_regs[UREG_G1] = (sethi2 & 0x003FFFFFU) << 10;
+			addr = regs->u_regs[UREG_G1];
+			addr += (((jmpl | 0xFFFFE000U) ^ 0x00001000U) + 0x00001000U);
+			regs->pc = addr;
+			regs->npc = addr+4;
+			return 2;
+		}
+	} while (0);
+
+	do { /* PaX: patched PLT emulation #2 */
+		unsigned int ba;
+
+		err = get_user(ba, (unsigned int *)regs->pc);
+
+		if (err)
+			break;
+
+		if ((ba & 0xFFC00000U) == 0x30800000U || (ba & 0xFFF80000U) == 0x30480000U) {
+			unsigned int addr;
+
+			if ((ba & 0xFFC00000U) == 0x30800000U)
+				addr = regs->pc + ((((ba | 0xFFC00000U) ^ 0x00200000U) + 0x00200000U) << 2);
+			else
+				addr = regs->pc + ((((ba | 0xFFF80000U) ^ 0x00040000U) + 0x00040000U) << 2);
+			regs->pc = addr;
+			regs->npc = addr+4;
+			return 2;
+		}
+	} while (0);
+
+	do { /* PaX: patched PLT emulation #3 */
+		unsigned int sethi, bajmpl, nop;
+
+		err = get_user(sethi, (unsigned int *)regs->pc);
+		err |= get_user(bajmpl, (unsigned int *)(regs->pc+4));
+		err |= get_user(nop, (unsigned int *)(regs->pc+8));
+
+		if (err)
+			break;
+
+		if ((sethi & 0xFFC00000U) == 0x03000000U &&
+		    ((bajmpl & 0xFFFFE000U) == 0x81C06000U || (bajmpl & 0xFFF80000U) == 0x30480000U) &&
+		    nop == 0x01000000U)
+		{
+			unsigned int addr;
+
+			addr = (sethi & 0x003FFFFFU) << 10;
+			regs->u_regs[UREG_G1] = addr;
+			if ((bajmpl & 0xFFFFE000U) == 0x81C06000U)
+				addr += (((bajmpl | 0xFFFFE000U) ^ 0x00001000U) + 0x00001000U);
+			else
+				addr = regs->pc + ((((bajmpl | 0xFFF80000U) ^ 0x00040000U) + 0x00040000U) << 2);
+			regs->pc = addr;
+			regs->npc = addr+4;
+			return 2;
+		}
+	} while (0);
+
+	do { /* PaX: unpatched PLT emulation step 1 */
+		unsigned int sethi, ba, nop;
+
+		err = get_user(sethi, (unsigned int *)regs->pc);
+		err |= get_user(ba, (unsigned int *)(regs->pc+4));
+		err |= get_user(nop, (unsigned int *)(regs->pc+8));
+
+		if (err)
+			break;
+
+		if ((sethi & 0xFFC00000U) == 0x03000000U &&
+		    ((ba & 0xFFC00000U) == 0x30800000U || (ba & 0xFFF80000U) == 0x30680000U) &&
+		    nop == 0x01000000U)
+		{
+			unsigned int addr, save, call;
+
+			if ((ba & 0xFFC00000U) == 0x30800000U)
+				addr = regs->pc + 4 + ((((ba | 0xFFC00000U) ^ 0x00200000U) + 0x00200000U) << 2);
+			else
+				addr = regs->pc + 4 + ((((ba | 0xFFF80000U) ^ 0x00040000U) + 0x00040000U) << 2);
+
+			err = get_user(save, (unsigned int *)addr);
+			err |= get_user(call, (unsigned int *)(addr+4));
+			err |= get_user(nop, (unsigned int *)(addr+8));
+			if (err)
+				break;
+
+#ifdef CONFIG_PAX_DLRESOLVE
+			if (save == 0x9DE3BFA8U &&
+			    (call & 0xC0000000U) == 0x40000000U &&
+			    nop == 0x01000000U)
+			{
+				struct vm_area_struct *vma;
+				unsigned long call_dl_resolve;
+
+				down_read(&current->mm->mmap_sem);
+				call_dl_resolve = current->mm->call_dl_resolve;
+				up_read(&current->mm->mmap_sem);
+				if (likely(call_dl_resolve))
+					goto emulate;
+
+				vma = kmem_cache_zalloc(vm_area_cachep, GFP_KERNEL);
+
+				down_write(&current->mm->mmap_sem);
+				if (current->mm->call_dl_resolve) {
+					call_dl_resolve = current->mm->call_dl_resolve;
+					up_write(&current->mm->mmap_sem);
+					if (vma)
+						kmem_cache_free(vm_area_cachep, vma);
+					goto emulate;
+				}
+
+				call_dl_resolve = get_unmapped_area(NULL, 0UL, PAGE_SIZE, 0UL, MAP_PRIVATE);
+				if (!vma || (call_dl_resolve & ~PAGE_MASK)) {
+					up_write(&current->mm->mmap_sem);
+					if (vma)
+						kmem_cache_free(vm_area_cachep, vma);
+					return 1;
+				}
+
+				if (pax_insert_vma(vma, call_dl_resolve)) {
+					up_write(&current->mm->mmap_sem);
+					kmem_cache_free(vm_area_cachep, vma);
+					return 1;
+				}
+
+				current->mm->call_dl_resolve = call_dl_resolve;
+				up_write(&current->mm->mmap_sem);
+
+emulate:
+				regs->u_regs[UREG_G1] = (sethi & 0x003FFFFFU) << 10;
+				regs->pc = call_dl_resolve;
+				regs->npc = addr+4;
+				return 3;
+			}
+#endif
+
+			/* PaX: glibc 2.4+ generates sethi/jmpl instead of save/call */
+			if ((save & 0xFFC00000U) == 0x05000000U &&
+			    (call & 0xFFFFE000U) == 0x85C0A000U &&
+			    nop == 0x01000000U)
+			{
+				regs->u_regs[UREG_G1] = (sethi & 0x003FFFFFU) << 10;
+				regs->u_regs[UREG_G2] = addr + 4;
+				addr = (save & 0x003FFFFFU) << 10;
+				addr += (((call | 0xFFFFE000U) ^ 0x00001000U) + 0x00001000U);
+				regs->pc = addr;
+				regs->npc = addr+4;
+				return 3;
+			}
+		}
+	} while (0);
+
+	do { /* PaX: unpatched PLT emulation step 2 */
+		unsigned int save, call, nop;
+
+		err = get_user(save, (unsigned int *)(regs->pc-4));
+		err |= get_user(call, (unsigned int *)regs->pc);
+		err |= get_user(nop, (unsigned int *)(regs->pc+4));
+		if (err)
+			break;
+
+		if (save == 0x9DE3BFA8U &&
+		    (call & 0xC0000000U) == 0x40000000U &&
+		    nop == 0x01000000U)
+		{
+			unsigned int dl_resolve = regs->pc + ((((call | 0xC0000000U) ^ 0x20000000U) + 0x20000000U) << 2);
+
+			regs->u_regs[UREG_RETPC] = regs->pc;
+			regs->pc = dl_resolve;
+			regs->npc = dl_resolve+4;
+			return 3;
+		}
+	} while (0);
+#endif
+
+	return 1;
+}
+
+void pax_report_insns(struct pt_regs *regs, void *pc, void *sp)
+{
+	unsigned long i;
+
+	printk(KERN_ERR "PAX: bytes at PC: ");
+	for (i = 0; i < 8; i++) {
+		unsigned int c;
+		if (get_user(c, (unsigned int *)pc+i))
+			printk(KERN_CONT "???????? ");
+		else
+			printk(KERN_CONT "%08x ", c);
+	}
+	printk("\n");
+}
+#endif
+
 static noinline void do_fault_siginfo(int code, int sig, struct pt_regs *regs,
 				      int text_fault)
 {
@@ -226,6 +500,24 @@ good_area:
 		if (!(vma->vm_flags & VM_WRITE))
 			goto bad_area;
 	} else {
+
+#ifdef CONFIG_PAX_PAGEEXEC
+		if ((mm->pax_flags & MF_PAX_PAGEEXEC) && text_fault && !(vma->vm_flags & VM_EXEC)) {
+			up_read(&mm->mmap_sem);
+			switch (pax_handle_fetch_fault(regs)) {
+
+#ifdef CONFIG_PAX_EMUPLT
+			case 2:
+			case 3:
+				return;
+#endif
+
+			}
+			pax_report_fault(regs, (void *)regs->pc, (void *)regs->u_regs[UREG_FP]);
+			do_group_exit(SIGKILL);
+		}
+#endif
+
 		/* Allow reads even for write-only mappings */
 		if (!(vma->vm_flags & (VM_READ | VM_EXEC)))
 			goto bad_area;

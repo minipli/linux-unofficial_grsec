@@ -651,8 +651,8 @@ EXPORT_SYMBOL_GPL(rhashtable_walk_exit);
  * will rewind back to the beginning and you may use it immediately
  * by calling rhashtable_walk_next.
  */
+int rhashtable_walk_start(struct rhashtable_iter *iter) __acquires(RCU);
 int rhashtable_walk_start(struct rhashtable_iter *iter)
-	__acquires(RCU)
 {
 	struct rhashtable *ht = iter->ht;
 
@@ -754,8 +754,8 @@ EXPORT_SYMBOL_GPL(rhashtable_walk_next);
  *
  * Finish a hash table walk.
  */
+void rhashtable_walk_stop(struct rhashtable_iter *iter) __releases(RCU);
 void rhashtable_walk_stop(struct rhashtable_iter *iter)
-	__releases(RCU)
 {
 	struct rhashtable *ht;
 	struct bucket_table *tbl = iter->walker.tbl;

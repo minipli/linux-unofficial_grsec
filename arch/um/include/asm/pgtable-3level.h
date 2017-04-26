@@ -58,6 +58,7 @@
 #define pud_present(x)	(pud_val(x) & _PAGE_PRESENT)
 #define pud_populate(mm, pud, pmd) \
 	set_pud(pud, __pud(_PAGE_TABLE + __pa(pmd)))
+#define pud_populate_kernel(mm, pud, pmd) pud_populate((mm), (pud), (pmd))
 
 #ifdef CONFIG_64BIT
 #define set_pud(pudptr, pudval) set_64bit((u64 *) (pudptr), pud_val(pudval))

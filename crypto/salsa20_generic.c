@@ -104,7 +104,7 @@ static void salsa20_wordtobyte(u8 output[64], const u32 input[16])
 static const char sigma[16] = "expand 32-byte k";
 static const char tau[16] = "expand 16-byte k";
 
-static void salsa20_keysetup(struct salsa20_ctx *ctx, const u8 *k, u32 kbytes)
+static void __salsa20_keysetup(struct salsa20_ctx *ctx, const u8 *k, u32 kbytes)
 {
 	const char *constants;
 
@@ -128,7 +128,7 @@ static void salsa20_keysetup(struct salsa20_ctx *ctx, const u8 *k, u32 kbytes)
 	ctx->input[15] = U8TO32_LITTLE(constants + 12);
 }
 
-static void salsa20_ivsetup(struct salsa20_ctx *ctx, const u8 *iv)
+static void __salsa20_ivsetup(struct salsa20_ctx *ctx, const u8 *iv)
 {
 	ctx->input[6] = U8TO32_LITTLE(iv + 0);
 	ctx->input[7] = U8TO32_LITTLE(iv + 4);
@@ -136,7 +136,7 @@ static void salsa20_ivsetup(struct salsa20_ctx *ctx, const u8 *iv)
 	ctx->input[9] = 0;
 }
 
-static void salsa20_encrypt_bytes(struct salsa20_ctx *ctx, u8 *dst,
+static void __salsa20_encrypt_bytes(struct salsa20_ctx *ctx, u8 *dst,
 				  const u8 *src, unsigned int bytes)
 {
 	u8 buf[64];
@@ -170,7 +170,7 @@ static int setkey(struct crypto_tfm *tfm, const u8 *key,
 		  unsigned int keysize)
 {
 	struct salsa20_ctx *ctx = crypto_tfm_ctx(tfm);
-	salsa20_keysetup(ctx, key, keysize);
+	__salsa20_keysetup(ctx, key, keysize);
 	return 0;
 }
 
@@ -186,24 +186,24 @@ static int encrypt(struct blkcipher_desc *desc,
 	blkcipher_walk_init(&walk, dst, src, nbytes);
 	err = blkcipher_walk_virt_block(desc, &walk, 64);
 
-	salsa20_ivsetup(ctx, walk.iv);
+	__salsa20_ivsetup(ctx, walk.iv);
 
 	if (likely(walk.nbytes == nbytes))
 	{
-		salsa20_encrypt_bytes(ctx, walk.dst.virt.addr,
+		__salsa20_encrypt_bytes(ctx, walk.dst.virt.addr,
 				      walk.src.virt.addr, nbytes);
 		return blkcipher_walk_done(desc, &walk, 0);
 	}
 
 	while (walk.nbytes >= 64) {
-		salsa20_encrypt_bytes(ctx, walk.dst.virt.addr,
+		__salsa20_encrypt_bytes(ctx, walk.dst.virt.addr,
 				      walk.src.virt.addr,
 				      walk.nbytes - (walk.nbytes % 64));
 		err = blkcipher_walk_done(desc, &walk, walk.nbytes % 64);
 	}
 
 	if (walk.nbytes) {
-		salsa20_encrypt_bytes(ctx, walk.dst.virt.addr,
+		__salsa20_encrypt_bytes(ctx, walk.dst.virt.addr,
 				      walk.src.virt.addr, walk.nbytes);
 		err = blkcipher_walk_done(desc, &walk, 0);
 	}

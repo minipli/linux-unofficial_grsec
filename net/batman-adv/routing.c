@@ -749,7 +749,7 @@ batadv_reroute_unicast_packet(struct batadv_priv *bat_priv,
 		if (!primary_if)
 			goto out;
 		orig_addr = primary_if->net_dev->dev_addr;
-		orig_ttvn = (u8)atomic_read(&bat_priv->tt.vn);
+		orig_ttvn = (u8)atomic_read_unchecked(&bat_priv->tt.vn);
 	} else {
 		orig_node = batadv_transtable_search(bat_priv, NULL, dst_addr,
 						     vid);
@@ -825,7 +825,7 @@ static bool batadv_check_unicast_ttvn(struct batadv_priv *bat_priv,
 	 * value is used later to check if the node which sent (or re-routed
 	 * last time) the packet had an updated information or not
 	 */
-	curr_ttvn = (u8)atomic_read(&bat_priv->tt.vn);
+	curr_ttvn = (u8)atomic_read_unchecked(&bat_priv->tt.vn);
 	if (!batadv_is_my_mac(bat_priv, unicast_packet->dest)) {
 		orig_node = batadv_orig_hash_find(bat_priv,
 						  unicast_packet->dest);

@@ -30,6 +30,23 @@
 
 int show_unhandled_signals = 1;
 
+#ifdef CONFIG_PAX_PAGEEXEC
+void pax_report_insns(struct pt_regs *regs, void *pc, void *sp)
+{
+	unsigned long i;
+
+	printk(KERN_ERR "PAX: bytes at PC: ");
+	for (i = 0; i < 5; i++) {
+		unsigned int c;
+		if (get_user(c, (unsigned int *)pc+i))
+			printk(KERN_CONT "???????? ");
+		else
+			printk(KERN_CONT "%08x ", c);
+	}
+	printk("\n");
+}
+#endif
+
 /*
  * This routine handles page faults.  It determines the address,
  * and the problem, and then passes it off to one of the appropriate
@@ -204,6 +221,14 @@ bad_area:
 bad_area_nosemaphore:
 	/* User mode accesses just cause a SIGSEGV */
 	if (user_mode(regs)) {
+
+#ifdef CONFIG_PAX_PAGEEXEC
+		if (cpu_has_rixi && (mm->pax_flags & MF_PAX_PAGEEXEC) && !write && address == instruction_pointer(regs)) {
+			pax_report_fault(regs, (void *)address, (void *)user_stack_pointer(regs));
+			do_group_exit(SIGKILL);
+		}
+#endif
+
 		tsk->thread.cp0_badvaddr = address;
 		tsk->thread.error_code = write;
 		if (show_unhandled_signals &&

@@ -233,7 +233,7 @@ struct omap3_gpmc_regs {
 struct gpmc_device {
 	struct device *dev;
 	int irq;
-	struct irq_chip irq_chip;
+	struct irq_chip *irq_chip;
 	struct gpio_chip gpio_chip;
 	int nirqs;
 };
@@ -1254,10 +1254,10 @@ static int gpmc_irq_map(struct irq_domain *d, unsigned int virq,
 	irq_set_chip_data(virq, gpmc);
 	if (hw < GPMC_NR_NAND_IRQS) {
 		irq_modify_status(virq, IRQ_NOREQUEST, IRQ_NOAUTOEN);
-		irq_set_chip_and_handler(virq, &gpmc->irq_chip,
+		irq_set_chip_and_handler(virq, gpmc->irq_chip,
 					 handle_simple_irq);
 	} else {
-		irq_set_chip_and_handler(virq, &gpmc->irq_chip,
+		irq_set_chip_and_handler(virq, gpmc->irq_chip,
 					 handle_edge_irq);
 	}
 
@@ -1303,6 +1303,16 @@ static irqreturn_t gpmc_handle_irq(int irq, void *data)
 	return IRQ_HANDLED;
 }
 
+static struct irq_chip gpmc_irq_chip = {
+	.name = "gpmc",
+	.irq_enable = gpmc_irq_enable,
+	.irq_disable = gpmc_irq_disable,
+	.irq_ack = gpmc_irq_ack,
+	.irq_mask = gpmc_irq_mask,
+	.irq_unmask = gpmc_irq_unmask,
+	.irq_set_type = gpmc_irq_set_type,
+};
+
 static int gpmc_setup_irq(struct gpmc_device *gpmc)
 {
 	u32 regval;
@@ -1315,13 +1325,7 @@ static int gpmc_setup_irq(struct gpmc_device *gpmc)
 	regval = gpmc_read_reg(GPMC_IRQSTATUS);
 	gpmc_write_reg(GPMC_IRQSTATUS, regval);
 
-	gpmc->irq_chip.name = "gpmc";
-	gpmc->irq_chip.irq_enable = gpmc_irq_enable;
-	gpmc->irq_chip.irq_disable = gpmc_irq_disable;
-	gpmc->irq_chip.irq_ack = gpmc_irq_ack;
-	gpmc->irq_chip.irq_mask = gpmc_irq_mask;
-	gpmc->irq_chip.irq_unmask = gpmc_irq_unmask;
-	gpmc->irq_chip.irq_set_type = gpmc_irq_set_type;
+	gpmc->irq_chip = &gpmc_irq_chip;
 
 	gpmc_irq_domain = irq_domain_add_linear(gpmc->dev->of_node,
 						gpmc->nirqs,

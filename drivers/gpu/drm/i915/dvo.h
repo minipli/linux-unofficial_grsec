@@ -74,7 +74,7 @@ struct intel_dvo_dev_ops {
 	 *
 	 * \return MODE_OK if the mode is valid, or another MODE_* otherwise.
 	 */
-	int (*mode_valid)(struct intel_dvo_device *dvo,
+	enum drm_mode_status (*mode_valid)(struct intel_dvo_device *dvo,
 			  struct drm_display_mode *mode);
 
 	/*

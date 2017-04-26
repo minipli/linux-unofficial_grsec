@@ -722,9 +722,6 @@ static struct drm_driver kms_driver = {
 	.patchlevel = KMS_DRIVER_PATCHLEVEL,
 };
 
-static struct drm_driver *driver;
-static struct pci_driver *pdriver;
-
 static struct pci_driver amdgpu_kms_pci_driver = {
 	.name = DRIVER_NAME,
 	.id_table = pciidlist,
@@ -757,12 +754,14 @@ static int __init amdgpu_init(void)
 		return -EINVAL;
 	}
 	DRM_INFO("amdgpu kernel modesetting enabled.\n");
-	driver = &kms_driver;
-	pdriver = &amdgpu_kms_pci_driver;
-	driver->num_ioctls = amdgpu_max_kms_ioctl;
+
+	pax_open_kernel();
+	const_cast(kms_driver.num_ioctls) = amdgpu_max_kms_ioctl;
+	pax_close_kernel();
+
 	amdgpu_register_atpx_handler();
 	/* let modprobe override vga console setting */
-	return drm_pci_init(driver, pdriver);
+	return drm_pci_init(&kms_driver, &amdgpu_kms_pci_driver);
 
 error_sched:
 	amdgpu_fence_slab_fini();
@@ -777,7 +776,7 @@ error_sync:
 static void __exit amdgpu_exit(void)
 {
 	amdgpu_amdkfd_fini();
-	drm_pci_exit(driver, pdriver);
+	drm_pci_exit(&kms_driver, &amdgpu_kms_pci_driver);
 	amdgpu_unregister_atpx_handler();
 	amdgpu_sync_fini();
 	amd_sched_fence_slab_fini();

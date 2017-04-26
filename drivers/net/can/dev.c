@@ -1053,7 +1053,7 @@ static void can_dellink(struct net_device *dev, struct list_head *head)
 	return;
 }
 
-static struct rtnl_link_ops can_link_ops __read_mostly = {
+static struct rtnl_link_ops can_link_ops = {
 	.kind		= "can",
 	.maxtype	= IFLA_CAN_MAX,
 	.policy		= can_policy,

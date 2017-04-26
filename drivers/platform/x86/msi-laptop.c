@@ -605,7 +605,7 @@ static int dmi_check_cb(const struct dmi_system_id *dmi)
 	return 1;
 }
 
-static struct dmi_system_id __initdata msi_dmi_table[] = {
+static const struct dmi_system_id __initconst msi_dmi_table[] = {
 	{
 		.ident = "MSI S270",
 		.matches = {
@@ -1000,12 +1000,14 @@ static int __init load_scm_model_init(struct platform_device *sdev)
 
 	if (!quirks->ec_read_only) {
 		/* allow userland write sysfs file  */
-		dev_attr_bluetooth.store = store_bluetooth;
-		dev_attr_wlan.store = store_wlan;
-		dev_attr_threeg.store = store_threeg;
-		dev_attr_bluetooth.attr.mode |= S_IWUSR;
-		dev_attr_wlan.attr.mode |= S_IWUSR;
-		dev_attr_threeg.attr.mode |= S_IWUSR;
+		pax_open_kernel();
+		const_cast(dev_attr_bluetooth.store) = store_bluetooth;
+		const_cast(dev_attr_wlan.store) = store_wlan;
+		const_cast(dev_attr_threeg.store) = store_threeg;
+		const_cast(dev_attr_bluetooth.attr.mode) |= S_IWUSR;
+		const_cast(dev_attr_wlan.attr.mode) |= S_IWUSR;
+		const_cast(dev_attr_threeg.attr.mode) |= S_IWUSR;
+		pax_close_kernel();
 	}
 
 	/* disable hardware control by fn key */

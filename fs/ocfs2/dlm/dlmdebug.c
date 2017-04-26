@@ -735,10 +735,10 @@ static int debug_state_print(struct dlm_ctxt *dlm, char *buf, int len)
 	out += snprintf(buf + out, len - out,
 			"Lock Resources: %d (%d)\n",
 			atomic_read(&dlm->res_cur_count),
-			atomic_read(&dlm->res_tot_count));
+			atomic_read_unchecked(&dlm->res_tot_count));
 
 	for (i = 0; i < DLM_MLE_NUM_TYPES; ++i)
-		tot_mles += atomic_read(&dlm->mle_tot_count[i]);
+		tot_mles += atomic_read_unchecked(&dlm->mle_tot_count[i]);
 
 	for (i = 0; i < DLM_MLE_NUM_TYPES; ++i)
 		cur_mles += atomic_read(&dlm->mle_cur_count[i]);
@@ -751,19 +751,19 @@ static int debug_state_print(struct dlm_ctxt *dlm, char *buf, int len)
 	out += snprintf(buf + out, len - out,
 			"  Blocking: %d (%d)\n",
 			atomic_read(&dlm->mle_cur_count[DLM_MLE_BLOCK]),
-			atomic_read(&dlm->mle_tot_count[DLM_MLE_BLOCK]));
+			atomic_read_unchecked(&dlm->mle_tot_count[DLM_MLE_BLOCK]));
 
 	/*  Mastery: xxx (xxx) */
 	out += snprintf(buf + out, len - out,
 			"  Mastery: %d (%d)\n",
 			atomic_read(&dlm->mle_cur_count[DLM_MLE_MASTER]),
-			atomic_read(&dlm->mle_tot_count[DLM_MLE_MASTER]));
+			atomic_read_unchecked(&dlm->mle_tot_count[DLM_MLE_MASTER]));
 
 	/*  Migration: xxx (xxx) */
 	out += snprintf(buf + out, len - out,
 			"  Migration: %d (%d)\n",
 			atomic_read(&dlm->mle_cur_count[DLM_MLE_MIGRATION]),
-			atomic_read(&dlm->mle_tot_count[DLM_MLE_MIGRATION]));
+			atomic_read_unchecked(&dlm->mle_tot_count[DLM_MLE_MIGRATION]));
 
 	/* Lists: Dirty=Empty  Purge=InUse  PendingASTs=Empty  ... */
 	out += snprintf(buf + out, len - out,

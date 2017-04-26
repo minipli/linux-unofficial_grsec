@@ -670,7 +670,7 @@ static int open(struct tty_struct *tty, struct file *filp)
 	tty->driver_data = info;
 	info->port.tty = tty;
 
-	DBGINFO(("%s open, old ref count = %d\n", info->device_name, info->port.count));
+	DBGINFO(("%s open, old ref count = %d\n", info->device_name, atomic_read(&info->port.count)));
 
 	mutex_lock(&info->port.mutex);
 	info->port.low_latency = (info->port.flags & ASYNC_LOW_LATENCY) ? 1 : 0;
@@ -682,10 +682,10 @@ static int open(struct tty_struct *tty, struct file *filp)
 		mutex_unlock(&info->port.mutex);
 		goto cleanup;
 	}
-	info->port.count++;
+	atomic_inc(&info->port.count);
 	spin_unlock_irqrestore(&info->netlock, flags);
 
-	if (info->port.count == 1) {
+	if (atomic_read(&info->port.count) == 1) {
 		/* 1st open on this device, init hardware */
 		retval = startup(info);
 		if (retval < 0) {
@@ -706,8 +706,8 @@ cleanup:
 	if (retval) {
 		if (tty->count == 1)
 			info->port.tty = NULL; /* tty layer will release tty struct */
-		if(info->port.count)
-			info->port.count--;
+		if(atomic_read(&info->port.count))
+			atomic_dec(&info->port.count);
 	}
 
 	DBGINFO(("%s open rc=%d\n", info->device_name, retval));
@@ -720,7 +720,7 @@ static void close(struct tty_struct *tty, struct file *filp)
 
 	if (sanity_check(info, tty->name, "close"))
 		return;
-	DBGINFO(("%s close entry, count=%d\n", info->device_name, info->port.count));
+	DBGINFO(("%s close entry, count=%d\n", info->device_name, atomic_read(&info->port.count)));
 
 	if (tty_port_close_start(&info->port, tty, filp) == 0)
 		goto cleanup;
@@ -737,7 +737,7 @@ static void close(struct tty_struct *tty, struct file *filp)
 	tty_port_close_end(&info->port, tty);
 	info->port.tty = NULL;
 cleanup:
-	DBGINFO(("%s close exit, count=%d\n", tty->driver->name, info->port.count));
+	DBGINFO(("%s close exit, count=%d\n", tty->driver->name, atomic_read(&info->port.count)));
 }
 
 static void hangup(struct tty_struct *tty)
@@ -755,7 +755,7 @@ static void hangup(struct tty_struct *tty)
 	shutdown(info);
 
 	spin_lock_irqsave(&info->port.lock, flags);
-	info->port.count = 0;
+	atomic_set(&info->port.count, 0);
 	info->port.tty = NULL;
 	spin_unlock_irqrestore(&info->port.lock, flags);
 	tty_port_set_active(&info->port, 0);
@@ -1435,7 +1435,7 @@ static int hdlcdev_attach(struct net_device *dev, unsigned short encoding,
 	unsigned short new_crctype;
 
 	/* return error if TTY interface open */
-	if (info->port.count)
+	if (atomic_read(&info->port.count))
 		return -EBUSY;
 
 	DBGINFO(("%s hdlcdev_attach\n", info->device_name));
@@ -1531,7 +1531,7 @@ static int hdlcdev_open(struct net_device *dev)
 
 	/* arbitrate between network and tty opens */
 	spin_lock_irqsave(&info->netlock, flags);
-	if (info->port.count != 0 || info->netcount != 0) {
+	if (atomic_read(&info->port.count) != 0 || info->netcount != 0) {
 		DBGINFO(("%s hdlc_open busy\n", dev->name));
 		spin_unlock_irqrestore(&info->netlock, flags);
 		return -EBUSY;
@@ -1616,7 +1616,7 @@ static int hdlcdev_ioctl(struct net_device *dev, struct ifreq *ifr, int cmd)
 	DBGINFO(("%s hdlcdev_ioctl\n", dev->name));
 
 	/* return error if TTY interface open */
-	if (info->port.count)
+	if (atomic_read(&info->port.count))
 		return -EBUSY;
 
 	if (cmd != SIOCWANDEV)
@@ -2403,7 +2403,7 @@ static irqreturn_t slgt_interrupt(int dummy, void *dev_id)
 		if (port == NULL)
 			continue;
 		spin_lock(&port->lock);
-		if ((port->port.count || port->netcount) &&
+		if ((atomic_read(&port->port.count) || port->netcount) &&
 		    port->pending_bh && !port->bh_running &&
 		    !port->bh_requested) {
 			DBGISR(("%s bh queued\n", port->device_name));
@@ -3282,7 +3282,7 @@ static int block_til_ready(struct tty_struct *tty, struct file *filp,
 	add_wait_queue(&port->open_wait, &wait);
 
 	spin_lock_irqsave(&info->lock, flags);
-	port->count--;
+	atomic_dec(&port->count);
 	spin_unlock_irqrestore(&info->lock, flags);
 	port->blocked_open++;
 
@@ -3317,7 +3317,7 @@ static int block_til_ready(struct tty_struct *tty, struct file *filp,
 	remove_wait_queue(&port->open_wait, &wait);
 
 	if (!tty_hung_up_p(filp))
-		port->count++;
+		atomic_inc(&port->count);
 	port->blocked_open--;
 
 	if (!retval)

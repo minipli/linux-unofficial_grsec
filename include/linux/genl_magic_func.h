@@ -246,7 +246,7 @@ const char *CONCAT_(GENL_MAGIC_FAMILY, _genl_cmd_to_str)(__u8 cmd)
 },
 
 #define ZZZ_genl_ops		CONCAT_(GENL_MAGIC_FAMILY, _genl_ops)
-static struct genl_ops ZZZ_genl_ops[] __read_mostly = {
+static struct genl_ops ZZZ_genl_ops[] = {
 #include GENL_MAGIC_INCLUDE_FILE
 };
 

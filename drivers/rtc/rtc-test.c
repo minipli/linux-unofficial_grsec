@@ -112,8 +112,10 @@ static int test_probe(struct platform_device *plat_dev)
 	struct rtc_device *rtc;
 
 	if (test_mmss64) {
-		test_rtc_ops.set_mmss64 = test_rtc_set_mmss64;
-		test_rtc_ops.set_mmss = NULL;
+		pax_open_kernel();
+		const_cast(test_rtc_ops.set_mmss64) = test_rtc_set_mmss64;
+		const_cast(test_rtc_ops.set_mmss) = NULL;
+		pax_close_kernel();
 	}
 
 	rtc = devm_rtc_device_register(&plat_dev->dev, "test",

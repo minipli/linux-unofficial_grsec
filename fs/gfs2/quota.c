@@ -154,7 +154,7 @@ static enum lru_status gfs2_qd_isolate(struct list_head *item,
 	if (!spin_trylock(&qd->qd_lockref.lock))
 		return LRU_SKIP;
 
-	if (qd->qd_lockref.count == 0) {
+	if (__lockref_read(&qd->qd_lockref) == 0) {
 		lockref_mark_dead(&qd->qd_lockref);
 		list_lru_isolate_move(lru, &qd->qd_lru, dispose);
 	}
@@ -221,7 +221,7 @@ static struct gfs2_quota_data *qd_alloc(unsigned hash, struct gfs2_sbd *sdp, str
 		return NULL;
 
 	qd->qd_sbd = sdp;
-	qd->qd_lockref.count = 1;
+	__lockref_set(&qd->qd_lockref, 1);
 	spin_lock_init(&qd->qd_lockref.lock);
 	qd->qd_id = qid;
 	qd->qd_slot = -1;
@@ -312,7 +312,7 @@ static void qd_put(struct gfs2_quota_data *qd)
 	if (lockref_put_or_lock(&qd->qd_lockref))
 		return;
 
-	qd->qd_lockref.count = 0;
+	__lockref_set(&qd->qd_lockref, 0);
 	list_lru_add(&gfs2_qd_lru, &qd->qd_lru);
 	spin_unlock(&qd->qd_lockref.lock);
 

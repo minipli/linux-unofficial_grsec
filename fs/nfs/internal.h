@@ -650,9 +650,10 @@ unsigned long nfs_block_size(unsigned long bsize, unsigned char *nrbitsp)
 static inline
 void nfs_super_set_maxbytes(struct super_block *sb, __u64 maxfilesize)
 {
-	sb->s_maxbytes = (loff_t)maxfilesize;
-	if (sb->s_maxbytes > MAX_LFS_FILESIZE || sb->s_maxbytes <= 0)
+	if (maxfilesize > MAX_LFS_FILESIZE || maxfilesize == 0)
 		sb->s_maxbytes = MAX_LFS_FILESIZE;
+	else
+		sb->s_maxbytes = (loff_t)maxfilesize;
 }
 
 /*

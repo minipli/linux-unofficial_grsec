@@ -2176,7 +2176,7 @@ static struct pci_driver matroxfb_driver = {
 #define RS1056x480	14	/* 132 x 60 text */
 #define RSNoxNo		15
 /* 10-FF */
-static struct { int xres, yres, left, right, upper, lower, hslen, vslen, vfreq; } timmings[] __initdata = {
+static struct { unsigned int xres, yres, left, right, upper, lower, hslen, vslen, vfreq; } timmings[] __initdata = {
 	{  640,  400,  48, 16, 39,  8,  96, 2, 70 },
 	{  640,  480,  48, 16, 33, 10,  96, 2, 60 },
 	{  800,  600, 144, 24, 28,  8, 112, 6, 60 },

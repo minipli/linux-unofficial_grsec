@@ -79,7 +79,7 @@ struct shark_device {
 	u32 last_val;
 };
 
-static atomic_t shark_instance = ATOMIC_INIT(0);
+static atomic_unchecked_t shark_instance = ATOMIC_INIT(0);
 
 static void shark_write_val(struct snd_tea575x *tea, u32 val)
 {

@@ -126,7 +126,7 @@ struct x86_init_ops {
 	struct x86_init_timers		timers;
 	struct x86_init_iommu		iommu;
 	struct x86_init_pci		pci;
-};
+} __no_const;
 
 /**
  * struct x86_cpuinit_ops - platform specific cpu hotplug setups
@@ -137,7 +137,7 @@ struct x86_cpuinit_ops {
 	void (*setup_percpu_clockev)(void);
 	void (*early_percpu_clock_init)(void);
 	void (*fixup_cpu_id)(struct cpuinfo_x86 *c, int node);
-};
+} __no_const;
 
 struct timespec;
 
@@ -225,12 +225,12 @@ struct x86_msi_ops {
 	void (*teardown_msi_irq)(unsigned int irq);
 	void (*teardown_msi_irqs)(struct pci_dev *dev);
 	void (*restore_msi_irqs)(struct pci_dev *dev);
-};
+} __no_const;
 
 struct x86_io_apic_ops {
 	unsigned int	(*read)   (unsigned int apic, unsigned int reg);
 	void		(*disable)(void);
-};
+} __no_const;
 
 extern struct x86_init_ops x86_init;
 extern struct x86_cpuinit_ops x86_cpuinit;

@@ -123,16 +123,16 @@ static inline void __percpu_write(void *ptr, unsigned long val, int size)
 {
 	switch (size) {
 	case 1:
-		ACCESS_ONCE(*(u8 *)ptr) = (u8)val;
+		ACCESS_ONCE_RW(*(u8 *)ptr) = (u8)val;
 		break;
 	case 2:
-		ACCESS_ONCE(*(u16 *)ptr) = (u16)val;
+		ACCESS_ONCE_RW(*(u16 *)ptr) = (u16)val;
 		break;
 	case 4:
-		ACCESS_ONCE(*(u32 *)ptr) = (u32)val;
+		ACCESS_ONCE_RW(*(u32 *)ptr) = (u32)val;
 		break;
 	case 8:
-		ACCESS_ONCE(*(u64 *)ptr) = (u64)val;
+		ACCESS_ONCE_RW(*(u64 *)ptr) = (u64)val;
 		break;
 	default:
 		BUILD_BUG();

@@ -573,7 +573,7 @@ static int ehci_init(struct usb_hcd *hcd)
 
 	/* Accept arbitrarily long scatter-gather lists */
 	if (!(hcd->driver->flags & HCD_LOCAL_MEM))
-		hcd->self.sg_tablesize = ~0;
+		hcd->self.sg_tablesize = SG_ALL;
 
 	/* Prepare for unlinking active QHs */
 	ehci->old_current = ~0;

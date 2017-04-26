@@ -26,6 +26,7 @@
 #define GHASH_DIGEST_SIZE	16
 
 void clmul_ghash_mul(char *dst, const u128 *shash);
+void __clmul_gf128mul_ble(char *dst, const u128 *shash) __rap_hash;
 
 void clmul_ghash_update(char *dst, const char *src, unsigned int srclen,
 			const u128 *shash);

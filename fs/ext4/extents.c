@@ -876,7 +876,7 @@ ext4_find_extent(struct inode *inode, ext4_lblk_t block,
 	struct ext4_extent_header *eh;
 	struct buffer_head *bh;
 	struct ext4_ext_path *path = orig_path ? *orig_path : NULL;
-	short int depth, i, ppos = 0;
+	int depth, i, ppos = 0;
 	int ret;
 
 	eh = ext_inode_hdr(inode);

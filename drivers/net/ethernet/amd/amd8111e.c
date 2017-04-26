@@ -1690,8 +1690,9 @@ static int amd8111e_resume(struct pci_dev *pci_dev)
 	return 0;
 }
 
-static void amd8111e_config_ipg(struct net_device *dev)
+static void amd8111e_config_ipg(unsigned long _dev)
 {
+	struct net_device *dev = (struct net_device *)_dev;
 	struct amd8111e_priv *lp = netdev_priv(dev);
 	struct ipg_info *ipg_data = &lp->ipg_data;
 	void __iomem *mmio = lp->mmio;
@@ -1904,7 +1905,7 @@ static int amd8111e_probe_one(struct pci_dev *pdev,
 	if(lp->options & OPTION_DYN_IPG_ENABLE){
 		init_timer(&lp->ipg_data.ipg_timer);
 		lp->ipg_data.ipg_timer.data = (unsigned long) dev;
-		lp->ipg_data.ipg_timer.function = (void *)&amd8111e_config_ipg;
+		lp->ipg_data.ipg_timer.function = &amd8111e_config_ipg;
 		lp->ipg_data.ipg_timer.expires = jiffies +
 						 IPG_CONVERGE_JIFFIES;
 		lp->ipg_data.ipg = DEFAULT_IPG;

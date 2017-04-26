@@ -176,8 +176,8 @@ int oprofilefs_create_ro_ulong(struct dentry *root,
 
 static ssize_t atomic_read_file(struct file *file, char __user *buf, size_t count, loff_t *offset)
 {
-	atomic_t *val = file->private_data;
-	return oprofilefs_ulong_to_user(atomic_read(val), buf, count, offset);
+	atomic_unchecked_t *val = file->private_data;
+	return oprofilefs_ulong_to_user(atomic_read_unchecked(val), buf, count, offset);
 }
 
 
@@ -189,7 +189,7 @@ static const struct file_operations atomic_ro_fops = {
 
 
 int oprofilefs_create_ro_atomic(struct dentry *root,
-	char const *name, atomic_t *val)
+	char const *name, atomic_unchecked_t *val)
 {
 	return __oprofilefs_create_file(root, name,
 					&atomic_ro_fops, 0444, val);

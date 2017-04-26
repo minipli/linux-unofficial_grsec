@@ -349,7 +349,7 @@ static struct tracing_map_elt *get_free_elt(struct tracing_map *map)
 	struct tracing_map_elt *elt = NULL;
 	int idx;
 
-	idx = atomic_inc_return(&map->next_elt);
+	idx = atomic_inc_return_unchecked(&map->next_elt);
 	if (idx < map->max_elts) {
 		elt = *(TRACING_MAP_ELT(map->elts, idx));
 		if (map->ops && map->ops->elt_init)
@@ -425,7 +425,7 @@ __tracing_map_insert(struct tracing_map *map, void *key, bool lookup_only)
 
 		if (test_key && test_key == key_hash && entry->val &&
 		    keys_match(key, entry->val->key, map->key_size)) {
-			atomic64_inc(&map->hits);
+			atomic64_inc_unchecked(&map->hits);
 			return entry->val;
 		}
 
@@ -438,14 +438,14 @@ __tracing_map_insert(struct tracing_map *map, void *key, bool lookup_only)
 
 				elt = get_free_elt(map);
 				if (!elt) {
-					atomic64_inc(&map->drops);
+					atomic64_inc_unchecked(&map->drops);
 					entry->key = 0;
 					break;
 				}
 
 				memcpy(elt->key, key, map->key_size);
 				entry->val = elt;
-				atomic64_inc(&map->hits);
+				atomic64_inc_unchecked(&map->hits);
 
 				return entry->val;
 			}
@@ -557,9 +557,9 @@ void tracing_map_clear(struct tracing_map *map)
 {
 	unsigned int i;
 
-	atomic_set(&map->next_elt, -1);
-	atomic64_set(&map->hits, 0);
-	atomic64_set(&map->drops, 0);
+	atomic_set_unchecked(&map->next_elt, -1);
+	atomic64_set_unchecked(&map->hits, 0);
+	atomic64_set_unchecked(&map->drops, 0);
 
 	tracing_map_array_clear(map->map);
 
@@ -641,7 +641,7 @@ struct tracing_map *tracing_map_create(unsigned int map_bits,
 
 	map->map_bits = map_bits;
 	map->max_elts = (1 << map_bits);
-	atomic_set(&map->next_elt, -1);
+	atomic_set_unchecked(&map->next_elt, -1);
 
 	map->map_size = (1 << (map_bits + 1));
 	map->ops = ops;
@@ -700,9 +700,10 @@ int tracing_map_init(struct tracing_map *map)
 	return err;
 }
 
-static int cmp_entries_dup(const struct tracing_map_sort_entry **a,
-			   const struct tracing_map_sort_entry **b)
+static int cmp_entries_dup(const void *_a, const void *_b)
 {
+	const struct tracing_map_sort_entry **a = (const struct tracing_map_sort_entry **)_a;
+	const struct tracing_map_sort_entry **b = (const struct tracing_map_sort_entry **)_b;
 	int ret = 0;
 
 	if (memcmp((*a)->key, (*b)->key, (*a)->elt->map->key_size))
@@ -711,9 +712,10 @@ static int cmp_entries_dup(const struct tracing_map_sort_entry **a,
 	return ret;
 }
 
-static int cmp_entries_sum(const struct tracing_map_sort_entry **a,
-			   const struct tracing_map_sort_entry **b)
+static int cmp_entries_sum(const void *_a, const void *_b)
 {
+	const struct tracing_map_sort_entry **a = (const struct tracing_map_sort_entry **)_a;
+	const struct tracing_map_sort_entry **b = (const struct tracing_map_sort_entry **)_b;
 	const struct tracing_map_elt *elt_a, *elt_b;
 	struct tracing_map_sort_key *sort_key;
 	struct tracing_map_field *field;
@@ -739,9 +741,10 @@ static int cmp_entries_sum(const struct tracing_map_sort_entry **a,
 	return ret;
 }
 
-static int cmp_entries_key(const struct tracing_map_sort_entry **a,
-			   const struct tracing_map_sort_entry **b)
+static int cmp_entries_key(const void *_a, const void *_b)
 {
+	const struct tracing_map_sort_entry **a = (const struct tracing_map_sort_entry **)_a;
+	const struct tracing_map_sort_entry **b = (const struct tracing_map_sort_entry **)_b;
 	const struct tracing_map_elt *elt_a, *elt_b;
 	struct tracing_map_sort_key *sort_key;
 	struct tracing_map_field *field;
@@ -874,8 +877,7 @@ static int merge_dups(struct tracing_map_sort_entry **sort_entries,
 	if (n_entries < 2)
 		return total_dups;
 
-	sort(sort_entries, n_entries, sizeof(struct tracing_map_sort_entry *),
-	     (int (*)(const void *, const void *))cmp_entries_dup, NULL);
+	sort(sort_entries, n_entries, sizeof(struct tracing_map_sort_entry *), cmp_entries_dup, NULL);
 
 	key = sort_entries[0]->key;
 	for (i = 1; i < n_entries; i++) {
@@ -923,10 +925,8 @@ static void sort_secondary(struct tracing_map *map,
 			   struct tracing_map_sort_key *primary_key,
 			   struct tracing_map_sort_key *secondary_key)
 {
-	int (*primary_fn)(const struct tracing_map_sort_entry **,
-			  const struct tracing_map_sort_entry **);
-	int (*secondary_fn)(const struct tracing_map_sort_entry **,
-			    const struct tracing_map_sort_entry **);
+	int (*primary_fn)(const void*, const void*);
+	int (*secondary_fn)(const void*, const void*);
 	unsigned i, start = 0, n_sub = 1;
 
 	if (is_key(map, primary_key->field_idx))
@@ -958,7 +958,7 @@ static void sort_secondary(struct tracing_map *map,
 		set_sort_key(map, secondary_key);
 		sort(&entries[start], n_sub,
 		     sizeof(struct tracing_map_sort_entry *),
-		     (int (*)(const void *, const void *))secondary_fn, NULL);
+		     secondary_fn, NULL);
 		set_sort_key(map, primary_key);
 
 		start = i + 1;
@@ -995,8 +995,7 @@ int tracing_map_sort_entries(struct tracing_map *map,
 			     unsigned int n_sort_keys,
 			     struct tracing_map_sort_entry ***sort_entries)
 {
-	int (*cmp_entries_fn)(const struct tracing_map_sort_entry **,
-			      const struct tracing_map_sort_entry **);
+	int (*cmp_entries_fn)(const void*, const void*);
 	struct tracing_map_sort_entry *sort_entry, **entries;
 	int i, n_entries, ret;
 
@@ -1042,8 +1041,7 @@ int tracing_map_sort_entries(struct tracing_map *map,
 
 	set_sort_key(map, &sort_keys[0]);
 
-	sort(entries, n_entries, sizeof(struct tracing_map_sort_entry *),
-	     (int (*)(const void *, const void *))cmp_entries_fn, NULL);
+	sort(entries, n_entries, sizeof(struct tracing_map_sort_entry *), cmp_entries_fn, NULL);
 
 	if (n_sort_keys > 1)
 		sort_secondary(map,

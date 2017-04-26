@@ -39,7 +39,7 @@
 extern struct i2c_adapter amd756_smbus;
 
 static struct i2c_adapter *s4882_adapter;
-static struct i2c_algorithm *s4882_algo;
+static i2c_algorithm_no_const *s4882_algo;
 
 /* Wrapper access functions for multiplexed SMBus */
 static DEFINE_MUTEX(amd756_lock);

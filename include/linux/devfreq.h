@@ -127,7 +127,7 @@ struct devfreq_governor {
 	int (*get_target_freq)(struct devfreq *this, unsigned long *freq);
 	int (*event_handler)(struct devfreq *devfreq,
 				unsigned int event, void *data);
-};
+} __do_const;
 
 /**
  * struct devfreq - Device devfreq structure

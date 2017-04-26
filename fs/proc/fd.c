@@ -27,7 +27,8 @@ static int seq_show(struct seq_file *m, void *v)
 	if (!task)
 		return -ENOENT;
 
-	files = get_files_struct(task);
+	if (!gr_acl_handle_procpidmem(task))
+		files = get_files_struct(task);
 	put_task_struct(task);
 
 	if (files) {
@@ -296,13 +297,15 @@ int proc_fd_permission(struct inode *inode, int mask)
 	int rv;
 
 	rv = generic_permission(inode, mask);
-	if (rv == 0)
-		return rv;
 
 	rcu_read_lock();
 	p = pid_task(proc_pid(inode), PIDTYPE_PID);
-	if (p && same_thread_group(p, current))
-		rv = 0;
+	if (p) {
+		if (same_thread_group(p, current))
+			rv = 0;
+		if (gr_acl_handle_procpidmem(p))
+			rv = -EACCES;
+	}
 	rcu_read_unlock();
 
 	return rv;

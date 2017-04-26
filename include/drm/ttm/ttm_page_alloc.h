@@ -80,6 +80,7 @@ void ttm_dma_page_alloc_fini(void);
  */
 extern int ttm_dma_page_alloc_debugfs(struct seq_file *m, void *data);
 
+struct device;
 extern int ttm_dma_populate(struct ttm_dma_tt *ttm_dma, struct device *dev);
 extern void ttm_dma_unpopulate(struct ttm_dma_tt *ttm_dma, struct device *dev);
 

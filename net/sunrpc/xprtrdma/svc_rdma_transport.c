@@ -1342,7 +1342,7 @@ int svc_rdma_send(struct svcxprt_rdma *xprt, struct ib_send_wr *wr)
 		spin_lock_bh(&xprt->sc_lock);
 		if (xprt->sc_sq_depth < atomic_read(&xprt->sc_sq_count) + wr_count) {
 			spin_unlock_bh(&xprt->sc_lock);
-			atomic_inc(&rdma_stat_sq_starve);
+			atomic_inc_unchecked(&rdma_stat_sq_starve);
 
 			/* Wait until SQ WR available if SQ still full */
 			wait_event(xprt->sc_send_wait,

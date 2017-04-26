@@ -61,12 +61,12 @@ static void __init penwell_arch_setup(void)
 	pm_power_off = mfld_power_off;
 }
 
-void *get_penwell_ops(void)
+const void *get_penwell_ops(void)
 {
 	return &penwell_ops;
 }
 
-void *get_cloverview_ops(void)
+const void *get_cloverview_ops(void)
 {
 	return &penwell_ops;
 }

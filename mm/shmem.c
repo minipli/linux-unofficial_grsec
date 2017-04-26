@@ -34,7 +34,7 @@
 #include <linux/uio.h>
 #include <linux/khugepaged.h>
 
-static struct vfsmount *shm_mnt;
+struct vfsmount *shm_mnt;
 
 #ifdef CONFIG_SHMEM
 /*
@@ -83,7 +83,7 @@ static struct vfsmount *shm_mnt;
 #define BOGO_DIRENT_SIZE 20
 
 /* Symlink up to this size is kmalloc'ed instead of using a swappable page */
-#define SHORT_SYMLINK_LEN 128
+#define SHORT_SYMLINK_LEN 64
 
 /*
  * shmem_fallocate communicates with shmem_fault or shmem_writepage via
@@ -3157,6 +3157,24 @@ static int shmem_xattr_handler_set(const struct xattr_handler *handler,
 	return simple_xattr_set(&info->xattrs, name, value, size, flags);
 }
 
+#ifdef CONFIG_PAX_XATTR_PAX_FLAGS
+static int shmem_user_xattr_handler_set(const struct xattr_handler *handler,
+					struct dentry *dentry, struct inode *inode,
+					const char *name, const void *value,
+					size_t size, int flags)
+{
+	struct shmem_inode_info *info = SHMEM_I(inode);
+
+	if (strcmp(name, XATTR_NAME_PAX_FLAGS))
+		return -EOPNOTSUPP;
+	if (size > 8)
+		return -EINVAL;
+
+	name = xattr_full_name(handler, name);
+	return simple_xattr_set(&info->xattrs, name, value, size, flags);
+}
+#endif
+
 static const struct xattr_handler shmem_security_xattr_handler = {
 	.prefix = XATTR_SECURITY_PREFIX,
 	.get = shmem_xattr_handler_get,
@@ -3169,6 +3187,14 @@ static const struct xattr_handler shmem_trusted_xattr_handler = {
 	.set = shmem_xattr_handler_set,
 };
 
+#ifdef CONFIG_PAX_XATTR_PAX_FLAGS
+static const struct xattr_handler shmem_user_xattr_handler = {
+	.prefix = XATTR_USER_PREFIX,
+	.get = shmem_xattr_handler_get,
+	.set = shmem_user_xattr_handler_set,
+};
+#endif
+
 static const struct xattr_handler *shmem_xattr_handlers[] = {
 #ifdef CONFIG_TMPFS_POSIX_ACL
 	&posix_acl_access_xattr_handler,
@@ -3176,6 +3202,11 @@ static const struct xattr_handler *shmem_xattr_handlers[] = {
 #endif
 	&shmem_security_xattr_handler,
 	&shmem_trusted_xattr_handler,
+
+#ifdef CONFIG_PAX_XATTR_PAX_FLAGS
+	&shmem_user_xattr_handler,
+#endif
+
 	NULL
 };
 
@@ -3549,8 +3580,7 @@ int shmem_fill_super(struct super_block *sb, void *data, int silent)
 	int err = -ENOMEM;
 
 	/* Round up to L1_CACHE_BYTES to resist false sharing */
-	sbinfo = kzalloc(max((int)sizeof(struct shmem_sb_info),
-				L1_CACHE_BYTES), GFP_KERNEL);
+	sbinfo = kzalloc(max(sizeof(struct shmem_sb_info), L1_CACHE_BYTES), GFP_KERNEL);
 	if (!sbinfo)
 		return -ENOMEM;
 

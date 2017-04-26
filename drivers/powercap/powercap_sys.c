@@ -154,8 +154,77 @@ struct powercap_constraint_attr {
 	struct device_attribute name_attr;
 };
 
+static ssize_t show_constraint_name(struct device *dev,
+				struct device_attribute *dev_attr,
+				char *buf);
+
 static struct powercap_constraint_attr
-				constraint_attrs[MAX_CONSTRAINTS_PER_ZONE];
+				constraint_attrs[MAX_CONSTRAINTS_PER_ZONE] = {
+	[0 ... MAX_CONSTRAINTS_PER_ZONE - 1] = {
+		.power_limit_attr = {
+			.attr = {
+				.name	= NULL,
+				.mode	= S_IWUSR | S_IRUGO
+			},
+			.show	= show_constraint_power_limit_uw,
+			.store	= store_constraint_power_limit_uw
+		},
+
+		.time_window_attr = {
+			.attr = {
+				.name	= NULL,
+				.mode	= S_IWUSR | S_IRUGO
+			},
+			.show	= show_constraint_time_window_us,
+			.store	= store_constraint_time_window_us
+		},
+
+		.max_power_attr = {
+			.attr = {
+				.name	= NULL,
+				.mode	= S_IRUGO
+			},
+			.show	= show_constraint_max_power_uw,
+			.store	= NULL
+		},
+
+		.min_power_attr = {
+			.attr = {
+				.name	= NULL,
+				.mode	= S_IRUGO
+			},
+			.show	= show_constraint_min_power_uw,
+			.store	= NULL
+		},
+
+		.max_time_window_attr = {
+			.attr = {
+				.name	= NULL,
+				.mode	= S_IRUGO
+			},
+			.show	= show_constraint_max_time_window_us,
+			.store	= NULL
+		},
+
+		.min_time_window_attr = {
+			.attr = {
+				.name	= NULL,
+				.mode	= S_IRUGO
+			},
+			.show	= show_constraint_min_time_window_us,
+			.store	= NULL
+		},
+
+		.name_attr = {
+			.attr = {
+				.name	= NULL,
+				.mode	= S_IRUGO
+			},
+			.show	= show_constraint_name,
+			.store	= NULL
+		}
+	}
+};
 
 /* A list of powercap control_types */
 static LIST_HEAD(powercap_cntrl_list);
@@ -193,23 +262,16 @@ static ssize_t show_constraint_name(struct device *dev,
 }
 
 static int create_constraint_attribute(int id, const char *name,
-				int mode,
-				struct device_attribute *dev_attr,
-				ssize_t (*show)(struct device *,
-					struct device_attribute *, char *),
-				ssize_t (*store)(struct device *,
-					struct device_attribute *,
-				const char *, size_t)
-				)
+				struct device_attribute *dev_attr)
 {
+	name = kasprintf(GFP_KERNEL, "constraint_%d_%s", id, name);
 
-	dev_attr->attr.name = kasprintf(GFP_KERNEL, "constraint_%d_%s",
-								id, name);
-	if (!dev_attr->attr.name)
+	if (!name)
 		return -ENOMEM;
-	dev_attr->attr.mode = mode;
-	dev_attr->show = show;
-	dev_attr->store = store;
+
+	pax_open_kernel();
+	const_cast(dev_attr->attr.name) = name;
+	pax_close_kernel();
 
 	return 0;
 }
@@ -236,49 +298,31 @@ static int seed_constraint_attributes(void)
 
 	for (i = 0; i < MAX_CONSTRAINTS_PER_ZONE; ++i) {
 		ret = create_constraint_attribute(i, "power_limit_uw",
-					S_IWUSR | S_IRUGO,
-					&constraint_attrs[i].power_limit_attr,
-					show_constraint_power_limit_uw,
-					store_constraint_power_limit_uw);
+					&constraint_attrs[i].power_limit_attr);
 		if (ret)
 			goto err_alloc;
 		ret = create_constraint_attribute(i, "time_window_us",
-					S_IWUSR | S_IRUGO,
-					&constraint_attrs[i].time_window_attr,
-					show_constraint_time_window_us,
-					store_constraint_time_window_us);
+					&constraint_attrs[i].time_window_attr);
 		if (ret)
 			goto err_alloc;
-		ret = create_constraint_attribute(i, "name", S_IRUGO,
-				&constraint_attrs[i].name_attr,
-				show_constraint_name,
-				NULL);
+		ret = create_constraint_attribute(i, "name",
+				&constraint_attrs[i].name_attr);
 		if (ret)
 			goto err_alloc;
-		ret = create_constraint_attribute(i, "max_power_uw", S_IRUGO,
-				&constraint_attrs[i].max_power_attr,
-				show_constraint_max_power_uw,
-				NULL);
+		ret = create_constraint_attribute(i, "max_power_uw",
+				&constraint_attrs[i].max_power_attr);
 		if (ret)
 			goto err_alloc;
-		ret = create_constraint_attribute(i, "min_power_uw", S_IRUGO,
-				&constraint_attrs[i].min_power_attr,
-				show_constraint_min_power_uw,
-				NULL);
+		ret = create_constraint_attribute(i, "min_power_uw",
+				&constraint_attrs[i].min_power_attr);
 		if (ret)
 			goto err_alloc;
 		ret = create_constraint_attribute(i, "max_time_window_us",
-				S_IRUGO,
-				&constraint_attrs[i].max_time_window_attr,
-				show_constraint_max_time_window_us,
-				NULL);
+				&constraint_attrs[i].max_time_window_attr);
 		if (ret)
 			goto err_alloc;
 		ret = create_constraint_attribute(i, "min_time_window_us",
-				S_IRUGO,
-				&constraint_attrs[i].min_time_window_attr,
-				show_constraint_min_time_window_us,
-				NULL);
+				&constraint_attrs[i].min_time_window_attr);
 		if (ret)
 			goto err_alloc;
 
@@ -378,10 +422,12 @@ static void create_power_zone_common_attributes(
 		power_zone->zone_dev_attrs[count++] =
 					&dev_attr_max_energy_range_uj.attr;
 	if (power_zone->ops->get_energy_uj) {
+		pax_open_kernel();
 		if (power_zone->ops->reset_energy_uj)
-			dev_attr_energy_uj.attr.mode = S_IWUSR | S_IRUGO;
+			const_cast(dev_attr_energy_uj.attr.mode) = S_IWUSR | S_IRUGO;
 		else
-			dev_attr_energy_uj.attr.mode = S_IRUGO;
+			const_cast(dev_attr_energy_uj.attr.mode) = S_IRUGO;
+		pax_close_kernel();
 		power_zone->zone_dev_attrs[count++] =
 					&dev_attr_energy_uj.attr;
 	}

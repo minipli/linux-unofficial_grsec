@@ -164,6 +164,7 @@ config ARCH_USE_BUILTIN_BSWAP
 config KRETPROBES
 	def_bool y
 	depends on KPROBES && HAVE_KRETPROBES
+	depends on !PAX_RAP
 
 config USER_RETURN_NOTIFIER
 	bool
@@ -355,7 +356,7 @@ config HAVE_GCC_PLUGINS
 menuconfig GCC_PLUGINS
 	bool "GCC plugins"
 	depends on HAVE_GCC_PLUGINS
-	depends on !COMPILE_TEST
+	default y
 	help
 	  GCC plugins are loadable modules that provide extra features to the
 	  compiler. They are useful for runtime instrumentation and static analysis.
@@ -759,6 +760,7 @@ config VMAP_STACK
 	default y
 	bool "Use a virtually-mapped stack"
 	depends on HAVE_ARCH_VMAP_STACK && !KASAN
+	depends on !GRKERNSEC_KSTACKOVERFLOW
 	---help---
 	  Enable this if you want the use virtually-mapped kernel stacks
 	  with guard pages.  This causes kernel stack overflows to be

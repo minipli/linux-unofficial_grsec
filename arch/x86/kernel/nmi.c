@@ -101,16 +101,16 @@ fs_initcall(nmi_warning_debugfs);
 
 static void nmi_max_handler(struct irq_work *w)
 {
-	struct nmiaction *a = container_of(w, struct nmiaction, irq_work);
+	struct nmiwork *n = container_of(w, struct nmiwork, irq_work);
 	int remainder_ns, decimal_msecs;
-	u64 whole_msecs = ACCESS_ONCE(a->max_duration);
+	u64 whole_msecs = ACCESS_ONCE(n->max_duration);
 
 	remainder_ns = do_div(whole_msecs, (1000 * 1000));
 	decimal_msecs = remainder_ns / 1000;
 
 	printk_ratelimited(KERN_INFO
 		"INFO: NMI handler (%ps) took too long to run: %lld.%03d msecs\n",
-		a->handler, whole_msecs, decimal_msecs);
+		n->action->handler, whole_msecs, decimal_msecs);
 }
 
 static int nmi_handle(unsigned int type, struct pt_regs *regs)
@@ -137,11 +137,11 @@ static int nmi_handle(unsigned int type, struct pt_regs *regs)
 		delta = sched_clock() - delta;
 		trace_nmi_handler(a->handler, (int)delta, thishandled);
 
-		if (delta < nmi_longest_ns || delta < a->max_duration)
+		if (delta < nmi_longest_ns || delta < a->work->max_duration)
 			continue;
 
-		a->max_duration = delta;
-		irq_work_queue(&a->irq_work);
+		a->work->max_duration = delta;
+		irq_work_queue(&a->work->irq_work);
 	}
 
 	rcu_read_unlock();
@@ -151,7 +151,7 @@ static int nmi_handle(unsigned int type, struct pt_regs *regs)
 }
 NOKPROBE_SYMBOL(nmi_handle);
 
-int __register_nmi_handler(unsigned int type, struct nmiaction *action)
+int __register_nmi_handler(unsigned int type, const struct nmiaction *action)
 {
 	struct nmi_desc *desc = nmi_to_desc(type);
 	unsigned long flags;
@@ -159,7 +159,8 @@ int __register_nmi_handler(unsigned int type, struct nmiaction *action)
 	if (!action->handler)
 		return -EINVAL;
 
-	init_irq_work(&action->irq_work, nmi_max_handler);
+	action->work->action = action;
+	init_irq_work(&action->work->irq_work, nmi_max_handler);
 
 	spin_lock_irqsave(&desc->lock, flags);
 
@@ -177,9 +178,9 @@ int __register_nmi_handler(unsigned int type, struct nmiaction *action)
 	 * event confuses some handlers (kdump uses this flag)
 	 */
 	if (action->flags & NMI_FLAG_FIRST)
-		list_add_rcu(&action->list, &desc->head);
+		pax_list_add_rcu((struct list_head *)&action->list, &desc->head);
 	else
-		list_add_tail_rcu(&action->list, &desc->head);
+		pax_list_add_tail_rcu((struct list_head *)&action->list, &desc->head);
 	
 	spin_unlock_irqrestore(&desc->lock, flags);
 	return 0;
@@ -202,7 +203,7 @@ void unregister_nmi_handler(unsigned int type, const char *name)
 		if (!strcmp(n->name, name)) {
 			WARN(in_nmi(),
 				"Trying to free NMI (%s) from NMI context!\n", n->name);
-			list_del_rcu(&n->list);
+			pax_list_del_rcu((struct list_head *)&n->list);
 			break;
 		}
 	}
@@ -503,6 +504,17 @@ static DEFINE_PER_CPU(int, update_debug_stack);
 dotraplinkage notrace void
 do_nmi(struct pt_regs *regs, long error_code)
 {
+
+#if defined(CONFIG_X86_32) && defined(CONFIG_PAX_KERNEXEC)
+	if (!user_mode(regs)) {
+		unsigned long cs = regs->cs & 0xFFFF;
+		unsigned long ip = ktva_ktla(regs->ip);
+
+		if ((cs == __KERNEL_CS || cs == __KERNEXEC_KERNEL_CS) && ip <= (unsigned long)_etext)
+			regs->ip = ip;
+	}
+#endif
+
 	if (this_cpu_read(nmi_state) != NMI_NOT_RUNNING) {
 		this_cpu_write(nmi_state, NMI_LATCHED);
 		return;

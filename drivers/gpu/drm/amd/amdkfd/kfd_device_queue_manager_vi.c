@@ -39,12 +39,16 @@ static int initialize_cpsch_vi(struct device_queue_manager *dqm);
 static void init_sdma_vm(struct device_queue_manager *dqm, struct queue *q,
 				struct qcm_process_device *qpd);
 
-void device_queue_manager_init_vi(struct device_queue_manager_asic_ops *ops)
+static const struct device_queue_manager_asic_ops vi_dqm_asic_ops = {
+	.set_cache_memory_policy = set_cache_memory_policy_vi,
+	.register_process = register_process_vi,
+	.initialize = initialize_cpsch_vi,
+	.init_sdma_vm = init_sdma_vm,
+};
+
+void device_queue_manager_init_vi(struct device_queue_manager *dqm)
 {
-	ops->set_cache_memory_policy = set_cache_memory_policy_vi;
-	ops->register_process = register_process_vi;
-	ops->initialize = initialize_cpsch_vi;
-	ops->init_sdma_vm = init_sdma_vm;
+	dqm->ops_asic_specific = &vi_dqm_asic_ops;
 }
 
 static uint32_t compute_sh_mem_bases_64bit(unsigned int top_address_nybble)

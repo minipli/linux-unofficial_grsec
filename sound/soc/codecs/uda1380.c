@@ -687,6 +687,11 @@ static struct snd_soc_dai_driver uda1380_dai[] = {
 },
 };
 
+static int uda1380_hw_write(void *client, const char *buf, int count)
+{
+	return i2c_master_send(client, buf, count);
+}
+
 static int uda1380_probe(struct snd_soc_codec *codec)
 {
 	struct uda1380_platform_data *pdata =codec->dev->platform_data;
@@ -695,7 +700,7 @@ static int uda1380_probe(struct snd_soc_codec *codec)
 
 	uda1380->codec = codec;
 
-	codec->hw_write = (hw_write_t)i2c_master_send;
+	codec->hw_write = uda1380_hw_write;
 	codec->control_data = uda1380->control_data;
 
 	if (!pdata)

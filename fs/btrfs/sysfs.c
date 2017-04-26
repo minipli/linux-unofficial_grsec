@@ -499,7 +499,7 @@ static int addrm_unknown_feature_attrs(struct btrfs_fs_info *fs_info, bool add)
 	for (set = 0; set < FEAT_MAX; set++) {
 		int i;
 		struct attribute *attrs[2];
-		struct attribute_group agroup = {
+		attribute_group_no_const agroup = {
 			.name = "features",
 			.attrs = attrs,
 		};

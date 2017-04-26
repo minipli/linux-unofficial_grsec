@@ -66,7 +66,7 @@ static ssize_t wiidebug_eeprom_read(struct file *f, char __user *u, size_t s,
 	else if (size == 0)
 		return -EIO;
 
-	if (copy_to_user(u, buf, size))
+	if (size > sizeof(buf) || copy_to_user(u, buf, size))
 		return -EFAULT;
 
 	*off += size;

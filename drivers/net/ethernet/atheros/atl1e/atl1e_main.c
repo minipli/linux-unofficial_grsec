@@ -2475,7 +2475,7 @@ static void atl1e_remove(struct pci_dev *pdev)
  * this device has been detected.
  */
 static pci_ers_result_t
-atl1e_io_error_detected(struct pci_dev *pdev, pci_channel_state_t state)
+atl1e_io_error_detected(struct pci_dev *pdev, enum pci_channel_state state)
 {
 	struct net_device *netdev = pci_get_drvdata(pdev);
 	struct atl1e_adapter *adapter = netdev_priv(netdev);

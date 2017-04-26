@@ -418,8 +418,9 @@ reset_hfcsx(struct IsdnCardState *cs)
 /* Timer function called when kernel timer expires */
 /***************************************************/
 static void
-hfcsx_Timer(struct IsdnCardState *cs)
+hfcsx_Timer(unsigned long _cs)
 {
+	struct IsdnCardState *cs = (struct IsdnCardState *)_cs;
 	cs->hw.hfcsx.timer.expires = jiffies + 75;
 	/* WD RESET */
 /*      WriteReg(cs, HFCD_DATA, HFCD_CTMT, cs->hw.hfcsx.ctmt | 0x80);
@@ -860,8 +861,9 @@ hfcsx_interrupt(int intno, void *dev_id)
 /* timer callback for D-chan busy resolution. Currently no function */
 /********************************************************************/
 static void
-hfcsx_dbusy_timer(struct IsdnCardState *cs)
+hfcsx_dbusy_timer(unsigned long _cs)
 {
+	//struct IsdnCardState *cs = (struct IsdnCardState *)_cs;
 }
 
 /*************************************/
@@ -1495,7 +1497,7 @@ int setup_hfcsx(struct IsdnCard *card)
 	} else
 		return (0);	/* no valid card type */
 
-	cs->dbusytimer.function = (void *) hfcsx_dbusy_timer;
+	cs->dbusytimer.function = hfcsx_dbusy_timer;
 	cs->dbusytimer.data = (long) cs;
 	init_timer(&cs->dbusytimer);
 	INIT_WORK(&cs->tqueue, hfcsx_bh);
@@ -1507,7 +1509,7 @@ int setup_hfcsx(struct IsdnCard *card)
 	cs->BC_Write_Reg = NULL;
 	cs->irq_func = &hfcsx_interrupt;
 
-	cs->hw.hfcsx.timer.function = (void *) hfcsx_Timer;
+	cs->hw.hfcsx.timer.function = hfcsx_Timer;
 	cs->hw.hfcsx.timer.data = (long) cs;
 	cs->hw.hfcsx.b_fifo_size = 0; /* fifo size still unknown */
 	cs->hw.hfcsx.cirm = ccd_sp_irqtab[cs->irq & 0xF]; /* RAM not evaluated */

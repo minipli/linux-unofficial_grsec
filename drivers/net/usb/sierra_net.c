@@ -51,7 +51,7 @@ static const char driver_name[] = "sierra_net";
 /* atomic counter partially included in MAC address to make sure 2 devices
  * do not end up with the same MAC - concept breaks in case of > 255 ifaces
  */
-static	atomic_t iface_counter = ATOMIC_INIT(0);
+static	atomic_unchecked_t iface_counter = ATOMIC_INIT(0);
 
 /*
  * SYNC Timer Delay definition used to set the expiry time
@@ -697,7 +697,7 @@ static int sierra_net_bind(struct usbnet *dev, struct usb_interface *intf)
 	dev->net->netdev_ops = &sierra_net_device_ops;
 
 	/* change MAC addr to include, ifacenum, and to be unique */
-	dev->net->dev_addr[ETH_ALEN-2] = atomic_inc_return(&iface_counter);
+	dev->net->dev_addr[ETH_ALEN-2] = atomic_inc_return_unchecked(&iface_counter);
 	dev->net->dev_addr[ETH_ALEN-1] = ifacenum;
 
 	/* we will have to manufacture ethernet headers, prepare template */

@@ -924,7 +924,7 @@ static int aem_register_sensors(struct aem_data *data,
 				const struct aem_rw_sensor_template *rw)
 {
 	struct device *dev = &data->pdev->dev;
-	struct sensor_device_attribute *sensors = data->sensors;
+	sensor_device_attribute_no_const *sensors = data->sensors;
 	int err;
 
 	/* Set up read-only sensors */

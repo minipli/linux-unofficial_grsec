@@ -474,10 +474,10 @@ void __init mem_init(void)
 
 #ifdef CONFIG_64BIT
 	if ((unsigned long) &_text > (unsigned long) CKSEG0)
-		/* The -4 is a hack so that user tools don't have to handle
+		/* The -0x2000-4 is a hack so that user tools don't have to handle
 		   the overflow.  */
 		kclist_add(&kcore_kseg0, (void *) CKSEG0,
-				0x80000000 - 4, KCORE_TEXT);
+				0x80000000 - 0x2000 - 4, KCORE_TEXT);
 #endif
 }
 #endif /* !CONFIG_NEED_MULTIPLE_NODES */

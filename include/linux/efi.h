@@ -1167,6 +1167,7 @@ struct efivar_operations {
 	efi_set_variable_t *set_variable_nonblocking;
 	efi_query_variable_store_t *query_variable_store;
 };
+typedef struct efivar_operations __no_const efivar_operations_no_const;
 
 struct efivars {
 	struct kset *kset;

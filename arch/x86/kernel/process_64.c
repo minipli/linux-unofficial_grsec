@@ -35,6 +35,7 @@
 #include <linux/uaccess.h>
 #include <linux/io.h>
 #include <linux/ftrace.h>
+#include <linux/syscalls.h>
 
 #include <asm/pgtable.h>
 #include <asm/processor.h>
@@ -145,13 +146,14 @@ int copy_thread_tls(unsigned long clone_flags, unsigned long sp,
 	struct inactive_task_frame *frame;
 	struct task_struct *me = current;
 
-	p->thread.sp0 = (unsigned long)task_stack_page(p) + THREAD_SIZE;
+	p->thread.sp0 = (unsigned long)task_stack_page(p) + THREAD_SIZE - 16;
 	childregs = task_pt_regs(p);
 	fork_frame = container_of(childregs, struct fork_frame, regs);
 	frame = &fork_frame->frame;
 	frame->bp = 0;
 	frame->ret_addr = (unsigned long) ret_from_fork;
 	p->thread.sp = (unsigned long) fork_frame;
+	p->thread.lowest_stack = (unsigned long)task_stack_page(p) + 2 * sizeof(unsigned long);
 	p->thread.io_bitmap_ptr = NULL;
 
 	savesegment(gs, p->thread.gsindex);
@@ -160,13 +162,15 @@ int copy_thread_tls(unsigned long clone_flags, unsigned long sp,
 	p->thread.fsbase = p->thread.fsindex ? 0 : me->thread.fsbase;
 	savesegment(es, p->thread.es);
 	savesegment(ds, p->thread.ds);
+	savesegment(ss, p->thread.ss);
+	BUG_ON(p->thread.ss == __UDEREF_KERNEL_DS);
 	memset(p->thread.ptrace_bps, 0, sizeof(p->thread.ptrace_bps));
 
 	if (unlikely(p->flags & PF_KTHREAD)) {
 		/* kernel thread */
 		memset(childregs, 0, sizeof(struct pt_regs));
 		frame->bx = sp;		/* function */
-		frame->r12 = arg;
+		frame->r13 = arg;
 		return 0;
 	}
 	frame->bx = 0;
@@ -263,7 +267,7 @@ __switch_to(struct task_struct *prev_p, struct task_struct *next_p)
 	struct fpu *prev_fpu = &prev->fpu;
 	struct fpu *next_fpu = &next->fpu;
 	int cpu = smp_processor_id();
-	struct tss_struct *tss = &per_cpu(cpu_tss, cpu);
+	struct tss_struct *tss = cpu_tss + cpu;
 	unsigned prev_fsindex, prev_gsindex;
 	fpu_switch_t fpu_switch;
 
@@ -313,6 +317,10 @@ __switch_to(struct task_struct *prev_p, struct task_struct *next_p)
 	savesegment(ds, prev->ds);
 	if (unlikely(next->ds | prev->ds))
 		loadsegment(ds, next->ds);
+
+	savesegment(ss, prev->ss);
+	if (unlikely(next->ss != prev->ss))
+		loadsegment(ss, next->ss);
 
 	/*
 	 * Switch FS and GS.
@@ -426,6 +434,8 @@ __switch_to(struct task_struct *prev_p, struct task_struct *next_p)
 
 	/* Reload esp0 and ss1.  This changes current_thread_info(). */
 	load_sp0(tss, next);
+
+	this_cpu_write(cpu_current_top_of_stack, next->sp0);
 
 	/*
 	 * Now maybe reload the debug registers and handle I/O bitmaps
@@ -612,7 +622,7 @@ long do_arch_prctl(struct task_struct *task, int code, unsigned long addr)
 	return ret;
 }
 
-long sys_arch_prctl(int code, unsigned long addr)
+SYSCALL_DEFINE2(arch_prctl, int, code, unsigned long, addr)
 {
 	return do_arch_prctl(current, code, addr);
 }

@@ -429,7 +429,7 @@ struct rio_ops {
 	int (*map_outb)(struct rio_mport *mport, u16 destid, u64 rstart,
 			u32 size, u32 flags, dma_addr_t *laddr);
 	void (*unmap_outb)(struct rio_mport *mport, u16 destid, u64 rstart);
-};
+} __no_const;
 
 #define RIO_RESOURCE_MEM	0x00000100
 #define RIO_RESOURCE_DOORBELL	0x00000200

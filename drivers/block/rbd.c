@@ -65,7 +65,7 @@
  * If the counter is already at its maximum value returns
  * -EINVAL without updating it.
  */
-static int atomic_inc_return_safe(atomic_t *v)
+static int __intentional_overflow(-1) atomic_inc_return_safe(atomic_t *v)
 {
 	unsigned int counter;
 

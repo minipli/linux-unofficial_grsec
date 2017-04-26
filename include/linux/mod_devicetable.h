@@ -139,7 +139,7 @@ struct usb_device_id {
 #define USB_DEVICE_ID_MATCH_INT_PROTOCOL	0x0200
 #define USB_DEVICE_ID_MATCH_INT_NUMBER		0x0400
 
-#define HID_ANY_ID				(~0)
+#define HID_ANY_ID				(~0U)
 #define HID_BUS_ANY				0xffff
 #define HID_GROUP_ANY				0x0000
 
@@ -480,7 +480,7 @@ struct dmi_system_id {
 	const char *ident;
 	struct dmi_strmatch matches[4];
 	void *driver_data;
-};
+} __do_const;
 /*
  * struct dmi_device_id appears during expansion of
  * "MODULE_DEVICE_TABLE(dmi, x)". Compiler doesn't look inside it

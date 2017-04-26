@@ -1010,6 +1010,7 @@ storage_fault_common:
 	std	r14,_DAR(r1)
 	std	r15,_DSISR(r1)
 	addi	r3,r1,STACK_FRAME_OVERHEAD
+	bl	save_nvgprs
 	mr	r4,r14
 	mr	r5,r15
 	ld	r14,PACA_EXGEN+EX_R14(r13)
@@ -1018,8 +1019,7 @@ storage_fault_common:
 	cmpdi	r3,0
 	bne-	1f
 	b	ret_from_except_lite
-1:	bl	save_nvgprs
-	mr	r5,r3
+1:	mr	r5,r3
 	addi	r3,r1,STACK_FRAME_OVERHEAD
 	ld	r4,_DAR(r1)
 	bl	bad_page_fault

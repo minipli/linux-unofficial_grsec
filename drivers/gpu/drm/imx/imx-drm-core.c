@@ -226,7 +226,7 @@ int imx_drm_add_crtc(struct drm_device *drm, struct drm_crtc *crtc,
 	if (imxdrm->pipes >= MAX_CRTC)
 		return -EINVAL;
 
-	if (imxdrm->drm->open_count)
+	if (local_read(&imxdrm->drm->open_count))
 		return -EBUSY;
 
 	imx_drm_crtc = kzalloc(sizeof(*imx_drm_crtc), GFP_KERNEL);

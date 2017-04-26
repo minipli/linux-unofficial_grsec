@@ -32,7 +32,7 @@
 #define SSIC_PORT_CFG2		0x880c
 #define SSIC_PORT_CFG2_OFFSET	0x30
 #define PROG_DONE		(1 << 30)
-#define SSIC_PORT_UNUSED	(1 << 31)
+#define SSIC_PORT_UNUSED	(1U << 31)
 
 /* Device for a quirk */
 #define PCI_VENDOR_ID_FRESCO_LOGIC	0x1b73

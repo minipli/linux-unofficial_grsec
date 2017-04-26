@@ -444,6 +444,7 @@ static unsigned long xen_get_guest_ip(void)
 		return 0;
 	}
 
+	// TODO: adjust with the segment base
 	return xenpmu_data->pmu.r.regs.ip;
 }
 

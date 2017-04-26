@@ -58,9 +58,10 @@ static int media_device_close(struct file *filp)
 	return 0;
 }
 
-static int media_device_get_info(struct media_device *dev,
-				 struct media_device_info *info)
+static long media_device_get_info(struct media_device *dev,
+				 void *_info)
 {
+	struct media_device_info *info = _info;
 	memset(info, 0, sizeof(*info));
 
 	if (dev->driver_name[0])
@@ -98,8 +99,9 @@ static struct media_entity *find_entity(struct media_device *mdev, u32 id)
 }
 
 static long media_device_enum_entities(struct media_device *mdev,
-				       struct media_entity_desc *entd)
+				       void *_entd)
 {
+	struct media_entity_desc *entd = _entd;
 	struct media_entity *ent;
 
 	ent = find_entity(mdev, entd->id);
@@ -151,8 +153,9 @@ static void media_device_kpad_to_upad(const struct media_pad *kpad,
 }
 
 static long media_device_enum_links(struct media_device *mdev,
-				    struct media_links_enum *links)
+				    void *_links)
 {
+	struct media_links_enum *links = _links;
 	struct media_entity *entity;
 
 	entity = find_entity(mdev, links->entity);
@@ -199,8 +202,9 @@ static long media_device_enum_links(struct media_device *mdev,
 }
 
 static long media_device_setup_link(struct media_device *mdev,
-				    struct media_link_desc *linkd)
+				    void *_linkd)
 {
+	struct media_link_desc *linkd = _linkd;
 	struct media_link *link = NULL;
 	struct media_entity *source;
 	struct media_entity *sink;
@@ -227,8 +231,9 @@ static long media_device_setup_link(struct media_device *mdev,
 }
 
 static long media_device_get_topology(struct media_device *mdev,
-				      struct media_v2_topology *topo)
+				      void *_topo)
 {
+	struct media_v2_topology *topo = _topo;
 	struct media_entity *entity;
 	struct media_interface *intf;
 	struct media_pad *pad;
@@ -387,7 +392,7 @@ static long copy_arg_to_user(void __user *uarg, void *karg, unsigned int cmd)
 #define MEDIA_IOC_ARG(__cmd, func, fl, from_user, to_user)		\
 	[_IOC_NR(MEDIA_IOC_##__cmd)] = {				\
 		.cmd = MEDIA_IOC_##__cmd,				\
-		.fn = (long (*)(struct media_device *, void *))func,	\
+		.fn = func,						\
 		.flags = fl,						\
 		.arg_from_user = from_user,				\
 		.arg_to_user = to_user,					\

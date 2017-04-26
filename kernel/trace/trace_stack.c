@@ -88,7 +88,7 @@ check_stack(unsigned long ip, unsigned long *stack)
 		return;
 
 	/* we do not handle interrupt stacks yet */
-	if (!object_is_on_stack(stack))
+	if (!object_starts_on_stack(stack))
 		return;
 
 	/* Can't do this from NMI context (can cause deadlocks) */

@@ -1295,7 +1295,7 @@ static void lanai_send_one_aal5(struct lanai_dev *lanai,
 	vcc_tx_add_aal5_trailer(lvcc, skb->len, 0, 0);
 	lanai_endtx(lanai, lvcc);
 	lanai_free_skb(lvcc->tx.atmvcc, skb);
-	atomic_inc(&lvcc->tx.atmvcc->stats->tx);
+	atomic_inc_unchecked(&lvcc->tx.atmvcc->stats->tx);
 }
 
 /* Try to fill the buffer - don't call unless there is backlog */
@@ -1418,7 +1418,7 @@ static void vcc_rx_aal5(struct lanai_vcc *lvcc, int endptr)
 	ATM_SKB(skb)->vcc = lvcc->rx.atmvcc;
 	__net_timestamp(skb);
 	lvcc->rx.atmvcc->push(lvcc->rx.atmvcc, skb);
-	atomic_inc(&lvcc->rx.atmvcc->stats->rx);
+	atomic_inc_unchecked(&lvcc->rx.atmvcc->stats->rx);
     out:
 	lvcc->rx.buf.ptr = end;
 	cardvcc_write(lvcc, endptr, vcc_rxreadptr);
@@ -1659,7 +1659,7 @@ static int handle_service(struct lanai_dev *lanai, u32 s)
 		DPRINTK("(itf %d) got RX service entry 0x%X for non-AAL5 "
 		    "vcc %d\n", lanai->number, (unsigned int) s, vci);
 		lanai->stats.service_rxnotaal5++;
-		atomic_inc(&lvcc->rx.atmvcc->stats->rx_err);
+		atomic_inc_unchecked(&lvcc->rx.atmvcc->stats->rx_err);
 		return 0;
 	}
 	if (likely(!(s & (SERVICE_TRASH | SERVICE_STREAM | SERVICE_CRCERR)))) {
@@ -1671,7 +1671,7 @@ static int handle_service(struct lanai_dev *lanai, u32 s)
 		int bytes;
 		read_unlock(&vcc_sklist_lock);
 		DPRINTK("got trashed rx pdu on vci %d\n", vci);
-		atomic_inc(&lvcc->rx.atmvcc->stats->rx_err);
+		atomic_inc_unchecked(&lvcc->rx.atmvcc->stats->rx_err);
 		lvcc->stats.x.aal5.service_trash++;
 		bytes = (SERVICE_GET_END(s) * 16) -
 		    (((unsigned long) lvcc->rx.buf.ptr) -
@@ -1683,7 +1683,7 @@ static int handle_service(struct lanai_dev *lanai, u32 s)
 	}
 	if (s & SERVICE_STREAM) {
 		read_unlock(&vcc_sklist_lock);
-		atomic_inc(&lvcc->rx.atmvcc->stats->rx_err);
+		atomic_inc_unchecked(&lvcc->rx.atmvcc->stats->rx_err);
 		lvcc->stats.x.aal5.service_stream++;
 		printk(KERN_ERR DEV_LABEL "(itf %d): Got AAL5 stream "
 		    "PDU on VCI %d!\n", lanai->number, vci);
@@ -1691,7 +1691,7 @@ static int handle_service(struct lanai_dev *lanai, u32 s)
 		return 0;
 	}
 	DPRINTK("got rx crc error on vci %d\n", vci);
-	atomic_inc(&lvcc->rx.atmvcc->stats->rx_err);
+	atomic_inc_unchecked(&lvcc->rx.atmvcc->stats->rx_err);
 	lvcc->stats.x.aal5.service_rxcrc++;
 	lvcc->rx.buf.ptr = &lvcc->rx.buf.start[SERVICE_GET_END(s) * 4];
 	cardvcc_write(lvcc, SERVICE_GET_END(s), vcc_rxreadptr);

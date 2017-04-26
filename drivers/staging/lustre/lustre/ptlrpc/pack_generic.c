@@ -676,7 +676,7 @@ u32 lustre_msg_bufcount(struct lustre_msg *m)
 	}
 }
 
-char *lustre_msg_string(struct lustre_msg *m, u32 index, u32 max_len)
+void *lustre_msg_string(struct lustre_msg *m, u32 index, u32 max_len)
 {
 	/* max_len == 0 means the string should fill the buffer */
 	char *str;
@@ -1435,8 +1435,10 @@ EXPORT_SYMBOL(do_set_info_async);
 /* byte flipping routines for all wire types declared in
  * lustre_idl.h implemented here.
  */
-void lustre_swab_ptlrpc_body(struct ptlrpc_body *b)
+void lustre_swab_ptlrpc_body(void *_b)
 {
+	struct ptlrpc_body *b = _b;
+
 	__swab32s(&b->pb_type);
 	__swab32s(&b->pb_version);
 	__swab32s(&b->pb_opc);
@@ -1466,8 +1468,10 @@ void lustre_swab_ptlrpc_body(struct ptlrpc_body *b)
 	CLASSERT(offsetof(typeof(*b), pb_jobid) != 0);
 }
 
-void lustre_swab_connect(struct obd_connect_data *ocd)
+void lustre_swab_connect(void *_ocd)
 {
+	struct obd_connect_data *ocd = _ocd;
+
 	__swab64s(&ocd->ocd_connect_flags);
 	__swab32s(&ocd->ocd_version);
 	__swab32s(&ocd->ocd_grant);
@@ -1541,8 +1545,10 @@ static void lustre_swab_obdo(struct obdo *o)
 	CLASSERT(offsetof(typeof(*o), o_padding_6) != 0);
 }
 
-void lustre_swab_obd_statfs(struct obd_statfs *os)
+void lustre_swab_obd_statfs(void *_os)
 {
+	struct obd_statfs *os = _os;
+
 	__swab64s(&os->os_type);
 	__swab64s(&os->os_blocks);
 	__swab64s(&os->os_bfree);
@@ -1565,37 +1571,49 @@ void lustre_swab_obd_statfs(struct obd_statfs *os)
 	CLASSERT(offsetof(typeof(*os), os_spare9) != 0);
 }
 
-void lustre_swab_obd_ioobj(struct obd_ioobj *ioo)
+void lustre_swab_obd_ioobj(void *_ioo)
 {
+	struct obd_ioobj *ioo = _ioo;
+
 	lustre_swab_ost_id(&ioo->ioo_oid);
 	__swab32s(&ioo->ioo_max_brw);
 	__swab32s(&ioo->ioo_bufcnt);
 }
 
-void lustre_swab_niobuf_remote(struct niobuf_remote *nbr)
+void lustre_swab_niobuf_remote(void *_nbr)
 {
+	struct niobuf_remote *nbr = _nbr;
+
 	__swab64s(&nbr->rnb_offset);
 	__swab32s(&nbr->rnb_len);
 	__swab32s(&nbr->rnb_flags);
 }
 
-void lustre_swab_ost_body(struct ost_body *b)
+void lustre_swab_ost_body(void *_b)
 {
+	struct ost_body *b = _b;
+
 	lustre_swab_obdo(&b->oa);
 }
 
-void lustre_swab_ost_last_id(u64 *id)
+void lustre_swab_ost_last_id(void *_id)
 {
+	u64 *id = _id;
+
 	__swab64s(id);
 }
 
-void lustre_swab_generic_32s(__u32 *val)
+void lustre_swab_generic_32s(void *_val)
 {
+	__u32 *val = _val;
+
 	__swab32s(val);
 }
 
-void lustre_swab_gl_desc(union ldlm_gl_desc *desc)
+void lustre_swab_gl_desc(void *_desc)
 {
+	union ldlm_gl_desc *desc = _desc;
+
 	lustre_swab_lu_fid(&desc->lquota_desc.gl_id.qid_fid);
 	__swab64s(&desc->lquota_desc.gl_flags);
 	__swab64s(&desc->lquota_desc.gl_ver);
@@ -1639,8 +1657,10 @@ void lustre_swab_lquota_lvb(struct lquota_lvb *lvb)
 }
 EXPORT_SYMBOL(lustre_swab_lquota_lvb);
 
-void lustre_swab_mdt_body(struct mdt_body *b)
+void lustre_swab_mdt_body(void *_b)
 {
+	struct mdt_body *b = _b;
+
 	lustre_swab_lu_fid(&b->mbo_fid1);
 	lustre_swab_lu_fid(&b->mbo_fid2);
 	/* handle is opaque */
@@ -1672,16 +1692,19 @@ void lustre_swab_mdt_body(struct mdt_body *b)
 	CLASSERT(offsetof(typeof(*b), mbo_padding_5) != 0);
 }
 
-void lustre_swab_mdt_ioepoch(struct mdt_ioepoch *b)
+void lustre_swab_mdt_ioepoch(void *_b)
 {
+	struct mdt_ioepoch *b = _b;
+
 	/* handle is opaque */
 	 __swab64s(&b->ioepoch);
 	 __swab32s(&b->flags);
 	 CLASSERT(offsetof(typeof(*b), padding) != 0);
 }
 
-void lustre_swab_mgs_target_info(struct mgs_target_info *mti)
+void lustre_swab_mgs_target_info(void *_mti)
 {
+	struct mgs_target_info *mti = _mti;
 	int i;
 
 	__swab32s(&mti->mti_lustre_ver);
@@ -1718,15 +1741,19 @@ void lustre_swab_mgs_nidtbl_entry(struct mgs_nidtbl_entry *entry)
 }
 EXPORT_SYMBOL(lustre_swab_mgs_nidtbl_entry);
 
-void lustre_swab_mgs_config_body(struct mgs_config_body *body)
+void lustre_swab_mgs_config_body(void *_body)
 {
+	struct mgs_config_body *body = _body;
+
 	__swab64s(&body->mcb_offset);
 	__swab32s(&body->mcb_units);
 	__swab16s(&body->mcb_type);
 }
 
-void lustre_swab_mgs_config_res(struct mgs_config_res *body)
+void lustre_swab_mgs_config_res(void *_body)
 {
+	struct mgs_config_res *body = _body;
+
 	__swab64s(&body->mcr_offset);
 	__swab64s(&body->mcr_size);
 }
@@ -1753,8 +1780,10 @@ static void lustre_swab_obd_dqblk(struct obd_dqblk *b)
 	CLASSERT(offsetof(typeof(*b), dqb_padding) != 0);
 }
 
-void lustre_swab_obd_quotactl(struct obd_quotactl *q)
+void lustre_swab_obd_quotactl(void *_q)
 {
+	struct obd_quotactl *q = _q;
+
 	__swab32s(&q->qc_cmd);
 	__swab32s(&q->qc_type);
 	__swab32s(&q->qc_id);
@@ -1781,8 +1810,9 @@ static void lustre_swab_fiemap_extent(struct ll_fiemap_extent *fm_extent)
 	__swab32s(&fm_extent->fe_device);
 }
 
-void lustre_swab_fiemap(struct ll_user_fiemap *fiemap)
+void lustre_swab_fiemap(void *_fiemap)
 {
+	struct ll_user_fiemap *fiemap = _fiemap;
 	__u32 i;
 
 	__swab64s(&fiemap->fm_start);
@@ -1796,8 +1826,10 @@ void lustre_swab_fiemap(struct ll_user_fiemap *fiemap)
 		lustre_swab_fiemap_extent(&fiemap->fm_extents[i]);
 }
 
-void lustre_swab_mdt_rec_reint (struct mdt_rec_reint *rr)
+void lustre_swab_mdt_rec_reint (void *_rr)
 {
+	struct mdt_rec_reint *rr = _rr;
+
 	__swab32s(&rr->rr_opcode);
 	__swab32s(&rr->rr_cap);
 	__swab32s(&rr->rr_fsuid);
@@ -1951,8 +1983,10 @@ static void lustre_swab_ldlm_policy_data(ldlm_wire_policy_data_t *d)
 	__swab32s(&d->l_flock.lfw_pid);
 }
 
-void lustre_swab_ldlm_intent(struct ldlm_intent *i)
+void lustre_swab_ldlm_intent(void *_i)
 {
+	struct ldlm_intent *i = _i;
+
 	__swab64s(&i->opc);
 }
 
@@ -1971,16 +2005,20 @@ static void lustre_swab_ldlm_lock_desc(struct ldlm_lock_desc *l)
 	lustre_swab_ldlm_policy_data(&l->l_policy_data);
 }
 
-void lustre_swab_ldlm_request(struct ldlm_request *rq)
+void lustre_swab_ldlm_request(void *_rq)
 {
+	struct ldlm_request *rq = _rq;
+
 	__swab32s(&rq->lock_flags);
 	lustre_swab_ldlm_lock_desc(&rq->lock_desc);
 	__swab32s(&rq->lock_count);
 	/* lock_handle[] opaque */
 }
 
-void lustre_swab_ldlm_reply(struct ldlm_reply *r)
+void lustre_swab_ldlm_reply(void *_r)
 {
+	struct ldlm_reply *r = _r;
+
 	__swab32s(&r->lock_flags);
 	CLASSERT(offsetof(typeof(*r), lock_padding) != 0);
 	lustre_swab_ldlm_lock_desc(&r->lock_desc);
@@ -1990,16 +2028,20 @@ void lustre_swab_ldlm_reply(struct ldlm_reply *r)
 }
 
 /* Dump functions */
-void dump_ioo(struct obd_ioobj *ioo)
+void dump_ioo(void *_ioo)
 {
+	struct obd_ioobj *ioo = _ioo;
+
 	CDEBUG(D_RPCTRACE,
 	       "obd_ioobj: ioo_oid=" DOSTID ", ioo_max_brw=%#x, ioo_bufct=%d\n",
 	       POSTID(&ioo->ioo_oid), ioo->ioo_max_brw,
 	       ioo->ioo_bufcnt);
 }
 
-void dump_rniobuf(struct niobuf_remote *nb)
+void dump_rniobuf(void *_nb)
 {
+	struct niobuf_remote *nb = _nb;
+
 	CDEBUG(D_RPCTRACE, "niobuf_remote: offset=%llu, len=%d, flags=%x\n",
 	       nb->rnb_offset, nb->rnb_len, nb->rnb_flags);
 }
@@ -2066,13 +2108,17 @@ static void dump_obdo(struct obdo *oa)
 		CDEBUG(D_RPCTRACE, "obdo: o_lcookie = (llog_cookie dumping not yet implemented)\n");
 }
 
-void dump_ost_body(struct ost_body *ob)
+void dump_ost_body(void *_ob)
 {
+	struct ost_body *ob = _ob;
+
 	dump_obdo(&ob->oa);
 }
 
-void dump_rcs(__u32 *rc)
+void dump_rcs(void *_rc)
 {
+	__u32 *rc = _rc;
+
 	CDEBUG(D_RPCTRACE, "rmf_rcs: %d\n", *rc);
 }
 
@@ -2148,8 +2194,10 @@ void _debug_req(struct ptlrpc_request *req,
 }
 EXPORT_SYMBOL(_debug_req);
 
-void lustre_swab_lustre_capa(struct lustre_capa *c)
+void lustre_swab_lustre_capa(void *_c)
 {
+	struct lustre_capa *c = _c;
+
 	lustre_swab_lu_fid(&c->lc_fid);
 	__swab64s(&c->lc_opc);
 	__swab64s(&c->lc_uid);
@@ -2160,14 +2208,18 @@ void lustre_swab_lustre_capa(struct lustre_capa *c)
 	__swab32s(&c->lc_expiry);
 }
 
-void lustre_swab_hsm_user_state(struct hsm_user_state *state)
+void lustre_swab_hsm_user_state(void *_state)
 {
+	struct hsm_user_state *state = _state;
+
 	__swab32s(&state->hus_states);
 	__swab32s(&state->hus_archive_id);
 }
 
-void lustre_swab_hsm_state_set(struct hsm_state_set *hss)
+void lustre_swab_hsm_state_set(void *_hss)
 {
+	struct hsm_state_set *hss = _hss;
+
 	__swab32s(&hss->hss_valid);
 	__swab64s(&hss->hss_setmask);
 	__swab64s(&hss->hss_clearmask);
@@ -2181,29 +2233,37 @@ static void lustre_swab_hsm_extent(struct hsm_extent *extent)
 	__swab64s(&extent->length);
 }
 
-void lustre_swab_hsm_current_action(struct hsm_current_action *action)
+void lustre_swab_hsm_current_action(void *_action)
 {
+	struct hsm_current_action *action = _action;
+
 	__swab32s(&action->hca_state);
 	__swab32s(&action->hca_action);
 	lustre_swab_hsm_extent(&action->hca_location);
 }
 
-void lustre_swab_hsm_user_item(struct hsm_user_item *hui)
+void lustre_swab_hsm_user_item(void *_hui)
 {
+	struct hsm_user_item *hui = _hui;
+
 	lustre_swab_lu_fid(&hui->hui_fid);
 	lustre_swab_hsm_extent(&hui->hui_extent);
 }
 
-void lustre_swab_layout_intent(struct layout_intent *li)
+void lustre_swab_layout_intent(void *_li)
 {
+	struct layout_intent *li = _li;
+
 	__swab32s(&li->li_opc);
 	__swab32s(&li->li_flags);
 	__swab64s(&li->li_start);
 	__swab64s(&li->li_end);
 }
 
-void lustre_swab_hsm_progress_kernel(struct hsm_progress_kernel *hpk)
+void lustre_swab_hsm_progress_kernel(void *_hpk)
 {
+	struct hsm_progress_kernel *hpk = _hpk;
+
 	lustre_swab_lu_fid(&hpk->hpk_fid);
 	__swab64s(&hpk->hpk_cookie);
 	__swab64s(&hpk->hpk_extent.offset);
@@ -2212,8 +2272,10 @@ void lustre_swab_hsm_progress_kernel(struct hsm_progress_kernel *hpk)
 	__swab16s(&hpk->hpk_errval);
 }
 
-void lustre_swab_hsm_request(struct hsm_request *hr)
+void lustre_swab_hsm_request(void *_hr)
 {
+	struct hsm_request *hr = _hr;
+
 	__swab32s(&hr->hr_action);
 	__swab32s(&hr->hr_archive_id);
 	__swab64s(&hr->hr_flags);
@@ -2221,14 +2283,18 @@ void lustre_swab_hsm_request(struct hsm_request *hr)
 	__swab32s(&hr->hr_data_len);
 }
 
-void lustre_swab_swap_layouts(struct mdc_swap_layouts *msl)
+void lustre_swab_swap_layouts(void *_msl)
 {
+	struct mdc_swap_layouts *msl = _msl;
+
 	__swab64s(&msl->msl_flags);
 }
 EXPORT_SYMBOL(lustre_swab_swap_layouts);
 
-void lustre_swab_close_data(struct close_data *cd)
+void lustre_swab_close_data(void *_cd)
 {
+	struct close_data *cd = _cd;
+
 	lustre_swab_lu_fid(&cd->cd_fid);
 	__swab64s(&cd->cd_data_version);
 }

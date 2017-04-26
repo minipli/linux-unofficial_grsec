@@ -491,7 +491,6 @@ static struct cdrom_device_ops gdrom_ops = {
 	.audio_ioctl		= gdrom_audio_ioctl,
 	.capability		= CDC_MULTI_SESSION | CDC_MEDIA_CHANGED |
 				  CDC_RESET | CDC_DRIVE_STATUS | CDC_CD_R,
-	.n_minors		= 1,
 };
 
 static int gdrom_bdops_open(struct block_device *bdev, fmode_t mode)

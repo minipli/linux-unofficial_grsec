@@ -10,6 +10,7 @@
 #include <asm/processor.h>
 #include <asm/mtrr.h>
 #include <asm/cacheflush.h>
+#include <asm/sections.h>
 
 void __init check_bugs(void)
 {
@@ -18,6 +19,7 @@ void __init check_bugs(void)
 	pr_info("CPU: ");
 	print_cpu_info(&boot_cpu_data);
 #endif
+	set_memory_nx((unsigned long)_sinitdata, (__START_KERNEL_map + KERNEL_IMAGE_SIZE - (unsigned long)_sinitdata) >> PAGE_SHIFT);
 	alternative_instructions();
 
 	/*

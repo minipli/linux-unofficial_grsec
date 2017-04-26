@@ -80,12 +80,12 @@ static struct attribute_group amd_iommu_format_group = {
  * sysfs events attributes
  *---------------------------------------------*/
 struct amd_iommu_event_desc {
-	struct kobj_attribute attr;
+	struct device_attribute attr;
 	const char *event;
 };
 
-static ssize_t _iommu_event_show(struct kobject *kobj,
-				struct kobj_attribute *attr, char *buf)
+static ssize_t _iommu_event_show(struct device *dev,
+				struct device_attribute *attr, char *buf)
 {
 	struct amd_iommu_event_desc *event =
 		container_of(attr, struct amd_iommu_event_desc, attr);
@@ -407,7 +407,7 @@ static void perf_iommu_del(struct perf_event *event, int flags)
 static __init int _init_events_attrs(struct perf_amd_iommu *perf_iommu)
 {
 	struct attribute **attrs;
-	struct attribute_group *attr_group;
+	attribute_group_no_const *attr_group;
 	int i = 0, j;
 
 	while (amd_iommu_v2_event_descs[i].attr.attr.name)

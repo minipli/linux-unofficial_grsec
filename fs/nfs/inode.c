@@ -1323,16 +1323,16 @@ static int nfs_check_inode_attributes(struct inode *inode, struct nfs_fattr *fat
 	return 0;
 }
 
-static atomic_long_t nfs_attr_generation_counter;
+static atomic_long_unchecked_t nfs_attr_generation_counter;
 
 static unsigned long nfs_read_attr_generation_counter(void)
 {
-	return atomic_long_read(&nfs_attr_generation_counter);
+	return atomic_long_read_unchecked(&nfs_attr_generation_counter);
 }
 
 unsigned long nfs_inc_attr_generation_counter(void)
 {
-	return atomic_long_inc_return(&nfs_attr_generation_counter);
+	return atomic_long_inc_return_unchecked(&nfs_attr_generation_counter);
 }
 EXPORT_SYMBOL_GPL(nfs_inc_attr_generation_counter);
 

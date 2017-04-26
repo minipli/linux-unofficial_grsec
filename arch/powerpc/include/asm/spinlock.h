@@ -27,6 +27,7 @@
 #include <asm/asm-compat.h>
 #include <asm/synch.h>
 #include <asm/ppc-opcode.h>
+#include <asm/atomic.h>
 
 #ifdef CONFIG_PPC64
 /* use 0x800000yy when locked, where yy == CPU number */
@@ -228,13 +229,29 @@ static inline long __arch_read_trylock(arch_rwlock_t *rw)
 	__asm__ __volatile__(
 "1:	" PPC_LWARX(%0,0,%1,1) "\n"
 	__DO_SIGN_EXTEND
-"	addic.		%0,%0,1\n\
-	ble-		2f\n"
+
+#ifdef	CONFIG_PAX_REFCOUNT
+"	mcrxr	cr0\n"
+"	addico.		%0,%0,1\n"
+"	bf 4*cr0+so, 3f\n"
+"2:.long " "0x00c00b00""\n"
+#else
+"	addic.		%0,%0,1\n"
+#endif
+
+"3:\n"
+	"ble-		4f\n"
 	PPC405_ERR77(0,%1)
 "	stwcx.		%0,0,%1\n\
 	bne-		1b\n"
 	PPC_ACQUIRE_BARRIER
-"2:"	: "=&r" (tmp)
+"4:"	
+
+#ifdef CONFIG_PAX_REFCOUNT
+	_ASM_EXTABLE(2b,4b)
+#endif
+
+	: "=&r" (tmp)
 	: "r" (&rw->lock)
 	: "cr0", "xer", "memory");
 
@@ -310,11 +327,27 @@ static inline void arch_read_unlock(arch_rwlock_t *rw)
 	__asm__ __volatile__(
 	"# read_unlock\n\t"
 	PPC_RELEASE_BARRIER
-"1:	lwarx		%0,0,%1\n\
-	addic		%0,%0,-1\n"
+"1:	lwarx		%0,0,%1\n"
+
+#ifdef CONFIG_PAX_REFCOUNT
+"	mcrxr 	cr0\n"
+"	addico.		%0,%0,-1\n"
+"	bf 4*cr0+so, 3f\n"
+"2:.long " "0x00c00b00""\n"
+#else
+"	addic.		%0,%0,-1\n"
+#endif
+
+"3:\n"
 	PPC405_ERR77(0,%1)
 "	stwcx.		%0,0,%1\n\
 	bne-		1b"
+
+#ifdef CONFIG_PAX_REFCOUNT
+"\n4:\n"
+	_ASM_EXTABLE(2b, 4b)
+#endif
+
 	: "=&r"(tmp)
 	: "r"(&rw->lock)
 	: "cr0", "xer", "memory");

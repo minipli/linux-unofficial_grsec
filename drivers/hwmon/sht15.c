@@ -170,7 +170,7 @@ struct sht15_data {
 	int				supply_uv;
 	bool				supply_uv_valid;
 	struct work_struct		update_supply_work;
-	atomic_t			interrupt_handled;
+	atomic_unchecked_t		interrupt_handled;
 };
 
 /**
@@ -530,13 +530,13 @@ static int sht15_measurement(struct sht15_data *data,
 	ret = gpio_direction_input(data->pdata->gpio_data);
 	if (ret)
 		return ret;
-	atomic_set(&data->interrupt_handled, 0);
+	atomic_set_unchecked(&data->interrupt_handled, 0);
 
 	enable_irq(gpio_to_irq(data->pdata->gpio_data));
 	if (gpio_get_value(data->pdata->gpio_data) == 0) {
 		disable_irq_nosync(gpio_to_irq(data->pdata->gpio_data));
 		/* Only relevant if the interrupt hasn't occurred. */
-		if (!atomic_read(&data->interrupt_handled))
+		if (!atomic_read_unchecked(&data->interrupt_handled))
 			schedule_work(&data->read_work);
 	}
 	ret = wait_event_timeout(data->wait_queue,
@@ -808,7 +808,7 @@ static irqreturn_t sht15_interrupt_fired(int irq, void *d)
 
 	/* First disable the interrupt */
 	disable_irq_nosync(irq);
-	atomic_inc(&data->interrupt_handled);
+	atomic_inc_unchecked(&data->interrupt_handled);
 	/* Then schedule a reading work struct */
 	if (data->state != SHT15_READING_NOTHING)
 		schedule_work(&data->read_work);
@@ -830,11 +830,11 @@ static void sht15_bh_read_data(struct work_struct *work_s)
 		 * If not, then start the interrupt again - care here as could
 		 * have gone low in meantime so verify it hasn't!
 		 */
-		atomic_set(&data->interrupt_handled, 0);
+		atomic_set_unchecked(&data->interrupt_handled, 0);
 		enable_irq(gpio_to_irq(data->pdata->gpio_data));
 		/* If still not occurred or another handler was scheduled */
 		if (gpio_get_value(data->pdata->gpio_data)
-		    || atomic_read(&data->interrupt_handled))
+		    || atomic_read_unchecked(&data->interrupt_handled))
 			return;
 	}
 

@@ -437,7 +437,7 @@ static int xtfpga_pcm_trigger(struct snd_pcm_substream *substream, int cmd)
 	case SNDRV_PCM_TRIGGER_START:
 	case SNDRV_PCM_TRIGGER_RESUME:
 	case SNDRV_PCM_TRIGGER_PAUSE_RELEASE:
-		ACCESS_ONCE(i2s->tx_ptr) = 0;
+		ACCESS_ONCE_RW(i2s->tx_ptr) = 0;
 		rcu_assign_pointer(i2s->tx_substream, substream);
 		xtfpga_pcm_refill_fifo(i2s);
 		break;

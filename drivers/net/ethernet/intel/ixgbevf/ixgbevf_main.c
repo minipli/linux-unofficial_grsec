@@ -3629,7 +3629,7 @@ static int ixgbevf_maybe_stop_tx(struct ixgbevf_ring *tx_ring, int size)
 	return __ixgbevf_maybe_stop_tx(tx_ring, size);
 }
 
-static int ixgbevf_xmit_frame(struct sk_buff *skb, struct net_device *netdev)
+static netdev_tx_t ixgbevf_xmit_frame(struct sk_buff *skb, struct net_device *netdev)
 {
 	struct ixgbevf_adapter *adapter = netdev_priv(netdev);
 	struct ixgbevf_tx_buffer *first;
@@ -4221,7 +4221,7 @@ static void ixgbevf_remove(struct pci_dev *pdev)
  * this device has been detected.
  **/
 static pci_ers_result_t ixgbevf_io_error_detected(struct pci_dev *pdev,
-						  pci_channel_state_t state)
+						  enum pci_channel_state state)
 {
 	struct net_device *netdev = pci_get_drvdata(pdev);
 	struct ixgbevf_adapter *adapter = netdev_priv(netdev);

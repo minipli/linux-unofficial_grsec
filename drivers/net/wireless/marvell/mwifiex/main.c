@@ -853,7 +853,7 @@ mwifiex_clone_skb_for_tx_status(struct mwifiex_private *priv,
 /*
  * CFG802.11 network device handler for data transmission.
  */
-static int
+static netdev_tx_t
 mwifiex_hard_start_xmit(struct sk_buff *skb, struct net_device *dev)
 {
 	struct mwifiex_private *priv = mwifiex_netdev_get_priv(dev);
@@ -1539,14 +1539,10 @@ exit_sem_err:
  */
 void mwifiex_do_flr(struct mwifiex_adapter *adapter, bool prepare)
 {
-	struct mwifiex_if_ops if_ops;
-
 	if (!prepare) {
-		mwifiex_reinit_sw(adapter, adapter->card_sem, &if_ops,
+		mwifiex_reinit_sw(adapter, adapter->card_sem, NULL,
 				  adapter->iface_type);
 	} else {
-		memcpy(&if_ops, &adapter->if_ops,
-		       sizeof(struct mwifiex_if_ops));
 		mwifiex_shutdown_sw(adapter, adapter->card_sem);
 	}
 }

@@ -178,7 +178,7 @@ static void asm_emit_data(void *e, struct data d)
 	for_each_marker_of_type(m, LABEL)
 		emit_offset_label(f, m->ref, m->offset);
 
-	while ((d.len - off) >= sizeof(uint32_t)) {
+	while ((d.len - off) >= (int)sizeof(uint32_t)) {
 		asm_emit_cell(e, fdt32_to_cpu(*((uint32_t *)(d.val+off))));
 		off += sizeof(uint32_t);
 	}
@@ -369,7 +369,7 @@ static void make_fdt_header(struct fdt_header *fdt,
 void dt_to_blob(FILE *f, struct boot_info *bi, int version)
 {
 	struct version_info *vi = NULL;
-	int i;
+	size_t i;
 	struct data blob       = empty_data;
 	struct data reservebuf = empty_data;
 	struct data dtbuf      = empty_data;
@@ -463,7 +463,7 @@ static void dump_stringtable_asm(FILE *f, struct data strbuf)
 void dt_to_asm(FILE *f, struct boot_info *bi, int version)
 {
 	struct version_info *vi = NULL;
-	int i;
+	size_t i;
 	struct data strbuf = empty_data;
 	struct reserve_info *re;
 	const char *symprefix = "dt";
@@ -543,7 +543,7 @@ void dt_to_asm(FILE *f, struct boot_info *bi, int version)
 		ASM_EMIT_BELONG(f, "0x%08x", (unsigned int)(re->re.size >> 32));
 		ASM_EMIT_BELONG(f, "0x%08x", (unsigned int)(re->re.size & 0xffffffff));
 	}
-	for (i = 0; i < reservenum; i++) {
+	for (i = 0; i < (size_t)reservenum; i++) {
 		fprintf(f, "\t.long\t0, 0\n\t.long\t0, 0\n");
 	}
 

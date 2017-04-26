@@ -377,17 +377,17 @@ acpi_status acpi_db_display_statistics(char *type_arg)
 			       "ACPI_TYPE", "NODES", "OBJECTS");
 
 		for (i = 0; i < ACPI_TYPE_NS_NODE_MAX; i++) {
-			acpi_os_printf("%16.16s % 10ld% 10ld\n",
+			acpi_os_printf("%16.16s % 10d% 10d\n",
 				       acpi_ut_get_type_name(i),
 				       acpi_gbl_node_type_count[i],
 				       acpi_gbl_obj_type_count[i]);
 		}
 
-		acpi_os_printf("%16.16s % 10ld% 10ld\n", "Misc/Unknown",
+		acpi_os_printf("%16.16s % 10d% 10d\n", "Misc/Unknown",
 			       acpi_gbl_node_type_count_misc,
 			       acpi_gbl_obj_type_count_misc);
 
-		acpi_os_printf("%16.16s % 10ld% 10ld\n", "TOTALS:",
+		acpi_os_printf("%16.16s % 10d% 10d\n", "TOTALS:",
 			       acpi_gbl_num_nodes, acpi_gbl_num_objects);
 		break;
 
@@ -415,16 +415,16 @@ acpi_status acpi_db_display_statistics(char *type_arg)
 	case CMD_STAT_MISC:
 
 		acpi_os_printf("\nMiscellaneous Statistics:\n\n");
-		acpi_os_printf("Calls to AcpiPsFind:.. ........% 7ld\n",
+		acpi_os_printf("Calls to AcpiPsFind:.. ........% 7u\n",
 			       acpi_gbl_ps_find_count);
-		acpi_os_printf("Calls to AcpiNsLookup:..........% 7ld\n",
+		acpi_os_printf("Calls to AcpiNsLookup:..........% 7u\n",
 			       acpi_gbl_ns_lookup_count);
 
 		acpi_os_printf("\n");
 
 		acpi_os_printf("Mutex usage:\n\n");
 		for (i = 0; i < ACPI_NUM_MUTEX; i++) {
-			acpi_os_printf("%-28s:     % 7ld\n",
+			acpi_os_printf("%-28s:     % 7u\n",
 				       acpi_ut_get_mutex_name(i),
 				       acpi_gbl_mutex_info[i].use_count);
 		}
@@ -434,87 +434,87 @@ acpi_status acpi_db_display_statistics(char *type_arg)
 
 		acpi_os_printf("\nInternal object sizes:\n\n");
 
-		acpi_os_printf("Common         %3d\n",
+		acpi_os_printf("Common         %3lu\n",
 			       sizeof(struct acpi_object_common));
-		acpi_os_printf("Number         %3d\n",
+		acpi_os_printf("Number         %3lu\n",
 			       sizeof(struct acpi_object_integer));
-		acpi_os_printf("String         %3d\n",
+		acpi_os_printf("String         %3lu\n",
 			       sizeof(struct acpi_object_string));
-		acpi_os_printf("Buffer         %3d\n",
+		acpi_os_printf("Buffer         %3lu\n",
 			       sizeof(struct acpi_object_buffer));
-		acpi_os_printf("Package        %3d\n",
+		acpi_os_printf("Package        %3lu\n",
 			       sizeof(struct acpi_object_package));
-		acpi_os_printf("BufferField    %3d\n",
+		acpi_os_printf("BufferField    %3lu\n",
 			       sizeof(struct acpi_object_buffer_field));
-		acpi_os_printf("Device         %3d\n",
+		acpi_os_printf("Device         %3lu\n",
 			       sizeof(struct acpi_object_device));
-		acpi_os_printf("Event          %3d\n",
+		acpi_os_printf("Event          %3lu\n",
 			       sizeof(struct acpi_object_event));
-		acpi_os_printf("Method         %3d\n",
+		acpi_os_printf("Method         %3lu\n",
 			       sizeof(struct acpi_object_method));
-		acpi_os_printf("Mutex          %3d\n",
+		acpi_os_printf("Mutex          %3lu\n",
 			       sizeof(struct acpi_object_mutex));
-		acpi_os_printf("Region         %3d\n",
+		acpi_os_printf("Region         %3lu\n",
 			       sizeof(struct acpi_object_region));
-		acpi_os_printf("PowerResource  %3d\n",
+		acpi_os_printf("PowerResource  %3lu\n",
 			       sizeof(struct acpi_object_power_resource));
-		acpi_os_printf("Processor      %3d\n",
+		acpi_os_printf("Processor      %3lu\n",
 			       sizeof(struct acpi_object_processor));
-		acpi_os_printf("ThermalZone    %3d\n",
+		acpi_os_printf("ThermalZone    %3lu\n",
 			       sizeof(struct acpi_object_thermal_zone));
-		acpi_os_printf("RegionField    %3d\n",
+		acpi_os_printf("RegionField    %3lu\n",
 			       sizeof(struct acpi_object_region_field));
-		acpi_os_printf("BankField      %3d\n",
+		acpi_os_printf("BankField      %3lu\n",
 			       sizeof(struct acpi_object_bank_field));
-		acpi_os_printf("IndexField     %3d\n",
+		acpi_os_printf("IndexField     %3lu\n",
 			       sizeof(struct acpi_object_index_field));
-		acpi_os_printf("Reference      %3d\n",
+		acpi_os_printf("Reference      %3lu\n",
 			       sizeof(struct acpi_object_reference));
-		acpi_os_printf("Notify         %3d\n",
+		acpi_os_printf("Notify         %3lu\n",
 			       sizeof(struct acpi_object_notify_handler));
-		acpi_os_printf("AddressSpace   %3d\n",
+		acpi_os_printf("AddressSpace   %3lu\n",
 			       sizeof(struct acpi_object_addr_handler));
-		acpi_os_printf("Extra          %3d\n",
+		acpi_os_printf("Extra          %3lu\n",
 			       sizeof(struct acpi_object_extra));
-		acpi_os_printf("Data           %3d\n",
+		acpi_os_printf("Data           %3lu\n",
 			       sizeof(struct acpi_object_data));
 
 		acpi_os_printf("\n");
 
-		acpi_os_printf("ParseObject    %3d\n",
+		acpi_os_printf("ParseObject    %3lu\n",
 			       sizeof(struct acpi_parse_obj_common));
-		acpi_os_printf("ParseObjectNamed %3d\n",
+		acpi_os_printf("ParseObjectNamed %3lu\n",
 			       sizeof(struct acpi_parse_obj_named));
-		acpi_os_printf("ParseObjectAsl %3d\n",
+		acpi_os_printf("ParseObjectAsl %3lu\n",
 			       sizeof(struct acpi_parse_obj_asl));
-		acpi_os_printf("OperandObject  %3d\n",
+		acpi_os_printf("OperandObject  %3lu\n",
 			       sizeof(union acpi_operand_object));
-		acpi_os_printf("NamespaceNode  %3d\n",
+		acpi_os_printf("NamespaceNode  %3lu\n",
 			       sizeof(struct acpi_namespace_node));
-		acpi_os_printf("AcpiObject     %3d\n",
+		acpi_os_printf("AcpiObject     %3lu\n",
 			       sizeof(union acpi_object));
 
 		acpi_os_printf("\n");
 
-		acpi_os_printf("Generic State  %3d\n",
+		acpi_os_printf("Generic State  %3lu\n",
 			       sizeof(union acpi_generic_state));
-		acpi_os_printf("Common State   %3d\n",
+		acpi_os_printf("Common State   %3lu\n",
 			       sizeof(struct acpi_common_state));
-		acpi_os_printf("Control State  %3d\n",
+		acpi_os_printf("Control State  %3lu\n",
 			       sizeof(struct acpi_control_state));
-		acpi_os_printf("Update State   %3d\n",
+		acpi_os_printf("Update State   %3lu\n",
 			       sizeof(struct acpi_update_state));
-		acpi_os_printf("Scope State    %3d\n",
+		acpi_os_printf("Scope State    %3lu\n",
 			       sizeof(struct acpi_scope_state));
-		acpi_os_printf("Parse Scope    %3d\n",
+		acpi_os_printf("Parse Scope    %3lu\n",
 			       sizeof(struct acpi_pscope_state));
-		acpi_os_printf("Package State  %3d\n",
+		acpi_os_printf("Package State  %3lu\n",
 			       sizeof(struct acpi_pkg_state));
-		acpi_os_printf("Thread State   %3d\n",
+		acpi_os_printf("Thread State   %3lu\n",
 			       sizeof(struct acpi_thread_state));
-		acpi_os_printf("Result Values  %3d\n",
+		acpi_os_printf("Result Values  %3lu\n",
 			       sizeof(struct acpi_result_values));
-		acpi_os_printf("Notify Info    %3d\n",
+		acpi_os_printf("Notify Info    %3lu\n",
 			       sizeof(struct acpi_notify_info));
 		break;
 

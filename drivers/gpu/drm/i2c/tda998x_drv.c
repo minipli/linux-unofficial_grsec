@@ -873,7 +873,7 @@ static void tda998x_encoder_dpms(struct drm_encoder *encoder, int mode)
 	priv->dpms = mode;
 }
 
-static int tda998x_connector_mode_valid(struct drm_connector *connector,
+static enum drm_mode_status tda998x_connector_mode_valid(struct drm_connector *connector,
 					struct drm_display_mode *mode)
 {
 	/* TDA19988 dotclock can go up to 165MHz */

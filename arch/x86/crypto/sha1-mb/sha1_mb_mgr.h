@@ -106,5 +106,6 @@ struct job_sha1 *sha1_mb_mgr_submit_avx2(struct sha1_mb_mgr *state,
 					 struct job_sha1 *job);
 struct job_sha1 *sha1_mb_mgr_flush_avx2(struct sha1_mb_mgr *state);
 struct job_sha1 *sha1_mb_mgr_get_comp_job_avx2(struct sha1_mb_mgr *state);
+struct job_sha1 *sha1_x8_avx2(struct sha1_mb_mgr *state) __rap_hash;
 
 #endif

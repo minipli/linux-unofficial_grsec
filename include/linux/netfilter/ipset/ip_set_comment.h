@@ -58,8 +58,9 @@ ip_set_put_comment(struct sk_buff *skb, struct ip_set_comment *comment)
  * of the set data anymore.
  */
 static inline void
-ip_set_comment_free(struct ip_set_comment *comment)
+ip_set_comment_free(void *_comment)
 {
+	struct ip_set_comment *comment = _comment;
 	struct ip_set_comment_rcu *c;
 
 	c = rcu_dereference_protected(comment->c, 1);

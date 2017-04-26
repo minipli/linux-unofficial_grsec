@@ -1292,7 +1292,7 @@ static void vfio_pci_remove(struct pci_dev *pdev)
 }
 
 static pci_ers_result_t vfio_pci_aer_err_detected(struct pci_dev *pdev,
-						  pci_channel_state_t state)
+						  enum pci_channel_state state)
 {
 	struct vfio_pci_device *vdev;
 	struct vfio_device *device;

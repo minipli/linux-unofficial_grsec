@@ -30,6 +30,7 @@
  * This file contains the arch-independent routines.
  */
 
+#include <linux/bug.h>
 #include <linux/irqflags.h>
 #include <linux/kallsyms.h>
 #include <linux/notifier.h>

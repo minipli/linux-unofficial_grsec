@@ -138,7 +138,7 @@ typedef struct _diva_xdi_dma_descriptor_operation {
 #define IDI_SYNC_REQ_DIDD_GET_CFG_LIB_IFC           0x10
 typedef struct _diva_didd_adapter_notify {
 	dword handle; /* Notification handle */
-	void *callback;
+	didd_adapter_change_callback_t callback;
 	void *context;
 } diva_didd_adapter_notify_t;
 typedef struct _diva_didd_add_adapter {

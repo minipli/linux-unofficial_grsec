@@ -19,6 +19,8 @@
 #include <asm/idle.h>
 #include <asm/apic.h>
 
+extern void gr_handle_kernel_exploit(void);
+
 int sysctl_panic_on_stackoverflow;
 
 /*
@@ -44,9 +46,8 @@ static inline void stack_overflow_check(struct pt_regs *regs)
 	    regs->sp <= curbase + THREAD_SIZE)
 		return;
 
-	irq_stack_top = (u64)this_cpu_ptr(irq_stack_union.irq_stack) +
-			STACK_TOP_MARGIN;
 	irq_stack_bottom = (u64)__this_cpu_read(irq_stack_ptr);
+	irq_stack_top = irq_stack_bottom - IRQ_STACK_SIZE + STACK_TOP_MARGIN;
 	if (regs->sp >= irq_stack_top && regs->sp <= irq_stack_bottom)
 		return;
 
@@ -60,6 +61,8 @@ static inline void stack_overflow_check(struct pt_regs *regs)
 		current->comm, curbase, regs->sp,
 		irq_stack_top, irq_stack_bottom,
 		estack_top, estack_bottom);
+
+	gr_handle_kernel_exploit();
 
 	if (sysctl_panic_on_stackoverflow)
 		panic("low stack detected by irq handler - check messages\n");

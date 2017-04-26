@@ -93,7 +93,7 @@ static int ts4800_ic_probe(struct platform_device *pdev)
 {
 	struct device_node *node = pdev->dev.of_node;
 	struct ts4800_irq_data *data;
-	struct irq_chip *irq_chip;
+	irq_chip_no_const *irq_chip;
 	struct resource *res;
 	int parent_irq;
 

@@ -17,7 +17,10 @@ extern void proc_flush_task(struct task_struct *);
 extern struct proc_dir_entry *proc_symlink(const char *,
 		struct proc_dir_entry *, const char *);
 extern struct proc_dir_entry *proc_mkdir(const char *, struct proc_dir_entry *);
+extern struct proc_dir_entry *proc_mkdir_restrict(const char *, struct proc_dir_entry *);
 extern struct proc_dir_entry *proc_mkdir_data(const char *, umode_t,
+					      struct proc_dir_entry *, void *);
+extern struct proc_dir_entry *proc_mkdir_data_restrict(const char *, umode_t,
 					      struct proc_dir_entry *, void *);
 extern struct proc_dir_entry *proc_mkdir_mode(const char *, umode_t,
 					      struct proc_dir_entry *);
@@ -33,6 +36,19 @@ static inline struct proc_dir_entry *proc_create(
 {
 	return proc_create_data(name, mode, parent, proc_fops, NULL);
 }
+
+static inline struct proc_dir_entry *proc_create_grsec(const char *name, umode_t mode,
+	struct proc_dir_entry *parent, const struct file_operations *proc_fops)
+{
+#ifdef CONFIG_GRKERNSEC_PROC_USER
+	return proc_create_data(name, S_IRUSR, parent, proc_fops, NULL);
+#elif defined(CONFIG_GRKERNSEC_PROC_USERGROUP)
+	return proc_create_data(name, S_IRUSR | S_IRGRP, parent, proc_fops, NULL);
+#else
+	return proc_create_data(name, mode, parent, proc_fops, NULL);
+#endif
+}
+
 
 extern void proc_set_size(struct proc_dir_entry *, loff_t);
 extern void proc_set_user(struct proc_dir_entry *, kuid_t, kgid_t);
@@ -56,7 +72,11 @@ static inline struct proc_dir_entry *proc_symlink(const char *name,
 		struct proc_dir_entry *parent,const char *dest) { return NULL;}
 static inline struct proc_dir_entry *proc_mkdir(const char *name,
 	struct proc_dir_entry *parent) {return NULL;}
+static inline struct proc_dir_entry *proc_mkdir_restrict(const char *name,
+	struct proc_dir_entry *parent) { return NULL; }
 static inline struct proc_dir_entry *proc_mkdir_data(const char *name,
+	umode_t mode, struct proc_dir_entry *parent, void *data) { return NULL; }
+static inline  struct proc_dir_entry *proc_mkdir_data_restrict(const char *name,
 	umode_t mode, struct proc_dir_entry *parent, void *data) { return NULL; }
 static inline struct proc_dir_entry *proc_mkdir_mode(const char *name,
 	umode_t mode, struct proc_dir_entry *parent) { return NULL; }
@@ -79,7 +99,7 @@ struct net;
 static inline struct proc_dir_entry *proc_net_mkdir(
 	struct net *net, const char *name, struct proc_dir_entry *parent)
 {
-	return proc_mkdir_data(name, 0, parent, net);
+	return proc_mkdir_data_restrict(name, 0, parent, net);
 }
 
 #endif /* _LINUX_PROC_FS_H */

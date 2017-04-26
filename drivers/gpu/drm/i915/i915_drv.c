@@ -50,7 +50,7 @@
 #include "i915_vgpu.h"
 #include "intel_drv.h"
 
-static struct drm_driver driver;
+static drm_driver_no_const driver;
 
 static unsigned int i915_load_fail_count;
 
@@ -519,7 +519,7 @@ static bool i915_switcheroo_can_switch(struct pci_dev *pdev)
 	 * locking inversion with the driver load path. And the access here is
 	 * completely racy anyway. So don't bother with locking for now.
 	 */
-	return dev->open_count == 0;
+	return local_read(&dev->open_count) == 0;
 }
 
 static const struct vga_switcheroo_client_ops i915_switcheroo_ops = {
@@ -1179,8 +1179,11 @@ int i915_driver_load(struct pci_dev *pdev, const struct pci_device_id *ent)
 	struct drm_i915_private *dev_priv;
 	int ret;
 
-	if (i915.nuclear_pageflip)
+	if (i915.nuclear_pageflip) {
+		pax_open_kernel();
 		driver.driver_features |= DRIVER_ATOMIC;
+		pax_close_kernel();
+	}
 
 	ret = -ENOMEM;
 	dev_priv = kzalloc(sizeof(*dev_priv), GFP_KERNEL);
@@ -2561,7 +2564,7 @@ static const struct drm_ioctl_desc i915_ioctls[] = {
 	DRM_IOCTL_DEF_DRV(I915_GEM_CONTEXT_SETPARAM, i915_gem_context_setparam_ioctl, DRM_RENDER_ALLOW),
 };
 
-static struct drm_driver driver = {
+static drm_driver_no_const driver __read_only = {
 	/* Don't use MTRRs here; the Xserver or userspace app should
 	 * deal with them for Intel hardware.
 	 */

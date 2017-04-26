@@ -202,13 +202,6 @@ static void xgbe_default_config(struct xgbe_prv_data *pdata)
 	DBGPR("<--xgbe_default_config\n");
 }
 
-static void xgbe_init_all_fptrs(struct xgbe_prv_data *pdata)
-{
-	xgbe_init_function_ptrs_dev(&pdata->hw_if);
-	xgbe_init_function_ptrs_phy(&pdata->phy_if);
-	xgbe_init_function_ptrs_desc(&pdata->desc_if);
-}
-
 #ifdef CONFIG_ACPI
 static int xgbe_acpi_support(struct xgbe_prv_data *pdata)
 {
@@ -647,10 +640,12 @@ static int xgbe_probe(struct platform_device *pdev)
 	memcpy(netdev->dev_addr, pdata->mac_addr, netdev->addr_len);
 
 	/* Set all the function pointers */
-	xgbe_init_all_fptrs(pdata);
+	pdata->hw_if = &default_xgbe_hw_if;
+	pdata->phy_if = &default_xgbe_phy_if;
+	pdata->desc_if = &default_xgbe_desc_if;
 
 	/* Issue software reset to device */
-	pdata->hw_if.exit(pdata);
+	pdata->hw_if->exit(pdata);
 
 	/* Populate the hardware features */
 	xgbe_get_all_hw_features(pdata);
@@ -704,7 +699,7 @@ static int xgbe_probe(struct platform_device *pdev)
 	XGMAC_SET_BITS(pdata->rss_options, MAC_RSSCR, UDP4TE, 1);
 
 	/* Call MDIO/PHY initialization routine */
-	pdata->phy_if.phy_init(pdata);
+	pdata->phy_if->phy_init(pdata);
 
 	/* Set device operations */
 	netdev->netdev_ops = xgbe_get_netdev_ops();

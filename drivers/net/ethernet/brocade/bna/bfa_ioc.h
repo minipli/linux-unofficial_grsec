@@ -156,7 +156,7 @@ struct bfa_ioc_notify {
 } while (0)
 
 struct bfa_iocpf {
-	bfa_fsm_t		fsm;
+	bfa_fsm_iocpf_t		fsm;
 	struct bfa_ioc		*ioc;
 	bool			fw_mismatch_notified;
 	bool			auto_recover;
@@ -164,7 +164,7 @@ struct bfa_iocpf {
 };
 
 struct bfa_ioc {
-	bfa_fsm_t		fsm;
+	bfa_fsm_ioc_t		fsm;
 	struct bfa		*bfa;
 	struct bfa_pcidev	pcidev;
 	struct timer_list	ioc_timer;

@@ -237,10 +237,11 @@ __ATTR(_name, 0644, show_##_name, store_##_name)
 struct global_attr {
 	struct attribute attr;
 	ssize_t (*show)(struct kobject *kobj,
-			struct attribute *attr, char *buf);
-	ssize_t (*store)(struct kobject *a, struct attribute *b,
+			struct kobj_attribute *attr, char *buf);
+	ssize_t (*store)(struct kobject *a, struct kobj_attribute *b,
 			 const char *c, size_t count);
 };
+typedef struct global_attr __no_const global_attr_no_const;
 
 #define define_one_global_ro(_name)		\
 static struct global_attr _name =		\
@@ -323,7 +324,7 @@ struct cpufreq_driver {
 	/* platform specific boost support code */
 	bool		boost_enabled;
 	int		(*set_boost)(int state);
-};
+} __do_const;
 
 /* flags */
 #define CPUFREQ_STICKY		(1 << 0)	/* driver isn't removed even if

@@ -84,7 +84,9 @@ void __init pxa910_init_irq(void)
 {
 	icu_init_irq();
 #ifdef CONFIG_PM
-	icu_irq_chip.irq_set_wake = pxa910_set_wake;
+	pax_open_kernel();
+	const_cast(icu_irq_chip.irq_set_wake) = pxa910_set_wake;
+	pax_close_kernel();
 #endif
 }
 

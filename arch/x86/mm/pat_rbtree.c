@@ -170,7 +170,7 @@ success:
 
 failure:
 	pr_info("x86/PAT: %s:%d conflicting memory types %Lx-%Lx %s<->%s\n",
-		current->comm, current->pid, start, end,
+		current->comm, task_pid_nr(current), start, end,
 		cattr_name(found_type), cattr_name(match->type));
 	return -EBUSY;
 }

@@ -659,7 +659,7 @@ add_delayed_tree_ref(struct btrfs_fs_info *fs_info,
 		action = BTRFS_ADD_DELAYED_REF;
 
 	if (is_fstree(ref_root))
-		seq = atomic64_read(&fs_info->tree_mod_seq);
+		seq = atomic64_read_unchecked(&fs_info->tree_mod_seq);
 	delayed_refs = &trans->transaction->delayed_refs;
 
 	/* first set the basic ref node struct up */
@@ -715,7 +715,7 @@ add_delayed_data_ref(struct btrfs_fs_info *fs_info,
 	delayed_refs = &trans->transaction->delayed_refs;
 
 	if (is_fstree(ref_root))
-		seq = atomic64_read(&fs_info->tree_mod_seq);
+		seq = atomic64_read_unchecked(&fs_info->tree_mod_seq);
 
 	/* first set the basic ref node struct up */
 	atomic_set(&ref->refs, 1);

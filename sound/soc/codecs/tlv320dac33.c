@@ -1374,13 +1374,18 @@ static int dac33_set_dai_fmt(struct snd_soc_dai *codec_dai,
 	return 0;
 }
 
+static int dac33_hw_write(void *client, const char *buf, int count)
+{
+	return i2c_master_send(client, buf, count);
+}
+
 static int dac33_soc_probe(struct snd_soc_codec *codec)
 {
 	struct tlv320dac33_priv *dac33 = snd_soc_codec_get_drvdata(codec);
 	int ret = 0;
 
 	codec->control_data = dac33->control_data;
-	codec->hw_write = (hw_write_t) i2c_master_send;
+	codec->hw_write = dac33_hw_write;
 	dac33->codec = codec;
 
 	/* Read the tlv320dac33 ID registers */

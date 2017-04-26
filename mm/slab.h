@@ -21,8 +21,10 @@ struct kmem_cache {
 	unsigned int size;	/* The aligned/padded/added on size  */
 	unsigned int align;	/* Alignment as calculated */
 	unsigned long flags;	/* Active flags on the slab */
+	size_t useroffset;	/* USERCOPY region offset */
+	size_t usersize;	/* USERCOPY region size */
 	const char *name;	/* Slab name for sysfs */
-	int refcount;		/* Use counter */
+	atomic_t refcount;	/* Use counter */
 	void (*ctor)(void *);	/* Called on object slot creation */
 	struct list_head list;	/* List of all slab caches on the system */
 };
@@ -71,6 +73,35 @@ extern struct list_head slab_caches;
 /* The slab cache that manages slab cache information */
 extern struct kmem_cache *kmem_cache;
 
+#ifdef CONFIG_PAX_MEMORY_SANITIZE
+#ifdef CONFIG_X86_64
+#define PAX_MEMORY_SANITIZE_VALUE	'\xfe'
+#else
+#define PAX_MEMORY_SANITIZE_VALUE	'\xff'
+#endif
+enum pax_sanitize_mode {
+	PAX_SANITIZE_SLAB_OFF = 0,
+	PAX_SANITIZE_SLAB_FAST,
+	PAX_SANITIZE_SLAB_FULL,
+};
+
+extern enum pax_sanitize_mode pax_sanitize_slab;
+
+static inline unsigned long pax_sanitize_slab_flags(unsigned long flags)
+{
+	if (pax_sanitize_slab == PAX_SANITIZE_SLAB_OFF || (flags & SLAB_DESTROY_BY_RCU))
+		flags |= SLAB_NO_SANITIZE;
+	else if (pax_sanitize_slab == PAX_SANITIZE_SLAB_FULL)
+		flags &= ~SLAB_NO_SANITIZE;
+	return flags;
+}
+#else
+static inline unsigned long pax_sanitize_slab_flags(unsigned long flags)
+{
+	return flags;
+}
+#endif
+
 unsigned long calculate_alignment(unsigned long flags,
 		unsigned long align, unsigned long size);
 
@@ -89,8 +120,11 @@ extern int __kmem_cache_create(struct kmem_cache *, unsigned long flags);
 
 extern struct kmem_cache *create_kmalloc_cache(const char *name, size_t size,
 			unsigned long flags);
+extern struct kmem_cache *create_kmalloc_cache_usercopy(const char *name, size_t size,
+			unsigned long flags, size_t useroffset, size_t usersize);
 extern void create_boot_cache(struct kmem_cache *, const char *name,
-			size_t size, unsigned long flags);
+			size_t size, unsigned long flags,
+			size_t useroffset, size_t usersize);
 
 int slab_unmergeable(struct kmem_cache *s);
 struct kmem_cache *find_mergeable(size_t size, size_t align,
@@ -120,7 +154,7 @@ static inline unsigned long kmem_cache_flags(unsigned long object_size,
 
 /* Legal flag mask for kmem_cache_create(), for various configurations */
 #define SLAB_CORE_FLAGS (SLAB_HWCACHE_ALIGN | SLAB_CACHE_DMA | SLAB_PANIC | \
-			 SLAB_DESTROY_BY_RCU | SLAB_DEBUG_OBJECTS )
+			 SLAB_DESTROY_BY_RCU | SLAB_DEBUG_OBJECTS | SLAB_NO_SANITIZE)
 
 #if defined(CONFIG_DEBUG_SLAB)
 #define SLAB_DEBUG_FLAGS (SLAB_RED_ZONE | SLAB_POISON | SLAB_STORE_USER)
@@ -345,6 +379,9 @@ static inline struct kmem_cache *cache_from_obj(struct kmem_cache *s, void *x)
 		return s;
 
 	page = virt_to_head_page(x);
+
+	BUG_ON(!PageSlab(page));
+
 	cachep = page->slab_cache;
 	if (slab_equal_or_root(cachep, s))
 		return cachep;

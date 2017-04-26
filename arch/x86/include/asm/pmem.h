@@ -38,7 +38,7 @@ static inline void arch_memcpy_to_pmem(void *dst, const void *src, size_t n)
 	 * fault) we would have already reported a general protection fault
 	 * before the WARN+BUG.
 	 */
-	rem = __copy_from_user_inatomic_nocache(dst, (void __user *) src, n);
+	rem = __copy_from_user_inatomic_nocache(dst, (void __force_user *) src, n);
 	if (WARN(rem, "%s: fault copying %p <- %p unwritten: %d\n",
 				__func__, dst, src, rem))
 		BUG();

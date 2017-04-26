@@ -73,7 +73,8 @@ csio_list_deleted(struct list_head *list)
 #define csio_list_prev(elem)	(((struct list_head *)(elem))->prev)
 
 /* State machine */
-typedef void (*csio_sm_state_t)(void *, uint32_t);
+struct csio_sm;
+typedef void (*csio_sm_state_t)(struct csio_sm *, uint32_t);
 
 struct csio_sm {
 	struct list_head	sm_list;
@@ -81,9 +82,9 @@ struct csio_sm {
 };
 
 static inline void
-csio_set_state(void *smp, void *state)
+csio_set_state(struct csio_sm *smp, csio_sm_state_t state)
 {
-	((struct csio_sm *)smp)->sm_state = (csio_sm_state_t)state;
+	smp->sm_state = state;
 }
 
 static inline void
@@ -93,21 +94,21 @@ csio_init_state(struct csio_sm *smp, void *state)
 }
 
 static inline void
-csio_post_event(void *smp, uint32_t evt)
+csio_post_event(struct csio_sm *smp, uint32_t evt)
 {
-	((struct csio_sm *)smp)->sm_state(smp, evt);
+	smp->sm_state(smp, evt);
 }
 
 static inline csio_sm_state_t
-csio_get_state(void *smp)
+csio_get_state(struct csio_sm *smp)
 {
-	return ((struct csio_sm *)smp)->sm_state;
+	return smp->sm_state;
 }
 
 static inline bool
-csio_match_state(void *smp, void *state)
+csio_match_state(struct csio_sm *smp, csio_sm_state_t state)
 {
-	return (csio_get_state(smp) == (csio_sm_state_t)state);
+	return (csio_get_state(smp) == state);
 }
 
 #define	CSIO_ASSERT(cond)		BUG_ON(!(cond))

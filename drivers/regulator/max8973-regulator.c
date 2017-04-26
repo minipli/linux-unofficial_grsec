@@ -751,9 +751,11 @@ static int max8973_probe(struct i2c_client *client,
 		if (!pdata->enable_ext_control) {
 			max->desc.enable_reg = MAX8973_VOUT;
 			max->desc.enable_mask = MAX8973_VOUT_ENABLE;
-			max->ops.enable = regulator_enable_regmap;
-			max->ops.disable = regulator_disable_regmap;
-			max->ops.is_enabled = regulator_is_enabled_regmap;
+			pax_open_kernel();
+			const_cast(max->ops.enable) = regulator_enable_regmap;
+			const_cast(max->ops.disable) = regulator_disable_regmap;
+			const_cast(max->ops.is_enabled) = regulator_is_enabled_regmap;
+			pax_close_kernel();
 			break;
 		}
 
@@ -781,9 +783,11 @@ static int max8973_probe(struct i2c_client *client,
 
 		max->desc.enable_reg = MAX8973_VOUT;
 		max->desc.enable_mask = MAX8973_VOUT_ENABLE;
-		max->ops.enable = regulator_enable_regmap;
-		max->ops.disable = regulator_disable_regmap;
-		max->ops.is_enabled = regulator_is_enabled_regmap;
+		pax_open_kernel();
+		const_cast(max->ops.enable) = regulator_enable_regmap;
+		const_cast(max->ops.disable) = regulator_disable_regmap;
+		const_cast(max->ops.is_enabled) = regulator_is_enabled_regmap;
+		pax_close_kernel();
 		max->ops.set_current_limit = max8973_set_current_limit;
 		max->ops.get_current_limit = max8973_get_current_limit;
 		break;

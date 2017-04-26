@@ -39,7 +39,7 @@
 asmlinkage void __camellia_enc_blk(struct camellia_ctx *ctx, u8 *dst,
 				   const u8 *src, bool xor);
 EXPORT_SYMBOL_GPL(__camellia_enc_blk);
-asmlinkage void camellia_dec_blk(struct camellia_ctx *ctx, u8 *dst,
+asmlinkage void camellia_dec_blk(void *ctx, u8 *dst,
 				 const u8 *src);
 EXPORT_SYMBOL_GPL(camellia_dec_blk);
 
@@ -47,7 +47,7 @@ EXPORT_SYMBOL_GPL(camellia_dec_blk);
 asmlinkage void __camellia_enc_blk_2way(struct camellia_ctx *ctx, u8 *dst,
 					const u8 *src, bool xor);
 EXPORT_SYMBOL_GPL(__camellia_enc_blk_2way);
-asmlinkage void camellia_dec_blk_2way(struct camellia_ctx *ctx, u8 *dst,
+asmlinkage void camellia_dec_blk_2way(void *ctx, u8 *dst,
 				      const u8 *src);
 EXPORT_SYMBOL_GPL(camellia_dec_blk_2way);
 
@@ -1279,8 +1279,10 @@ static int camellia_setkey(struct crypto_tfm *tfm, const u8 *in_key,
 				 &tfm->crt_flags);
 }
 
-void camellia_decrypt_cbc_2way(void *ctx, u128 *dst, const u128 *src)
+void camellia_decrypt_cbc_2way(void *ctx, u8 *_dst, const u8 *_src)
 {
+	u128 *dst = (u128 *)_dst;
+	u128 *src = (u128 *)_src;
 	u128 iv = *src;
 
 	camellia_dec_blk_2way(ctx, (u8 *)dst, (u8 *)src);

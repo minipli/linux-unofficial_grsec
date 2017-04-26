@@ -303,7 +303,7 @@ static void dlm_init_mle(struct dlm_master_list_entry *mle,
 		mle->mnamehash = dlm_lockid_hash(name, namelen);
 	}
 
-	atomic_inc(&dlm->mle_tot_count[mle->type]);
+	atomic_inc_unchecked(&dlm->mle_tot_count[mle->type]);
 	atomic_inc(&dlm->mle_cur_count[mle->type]);
 
 	/* copy off the node_map and register hb callbacks on our copy */
@@ -577,7 +577,7 @@ static void dlm_init_lockres(struct dlm_ctxt *dlm,
 
 	kref_init(&res->refs);
 
-	atomic_inc(&dlm->res_tot_count);
+	atomic_inc_unchecked(&dlm->res_tot_count);
 	atomic_inc(&dlm->res_cur_count);
 
 	/* just for consistency */

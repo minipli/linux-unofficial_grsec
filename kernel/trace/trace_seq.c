@@ -337,7 +337,7 @@ int trace_seq_path(struct trace_seq *s, const struct path *path)
 		return 0;
 	}
 
-	seq_buf_path(&s->seq, path, "\n");
+	seq_buf_path(&s->seq, path, "\n\\");
 
 	if (unlikely(seq_buf_has_overflowed(&s->seq))) {
 		s->seq.len = save_len;

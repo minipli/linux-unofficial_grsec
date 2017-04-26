@@ -55,7 +55,7 @@ struct gb_connection {
 	char				name[16];
 	struct workqueue_struct		*wq;
 
-	atomic_t			op_cycle;
+	atomic_unchecked_t		op_cycle;
 
 	void				*private;
 

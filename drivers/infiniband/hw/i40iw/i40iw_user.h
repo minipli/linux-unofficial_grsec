@@ -343,7 +343,7 @@ struct i40iw_device_uk_ops {
 
 struct i40iw_dev_uk {
 	struct i40iw_device_uk_ops ops_uk;
-};
+} __no_const;
 
 struct i40iw_sq_uk_wr_trk_info {
 	u64 wrid;

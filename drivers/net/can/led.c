@@ -128,7 +128,7 @@ static int can_led_notifier(struct notifier_block *nb, unsigned long msg,
 }
 
 /* notifier block for netdevice event */
-static struct notifier_block can_netdev_notifier __read_mostly = {
+static struct notifier_block can_netdev_notifier = {
 	.notifier_call = can_led_notifier,
 };
 

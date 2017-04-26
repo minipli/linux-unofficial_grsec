@@ -883,7 +883,7 @@ end:
 */
 
 static pci_ers_result_t xen_pcibk_error_detected(struct pci_dev *dev,
-	pci_channel_state_t error)
+	enum pci_channel_state error)
 {
 	struct pcistub_device *psdev;
 	pci_ers_result_t result;

@@ -26,6 +26,7 @@
 #include <linux/mutex.h>
 #include <linux/random.h>
 #include <linux/pm_qos.h>
+#include <linux/grsecurity.h>
 
 #include <asm/uaccess.h>
 #include <asm/byteorder.h>
@@ -4760,6 +4761,10 @@ static void hub_port_connect(struct usb_hub *hub, int port1, u16 portstatus,
 			goto done;
 		return;
 	}
+
+	if (gr_handle_new_usb())
+		goto done;
+
 	if (hub_is_superspeed(hub->hdev))
 		unit_load = 150;
 	else

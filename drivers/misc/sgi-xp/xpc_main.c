@@ -166,7 +166,7 @@ static struct notifier_block xpc_die_notifier = {
 	.notifier_call = xpc_system_die,
 };
 
-struct xpc_arch_operations xpc_arch_ops;
+xpc_arch_operations_no_const xpc_arch_ops;
 
 /*
  * Timer function to enforce the timelimit on the partition disengage.

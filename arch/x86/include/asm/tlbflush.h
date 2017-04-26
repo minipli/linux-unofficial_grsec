@@ -89,7 +89,9 @@ static inline void cr4_set_bits(unsigned long mask)
 {
 	unsigned long cr4;
 
+//	BUG_ON(!arch_irqs_disabled());
 	cr4 = this_cpu_read(cpu_tlbstate.cr4);
+	BUG_ON(cr4 != __read_cr4());
 	if ((cr4 | mask) != cr4) {
 		cr4 |= mask;
 		this_cpu_write(cpu_tlbstate.cr4, cr4);
@@ -102,7 +104,9 @@ static inline void cr4_clear_bits(unsigned long mask)
 {
 	unsigned long cr4;
 
+//	BUG_ON(!arch_irqs_disabled());
 	cr4 = this_cpu_read(cpu_tlbstate.cr4);
+	BUG_ON(cr4 != __read_cr4());
 	if ((cr4 & ~mask) != cr4) {
 		cr4 &= ~mask;
 		this_cpu_write(cpu_tlbstate.cr4, cr4);
@@ -113,6 +117,7 @@ static inline void cr4_clear_bits(unsigned long mask)
 /* Read the CR4 shadow. */
 static inline unsigned long cr4_read_shadow(void)
 {
+//	BUG_ON(!arch_irqs_disabled());
 	return this_cpu_read(cpu_tlbstate.cr4);
 }
 
@@ -135,6 +140,22 @@ static inline void cr4_set_bits_and_update_boot(unsigned long mask)
 
 static inline void __native_flush_tlb(void)
 {
+	if (static_cpu_has(X86_FEATURE_INVPCID)) {
+		invpcid_flush_all_nonglobals();
+		return;
+	}
+
+#if defined(CONFIG_X86_64) && defined(CONFIG_PAX_MEMORY_UDEREF)
+	if (static_cpu_has(X86_FEATURE_PCIDUDEREF)) {
+		unsigned int cpu = raw_get_cpu();
+
+		native_write_cr3(__pa(get_cpu_pgd(cpu, user)) | PCID_USER);
+		native_write_cr3(__pa(get_cpu_pgd(cpu, kernel)) | PCID_KERNEL);
+		raw_put_cpu_no_resched();
+		return;
+	}
+#endif
+
 	/*
 	 * If current->mm == NULL then we borrow a mm which may change during a
 	 * task switch and therefore we must not be preempted while we write CR3
@@ -150,6 +171,7 @@ static inline void __native_flush_tlb_global_irq_disabled(void)
 	unsigned long cr4;
 
 	cr4 = this_cpu_read(cpu_tlbstate.cr4);
+	BUG_ON(cr4 != __read_cr4());
 	/* clear PGE */
 	native_write_cr4(cr4 & ~X86_CR4_PGE);
 	/* write old PGE again and flush TLBs */
@@ -183,6 +205,40 @@ static inline void __native_flush_tlb_global(void)
 
 static inline void __native_flush_tlb_single(unsigned long addr)
 {
+	if (static_cpu_has(X86_FEATURE_INVPCID)) {
+		unsigned long pcid = PCID_KERNEL;
+
+#if defined(CONFIG_X86_64) && defined(CONFIG_PAX_MEMORY_UDEREF)
+		if (static_cpu_has(X86_FEATURE_PCIDUDEREF)) {
+			if (!static_cpu_has(X86_FEATURE_STRONGUDEREF) || addr >= TASK_SIZE_MAX) {
+				if (addr < TASK_SIZE_MAX)
+					invpcid_flush_one(pcid, addr + pax_user_shadow_base);
+				else
+					invpcid_flush_one(pcid, addr);
+			}
+
+			pcid = PCID_USER;
+		}
+#endif
+
+		invpcid_flush_one(pcid, addr);
+		return;
+	}
+
+#if defined(CONFIG_X86_64) && defined(CONFIG_PAX_MEMORY_UDEREF)
+	if (static_cpu_has(X86_FEATURE_PCIDUDEREF)) {
+		unsigned int cpu = raw_get_cpu();
+
+		native_write_cr3(__pa(get_cpu_pgd(cpu, user)) | PCID_USER | PCID_NOFLUSH);
+		asm volatile("invlpg (%0)" ::"r" (addr) : "memory");
+		native_write_cr3(__pa(get_cpu_pgd(cpu, kernel)) | PCID_KERNEL | PCID_NOFLUSH);
+		raw_put_cpu_no_resched();
+
+		if (!static_cpu_has(X86_FEATURE_STRONGUDEREF) && addr < TASK_SIZE_MAX)
+			addr += pax_user_shadow_base;
+	}
+#endif
+
 	asm volatile("invlpg (%0)" ::"r" (addr) : "memory");
 }
 

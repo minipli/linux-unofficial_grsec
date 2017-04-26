@@ -179,8 +179,9 @@ static inline void osc_pack_req_body(struct ptlrpc_request *req,
 
 static int osc_getattr_interpret(const struct lu_env *env,
 				 struct ptlrpc_request *req,
-				 struct osc_async_args *aa, int rc)
+				 void *_aa, int rc)
 {
+	struct osc_async_args *aa = _aa;
 	struct ost_body *body;
 
 	if (rc != 0)
@@ -225,7 +226,7 @@ static int osc_getattr_async(struct obd_export *exp, struct obd_info *oinfo,
 	osc_pack_req_body(req, oinfo);
 
 	ptlrpc_request_set_replen(req);
-	req->rq_interpret_reply = (ptlrpc_interpterer_t)osc_getattr_interpret;
+	req->rq_interpret_reply = osc_getattr_interpret;
 
 	CLASSERT(sizeof(*aa) <= sizeof(req->rq_async_args));
 	aa = ptlrpc_req_async_args(req);
@@ -321,8 +322,9 @@ out:
 
 static int osc_setattr_interpret(const struct lu_env *env,
 				 struct ptlrpc_request *req,
-				 struct osc_setattr_args *sa, int rc)
+				 void *_sa, int rc)
 {
+	struct osc_setattr_args *sa = _sa;
 	struct ost_body *body;
 
 	if (rc != 0)
@@ -372,8 +374,7 @@ int osc_setattr_async_base(struct obd_export *exp, struct obd_info *oinfo,
 		/* Do not wait for response. */
 		ptlrpcd_add_req(req);
 	} else {
-		req->rq_interpret_reply =
-			(ptlrpc_interpterer_t)osc_setattr_interpret;
+		req->rq_interpret_reply = osc_setattr_interpret;
 
 		CLASSERT(sizeof(*sa) <= sizeof(req->rq_async_args));
 		sa = ptlrpc_req_async_args(req);
@@ -495,7 +496,7 @@ int osc_punch_base(struct obd_export *exp, struct obd_info *oinfo,
 
 	ptlrpc_request_set_replen(req);
 
-	req->rq_interpret_reply = (ptlrpc_interpterer_t)osc_setattr_interpret;
+	req->rq_interpret_reply = osc_setattr_interpret;
 	CLASSERT(sizeof(*sa) <= sizeof(req->rq_async_args));
 	sa = ptlrpc_req_async_args(req);
 	sa->sa_oa = oinfo->oi_oa;
@@ -2091,8 +2092,9 @@ static int osc_enqueue_fini(struct ptlrpc_request *req,
 
 static int osc_enqueue_interpret(const struct lu_env *env,
 				 struct ptlrpc_request *req,
-				 struct osc_enqueue_args *aa, int rc)
+				 void *_aa, int rc)
 {
+	struct osc_enqueue_args *aa = _aa;
 	struct ldlm_lock *lock;
 	struct lustre_handle *lockh = &aa->oa_lockh;
 	enum ldlm_mode mode = aa->oa_mode;
@@ -2283,8 +2285,7 @@ no_match:
 				aa->oa_flags = NULL;
 			}
 
-			req->rq_interpret_reply =
-				(ptlrpc_interpterer_t)osc_enqueue_interpret;
+			req->rq_interpret_reply = osc_enqueue_interpret;
 			if (rqset == PTLRPCD_SET)
 				ptlrpcd_add_req(req);
 			else
@@ -2360,8 +2361,9 @@ int osc_cancel_base(struct lustre_handle *lockh, __u32 mode)
 
 static int osc_statfs_interpret(const struct lu_env *env,
 				struct ptlrpc_request *req,
-				struct osc_async_args *aa, int rc)
+				void *_aa, int rc)
 {
+	struct osc_async_args *aa = _aa;
 	struct obd_statfs *msfs;
 
 	if (rc == -EBADR)
@@ -2429,7 +2431,7 @@ static int osc_statfs_async(struct obd_export *exp,
 		req->rq_no_delay = 1;
 	}
 
-	req->rq_interpret_reply = (ptlrpc_interpterer_t)osc_statfs_interpret;
+	req->rq_interpret_reply = osc_statfs_interpret;
 	CLASSERT(sizeof(*aa) <= sizeof(req->rq_async_args));
 	aa = ptlrpc_req_async_args(req);
 	aa->aa_oi = oinfo;

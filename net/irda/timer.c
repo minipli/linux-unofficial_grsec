@@ -34,12 +34,12 @@
 
 extern int  sysctl_slot_timeout;
 
-static void irlap_slot_timer_expired(void* data);
-static void irlap_query_timer_expired(void* data);
-static void irlap_final_timer_expired(void* data);
-static void irlap_wd_timer_expired(void* data);
-static void irlap_backoff_timer_expired(void* data);
-static void irlap_media_busy_expired(void* data);
+static void irlap_slot_timer_expired(unsigned long data);
+static void irlap_query_timer_expired(unsigned long data);
+static void irlap_final_timer_expired(unsigned long data);
+static void irlap_wd_timer_expired(unsigned long data);
+static void irlap_backoff_timer_expired(unsigned long data);
+static void irlap_media_busy_expired(unsigned long data);
 
 void irlap_start_slot_timer(struct irlap_cb *self, int timeout)
 {
@@ -138,7 +138,7 @@ void irlmp_stop_idle_timer(struct lap_cb *self)
  *    IrLAP slot timer has expired
  *
  */
-static void irlap_slot_timer_expired(void *data)
+static void irlap_slot_timer_expired(unsigned long data)
 {
 	struct irlap_cb *self = (struct irlap_cb *) data;
 
@@ -154,7 +154,7 @@ static void irlap_slot_timer_expired(void *data)
  *    IrLAP query timer has expired
  *
  */
-static void irlap_query_timer_expired(void *data)
+static void irlap_query_timer_expired(unsigned long data)
 {
 	struct irlap_cb *self = (struct irlap_cb *) data;
 
@@ -170,7 +170,7 @@ static void irlap_query_timer_expired(void *data)
  *
  *
  */
-static void irlap_final_timer_expired(void *data)
+static void irlap_final_timer_expired(unsigned long data)
 {
 	struct irlap_cb *self = (struct irlap_cb *) data;
 
@@ -186,7 +186,7 @@ static void irlap_final_timer_expired(void *data)
  *
  *
  */
-static void irlap_wd_timer_expired(void *data)
+static void irlap_wd_timer_expired(unsigned long data)
 {
 	struct irlap_cb *self = (struct irlap_cb *) data;
 
@@ -202,7 +202,7 @@ static void irlap_wd_timer_expired(void *data)
  *
  *
  */
-static void irlap_backoff_timer_expired(void *data)
+static void irlap_backoff_timer_expired(unsigned long data)
 {
 	struct irlap_cb *self = (struct irlap_cb *) data;
 
@@ -218,7 +218,7 @@ static void irlap_backoff_timer_expired(void *data)
  *
  *
  */
-static void irlap_media_busy_expired(void *data)
+static void irlap_media_busy_expired(unsigned long data)
 {
 	struct irlap_cb *self = (struct irlap_cb *) data;
 

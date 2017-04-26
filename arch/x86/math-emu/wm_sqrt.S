@@ -223,7 +223,7 @@ sqrt_stage_2_finish:
 #ifdef PARANOID
 sqrt_stage_2_error:
 	pushl	EX_INTERNAL|0x213
-	call	EXCEPTION
+	pax_direct_call EXCEPTION
 #endif /* PARANOID */ 
 
 sqrt_stage_2_done:
@@ -276,7 +276,7 @@ sqrt_stage_2_done:
 
 sqrt_stage_3_error:
 	pushl	EX_INTERNAL|0x207
-	call	EXCEPTION
+	pax_direct_call EXCEPTION
 
 sqrt_stage_3_no_error:
 #endif /* PARANOID */
@@ -382,7 +382,7 @@ sqrt_near_exact:
 	ja	sqrt_near_exact_ok
 
 	pushl	EX_INTERNAL|0x214
-	call	EXCEPTION
+	pax_direct_call EXCEPTION
 
 sqrt_near_exact_ok:
 #endif /* PARANOID */ 
@@ -442,7 +442,7 @@ sqrt_get_more_precision:
 	ja	sqrt_more_prec_ok
 
 	pushl	EX_INTERNAL|0x215
-	call	EXCEPTION
+	pax_direct_call EXCEPTION
 
 sqrt_more_prec_ok:
 #endif /* PARANOID */ 

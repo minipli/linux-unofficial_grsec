@@ -76,17 +76,17 @@ static unsigned long int get_module_load_offset(void)
 }
 #endif
 
-void *module_alloc(unsigned long size)
+static inline void *__module_alloc(unsigned long size, pgprot_t prot)
 {
 	void *p;
 
-	if (PAGE_ALIGN(size) > MODULES_LEN)
+	if (!size || PAGE_ALIGN(size) > MODULES_LEN)
 		return NULL;
 
 	p = __vmalloc_node_range(size, MODULE_ALIGN,
 				    MODULES_VADDR + get_module_load_offset(),
-				    MODULES_END, GFP_KERNEL | __GFP_HIGHMEM,
-				    PAGE_KERNEL_EXEC, 0, NUMA_NO_NODE,
+				    MODULES_END, GFP_KERNEL | __GFP_HIGHMEM | __GFP_ZERO,
+				    prot, 0, NUMA_NO_NODE,
 				    __builtin_return_address(0));
 	if (p && (kasan_module_alloc(p, size) < 0)) {
 		vfree(p);
@@ -95,6 +95,51 @@ void *module_alloc(unsigned long size)
 
 	return p;
 }
+
+void *module_alloc(unsigned long size)
+{
+
+#ifdef CONFIG_PAX_KERNEXEC
+	return __module_alloc(size, PAGE_KERNEL);
+#else
+	return __module_alloc(size, PAGE_KERNEL_EXEC);
+#endif
+
+}
+
+#ifdef CONFIG_PAX_KERNEXEC
+#ifdef CONFIG_X86_32
+void *module_alloc_exec(unsigned long size)
+{
+	struct vm_struct *area;
+
+	if (size == 0)
+		return NULL;
+
+	area = __get_vm_area(size, VM_ALLOC, (unsigned long)&MODULES_EXEC_VADDR, (unsigned long)&MODULES_EXEC_END);
+	return area ? area->addr : NULL;
+}
+EXPORT_SYMBOL(module_alloc_exec);
+
+void module_memfree_exec(void *module_region)
+{
+	vunmap(module_region);
+}
+EXPORT_SYMBOL(module_memfree_exec);
+#else
+void module_memfree_exec(void *module_region)
+{
+	module_memfree(module_region);
+}
+EXPORT_SYMBOL(module_memfree_exec);
+
+void *module_alloc_exec(unsigned long size)
+{
+	return __module_alloc(size, PAGE_KERNEL_RX);
+}
+EXPORT_SYMBOL(module_alloc_exec);
+#endif
+#endif
 
 #ifdef CONFIG_X86_32
 int apply_relocate(Elf32_Shdr *sechdrs,
@@ -106,14 +151,16 @@ int apply_relocate(Elf32_Shdr *sechdrs,
 	unsigned int i;
 	Elf32_Rel *rel = (void *)sechdrs[relsec].sh_addr;
 	Elf32_Sym *sym;
-	uint32_t *location;
+	uint32_t *plocation, location;
 
 	DEBUGP("Applying relocate section %u to %u\n",
 	       relsec, sechdrs[relsec].sh_info);
 	for (i = 0; i < sechdrs[relsec].sh_size / sizeof(*rel); i++) {
 		/* This is where to make the change */
-		location = (void *)sechdrs[sechdrs[relsec].sh_info].sh_addr
-			+ rel[i].r_offset;
+		plocation = (void *)sechdrs[sechdrs[relsec].sh_info].sh_addr + rel[i].r_offset;
+		location = (uint32_t)plocation;
+		if (sechdrs[sechdrs[relsec].sh_info].sh_flags & SHF_EXECINSTR)
+			plocation = (uint32_t *)ktla_ktva((unsigned long)plocation);
 		/* This is the symbol it is referring to.  Note that all
 		   undefined symbols have been resolved.  */
 		sym = (Elf32_Sym *)sechdrs[symindex].sh_addr
@@ -122,11 +169,15 @@ int apply_relocate(Elf32_Shdr *sechdrs,
 		switch (ELF32_R_TYPE(rel[i].r_info)) {
 		case R_386_32:
 			/* We add the value into the location given */
-			*location += sym->st_value;
+			pax_open_kernel();
+			*plocation += sym->st_value;
+			pax_close_kernel();
 			break;
 		case R_386_PC32:
 			/* Add the value, subtract its position */
-			*location += sym->st_value - (uint32_t)location;
+			pax_open_kernel();
+			*plocation += sym->st_value - location;
+			pax_close_kernel();
 			break;
 		default:
 			pr_err("%s: Unknown relocation: %u\n",
@@ -171,21 +222,30 @@ int apply_relocate_add(Elf64_Shdr *sechdrs,
 		case R_X86_64_NONE:
 			break;
 		case R_X86_64_64:
+			pax_open_kernel();
 			*(u64 *)loc = val;
+			pax_close_kernel();
 			break;
 		case R_X86_64_32:
+			pax_open_kernel();
 			*(u32 *)loc = val;
+			pax_close_kernel();
 			if (val != *(u32 *)loc)
 				goto overflow;
 			break;
 		case R_X86_64_32S:
+			pax_open_kernel();
 			*(s32 *)loc = val;
+			pax_close_kernel();
 			if ((s64)val != *(s32 *)loc)
 				goto overflow;
 			break;
 		case R_X86_64_PC32:
 			val -= (u64)loc;
+			pax_open_kernel();
 			*(u32 *)loc = val;
+			pax_close_kernel();
+
 #if 0
 			if ((s64)val != *(s32 *)loc)
 				goto overflow;

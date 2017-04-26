@@ -16,35 +16,32 @@
 
 typedef int (*pm_callback_t)(struct device *);
 
-static pm_callback_t __rpm_get_callback(struct device *dev, size_t cb_offset)
-{
-	pm_callback_t cb;
-	const struct dev_pm_ops *ops;
-
-	if (dev->pm_domain)
-		ops = &dev->pm_domain->ops;
-	else if (dev->type && dev->type->pm)
-		ops = dev->type->pm;
-	else if (dev->class && dev->class->pm)
-		ops = dev->class->pm;
-	else if (dev->bus && dev->bus->pm)
-		ops = dev->bus->pm;
-	else
-		ops = NULL;
-
-	if (ops)
-		cb = *(pm_callback_t *)((void *)ops + cb_offset);
-	else
-		cb = NULL;
-
-	if (!cb && dev->driver && dev->driver->pm)
-		cb = *(pm_callback_t *)((void *)dev->driver->pm + cb_offset);
-
-	return cb;
-}
-
-#define RPM_GET_CALLBACK(dev, callback) \
-		__rpm_get_callback(dev, offsetof(struct dev_pm_ops, callback))
+#define RPM_GET_CALLBACK(dev, callback)			\
+({							\
+	pm_callback_t cb;				\
+	const struct dev_pm_ops *ops;			\
+							\
+	if (dev->pm_domain)				\
+		ops = &dev->pm_domain->ops;		\
+	else if (dev->type && dev->type->pm)		\
+		ops = dev->type->pm;			\
+	else if (dev->class && dev->class->pm)		\
+		ops = dev->class->pm;			\
+	else if (dev->bus && dev->bus->pm)		\
+		ops = dev->bus->pm;			\
+	else						\
+		ops = NULL;				\
+							\
+	if (ops)					\
+		cb = ops->callback;			\
+	else						\
+		cb = NULL;				\
+							\
+	if (!cb && dev->driver && dev->driver->pm)	\
+		cb = dev->driver->pm->callback;		\
+							\
+	cb;						\
+})
 
 static int rpm_resume(struct device *dev, int rpmflags);
 static int rpm_suspend(struct device *dev, int rpmflags);
@@ -263,8 +260,8 @@ static int rpm_check_suspend_allowed(struct device *dev)
  * @cb: Runtime PM callback to run.
  * @dev: Device to run the callback for.
  */
+static int __rpm_callback(int (*cb)(struct device *), struct device *dev) __must_hold(&dev->power.lock);
 static int __rpm_callback(int (*cb)(struct device *), struct device *dev)
-	__releases(&dev->power.lock) __acquires(&dev->power.lock)
 {
 	int retval;
 
@@ -412,8 +409,8 @@ static int rpm_callback(int (*cb)(struct device *), struct device *dev)
  *
  * This function must be called under dev->power.lock with interrupts disabled.
  */
+static int rpm_suspend(struct device *dev, int rpmflags) __must_hold(&dev->power.lock);
 static int rpm_suspend(struct device *dev, int rpmflags)
-	__releases(&dev->power.lock) __acquires(&dev->power.lock)
 {
 	int (*callback)(struct device *);
 	struct device *parent = NULL;
@@ -594,8 +591,8 @@ static int rpm_suspend(struct device *dev, int rpmflags)
  *
  * This function must be called under dev->power.lock with interrupts disabled.
  */
+static int rpm_resume(struct device *dev, int rpmflags) __must_hold(&dev->power.lock);
 static int rpm_resume(struct device *dev, int rpmflags)
-	__releases(&dev->power.lock) __acquires(&dev->power.lock)
 {
 	int (*callback)(struct device *);
 	struct device *parent = NULL;

@@ -362,7 +362,7 @@ struct sta_info *sta_info_alloc(struct ieee80211_sub_if_data *sdata,
 		int size = sizeof(struct txq_info) +
 			   ALIGN(hw->txq_data_size, sizeof(void *));
 
-		txq_data = kcalloc(ARRAY_SIZE(sta->sta.txq), size, gfp);
+		txq_data = kcalloc(size, ARRAY_SIZE(sta->sta.txq), gfp);
 		if (!txq_data)
 			goto free;
 

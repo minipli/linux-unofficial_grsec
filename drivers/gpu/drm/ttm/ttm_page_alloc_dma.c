@@ -56,7 +56,7 @@
 
 #define NUM_PAGES_TO_ALLOC		(PAGE_SIZE/sizeof(struct page *))
 #define SMALL_ALLOCATION		4
-#define FREE_ALL_PAGES			(~0U)
+#define FREE_ALL_PAGES			(~0UL)
 /* times are in msecs */
 #define IS_UNDEFINED			(0)
 #define IS_WC				(1<<1)
@@ -416,7 +416,7 @@ static void ttm_dma_page_put(struct dma_pool *pool, struct dma_page *d_page)
  * @nr_free: If set to true will free all pages in pool
  * @use_static: Safe to use static buffer
  **/
-static unsigned ttm_dma_page_pool_free(struct dma_pool *pool, unsigned nr_free,
+static unsigned long ttm_dma_page_pool_free(struct dma_pool *pool, unsigned long nr_free,
 				       bool use_static)
 {
 	static struct page *static_buf[NUM_PAGES_TO_ALLOC];
@@ -424,8 +424,7 @@ static unsigned ttm_dma_page_pool_free(struct dma_pool *pool, unsigned nr_free,
 	struct dma_page *dma_p, *tmp;
 	struct page **pages_to_free;
 	struct list_head d_pages;
-	unsigned freed_pages = 0,
-		 npages_to_free = nr_free;
+	unsigned long freed_pages = 0, npages_to_free = nr_free;
 
 	if (NUM_PAGES_TO_ALLOC < nr_free)
 		npages_to_free = NUM_PAGES_TO_ALLOC;
@@ -502,7 +501,8 @@ restart:
 	/* remove range of pages from the pool */
 	if (freed_pages) {
 		ttm_pool_update_free_locked(pool, freed_pages);
-		nr_free -= freed_pages;
+		if (likely(nr_free != FREE_ALL_PAGES))
+			nr_free -= freed_pages;
 	}
 
 	spin_unlock_irqrestore(&pool->lock, irq_flags);
@@ -938,7 +938,7 @@ void ttm_dma_unpopulate(struct ttm_dma_tt *ttm_dma, struct device *dev)
 	struct dma_page *d_page, *next;
 	enum pool_type type;
 	bool is_cached = false;
-	unsigned count = 0, i, npages = 0;
+	unsigned long count = 0, i, npages = 0;
 	unsigned long irq_flags;
 
 	type = ttm_to_type(ttm->page_flags, ttm->caching_state);
@@ -1012,7 +1012,7 @@ ttm_dma_pool_shrink_scan(struct shrinker *shrink, struct shrink_control *sc)
 	static unsigned start_pool;
 	unsigned idx = 0;
 	unsigned pool_offset;
-	unsigned shrink_pages = sc->nr_to_scan;
+	unsigned long shrink_pages = sc->nr_to_scan;
 	struct device_pools *p;
 	unsigned long freed = 0;
 
@@ -1025,7 +1025,7 @@ ttm_dma_pool_shrink_scan(struct shrinker *shrink, struct shrink_control *sc)
 		goto out;
 	pool_offset = ++start_pool % _manager->npools;
 	list_for_each_entry(p, &_manager->pools, pools) {
-		unsigned nr_free;
+		unsigned long nr_free;
 
 		if (!p->dev)
 			continue;
@@ -1039,7 +1039,7 @@ ttm_dma_pool_shrink_scan(struct shrinker *shrink, struct shrink_control *sc)
 		shrink_pages = ttm_dma_page_pool_free(p->pool, nr_free, true);
 		freed += nr_free - shrink_pages;
 
-		pr_debug("%s: (%s:%d) Asked to shrink %d, have %d more to go\n",
+		pr_debug("%s: (%s:%d) Asked to shrink %lu, have %lu more to go\n",
 			 p->pool->dev_name, p->pool->name, current->pid,
 			 nr_free, shrink_pages);
 	}

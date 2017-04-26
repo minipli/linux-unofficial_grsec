@@ -256,7 +256,7 @@ EXPORT_SYMBOL(fw_device_enable_phys_dma);
 struct config_rom_attribute {
 	struct device_attribute attr;
 	u32 key;
-};
+} __do_const;
 
 static ssize_t show_immediate(struct device *dev,
 			      struct device_attribute *dattr, char *buf)

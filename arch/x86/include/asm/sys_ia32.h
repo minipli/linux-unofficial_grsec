@@ -20,8 +20,8 @@
 #include <asm/ia32.h>
 
 /* ia32/sys_ia32.c */
-asmlinkage long sys32_truncate64(const char __user *, unsigned long, unsigned long);
-asmlinkage long sys32_ftruncate64(unsigned int, unsigned long, unsigned long);
+asmlinkage long sys32_truncate64(const char __user *, unsigned int, unsigned int);
+asmlinkage long sys32_ftruncate64(unsigned int, unsigned int, unsigned int);
 
 asmlinkage long sys32_stat64(const char __user *, struct stat64 __user *);
 asmlinkage long sys32_lstat64(const char __user *, struct stat64 __user *);
@@ -42,7 +42,7 @@ long sys32_vm86_warning(void);
 asmlinkage ssize_t sys32_readahead(int, unsigned, unsigned, size_t);
 asmlinkage long sys32_sync_file_range(int, unsigned, unsigned,
 				      unsigned, unsigned, int);
-asmlinkage long sys32_fadvise64(int, unsigned, unsigned, size_t, int);
+asmlinkage long sys32_fadvise64(int, unsigned, unsigned, int, int);
 asmlinkage long sys32_fallocate(int, int, unsigned,
 				unsigned, unsigned, unsigned);
 

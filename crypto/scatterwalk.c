@@ -62,14 +62,20 @@ void scatterwalk_map_and_copy(void *buf, struct scatterlist *sg,
 {
 	struct scatter_walk walk;
 	struct scatterlist tmp[2];
+	void *realbuf = buf;
 
 	if (!nbytes)
 		return;
 
 	sg = scatterwalk_ffwd(tmp, sg, start);
 
+#ifdef CONFIG_GRKERNSEC_KSTACKOVERFLOW
+	if (object_starts_on_stack(buf))
+		realbuf = buf - current->stack + current->lowmem_stack;
+#endif
+
 	scatterwalk_start(&walk, sg);
-	scatterwalk_copychunks(buf, &walk, nbytes, out);
+	scatterwalk_copychunks(realbuf, &walk, nbytes, out);
 	scatterwalk_done(&walk, out, 0);
 }
 EXPORT_SYMBOL_GPL(scatterwalk_map_and_copy);

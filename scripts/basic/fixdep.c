@@ -191,7 +191,7 @@ static unsigned int strhash(const char *str, unsigned int sz)
 /*
  * Lookup a value in the configuration string.
  */
-static int is_defined_config(const char *name, int len, unsigned int hash)
+static int is_defined_config(const char *name, unsigned int len, unsigned int hash)
 {
 	struct item *aux;
 
@@ -224,7 +224,7 @@ static void define_config(const char *name, int len, unsigned int hash)
 /*
  * Record the use of a CONFIG_* word.
  */
-static void use_config(const char *m, int slen)
+static void use_config(const char *m, unsigned int slen)
 {
 	unsigned int hash = strhash(m, slen);
 

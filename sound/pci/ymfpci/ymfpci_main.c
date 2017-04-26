@@ -204,8 +204,8 @@ static void snd_ymfpci_hw_stop(struct snd_ymfpci *chip)
 		if ((snd_ymfpci_readl(chip, YDSXGR_STATUS) & 2) == 0)
 			break;
 	}
-	if (atomic_read(&chip->interrupt_sleep_count)) {
-		atomic_set(&chip->interrupt_sleep_count, 0);
+	if (atomic_read_unchecked(&chip->interrupt_sleep_count)) {
+		atomic_set_unchecked(&chip->interrupt_sleep_count, 0);
 		wake_up(&chip->interrupt_sleep);
 	}
       __end:
@@ -789,7 +789,7 @@ static void snd_ymfpci_irq_wait(struct snd_ymfpci *chip)
 		 	continue;
 		init_waitqueue_entry(&wait, current);
 		add_wait_queue(&chip->interrupt_sleep, &wait);
-		atomic_inc(&chip->interrupt_sleep_count);
+		atomic_inc_unchecked(&chip->interrupt_sleep_count);
 		schedule_timeout_uninterruptible(msecs_to_jiffies(50));
 		remove_wait_queue(&chip->interrupt_sleep, &wait);
 	}
@@ -827,8 +827,8 @@ static irqreturn_t snd_ymfpci_interrupt(int irq, void *dev_id)
 		snd_ymfpci_writel(chip, YDSXGR_MODE, mode);
 		spin_unlock(&chip->reg_lock);
 
-		if (atomic_read(&chip->interrupt_sleep_count)) {
-			atomic_set(&chip->interrupt_sleep_count, 0);
+		if (atomic_read_unchecked(&chip->interrupt_sleep_count)) {
+			atomic_set_unchecked(&chip->interrupt_sleep_count, 0);
 			wake_up(&chip->interrupt_sleep);
 		}
 	}
@@ -2384,7 +2384,7 @@ int snd_ymfpci_create(struct snd_card *card,
 	spin_lock_init(&chip->reg_lock);
 	spin_lock_init(&chip->voice_lock);
 	init_waitqueue_head(&chip->interrupt_sleep);
-	atomic_set(&chip->interrupt_sleep_count, 0);
+	atomic_set_unchecked(&chip->interrupt_sleep_count, 0);
 	chip->card = card;
 	chip->pci = pci;
 	chip->irq = -1;

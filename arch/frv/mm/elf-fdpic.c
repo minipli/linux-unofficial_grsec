@@ -61,6 +61,7 @@ unsigned long arch_get_unmapped_area(struct file *filp, unsigned long addr, unsi
 {
 	struct vm_area_struct *vma;
 	struct vm_unmapped_area_info info;
+	unsigned long offset = gr_rand_threadstack_offset(current->mm, filp, flags);
 
 	if (len > TASK_SIZE)
 		return -ENOMEM;
@@ -73,8 +74,7 @@ unsigned long arch_get_unmapped_area(struct file *filp, unsigned long addr, unsi
 	if (addr) {
 		addr = PAGE_ALIGN(addr);
 		vma = find_vma(current->mm, addr);
-		if (TASK_SIZE - len >= addr &&
-		    (!vma || addr + len <= vma->vm_start))
+		if (TASK_SIZE - len >= addr && check_heap_stack_gap(vma, addr, len, offset))
 			goto success;
 	}
 
@@ -85,6 +85,7 @@ unsigned long arch_get_unmapped_area(struct file *filp, unsigned long addr, unsi
 	info.high_limit = (current->mm->start_stack - 0x00200000);
 	info.align_mask = 0;
 	info.align_offset = 0;
+	info.threadstack_offset = offset;
 	addr = vm_unmapped_area(&info);
 	if (!(addr & ~PAGE_MASK))
 		goto success;

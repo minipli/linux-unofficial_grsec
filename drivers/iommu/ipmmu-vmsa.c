@@ -41,7 +41,7 @@ struct ipmmu_vmsa_domain {
 	struct iommu_domain io_domain;
 
 	struct io_pgtable_cfg cfg;
-	struct io_pgtable_ops *iop;
+	struct io_pgtable *iop;
 
 	unsigned int context_id;
 	spinlock_t lock;			/* Protects mappings */
@@ -319,8 +319,7 @@ static int ipmmu_domain_init_context(struct ipmmu_vmsa_domain *domain)
 	 */
 	domain->cfg.iommu_dev = domain->mmu->dev;
 
-	domain->iop = alloc_io_pgtable_ops(ARM_32_LPAE_S1, &domain->cfg,
-					   domain);
+	domain->iop = alloc_io_pgtable(ARM_32_LPAE_S1, &domain->cfg, domain);
 	if (!domain->iop)
 		return -EINVAL;
 
@@ -478,7 +477,7 @@ static void ipmmu_domain_free(struct iommu_domain *io_domain)
 	 * been detached.
 	 */
 	ipmmu_domain_destroy_context(domain);
-	free_io_pgtable_ops(domain->iop);
+	free_io_pgtable(domain->iop);
 	kfree(domain);
 }
 
@@ -547,7 +546,7 @@ static int ipmmu_map(struct iommu_domain *io_domain, unsigned long iova,
 	if (!domain)
 		return -ENODEV;
 
-	return domain->iop->map(domain->iop, iova, paddr, size, prot);
+	return domain->iop->ops->map(domain->iop, iova, paddr, size, prot);
 }
 
 static size_t ipmmu_unmap(struct iommu_domain *io_domain, unsigned long iova,
@@ -555,7 +554,7 @@ static size_t ipmmu_unmap(struct iommu_domain *io_domain, unsigned long iova,
 {
 	struct ipmmu_vmsa_domain *domain = to_vmsa_domain(io_domain);
 
-	return domain->iop->unmap(domain->iop, iova, size);
+	return domain->iop->ops->unmap(domain->iop, iova, size);
 }
 
 static phys_addr_t ipmmu_iova_to_phys(struct iommu_domain *io_domain,
@@ -565,7 +564,7 @@ static phys_addr_t ipmmu_iova_to_phys(struct iommu_domain *io_domain,
 
 	/* TODO: Is locking needed ? */
 
-	return domain->iop->iova_to_phys(domain->iop, iova);
+	return domain->iop->ops->iova_to_phys(domain->iop, iova);
 }
 
 static int ipmmu_find_utlbs(struct ipmmu_vmsa_device *mmu, struct device *dev,

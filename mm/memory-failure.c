@@ -64,7 +64,7 @@ int sysctl_memory_failure_early_kill __read_mostly = 0;
 
 int sysctl_memory_failure_recovery __read_mostly = 1;
 
-atomic_long_t num_poisoned_pages __read_mostly = ATOMIC_LONG_INIT(0);
+atomic_long_unchecked_t num_poisoned_pages __read_mostly = ATOMIC_LONG_INIT(0);
 
 #if defined(CONFIG_HWPOISON_INJECT) || defined(CONFIG_HWPOISON_INJECT_MODULE)
 
@@ -188,7 +188,7 @@ static int kill_proc(struct task_struct *t, unsigned long addr, int trapno,
 		pfn, t->comm, t->pid);
 	si.si_signo = SIGBUS;
 	si.si_errno = 0;
-	si.si_addr = (void *)addr;
+	si.si_addr = (void __user *)addr;
 #ifdef __ARCH_SI_TRAPNO
 	si.si_trapno = trapno;
 #endif
@@ -779,7 +779,7 @@ static struct page_state {
 	unsigned long res;
 	enum mf_action_page_type type;
 	int (*action)(struct page *p, unsigned long pfn);
-} error_states[] = {
+} __do_const error_states[] = {
 	{ reserved,	reserved,	MF_MSG_KERNEL,	me_kernel },
 	/*
 	 * free pages are specially detected outside this table:

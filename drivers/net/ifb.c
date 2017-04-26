@@ -290,7 +290,7 @@ static int ifb_validate(struct nlattr *tb[], struct nlattr *data[])
 	return 0;
 }
 
-static struct rtnl_link_ops ifb_link_ops __read_mostly = {
+static struct rtnl_link_ops ifb_link_ops = {
 	.kind		= "ifb",
 	.priv_size	= sizeof(struct ifb_dev_private),
 	.setup		= ifb_setup,

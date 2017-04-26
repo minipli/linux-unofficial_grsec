@@ -152,7 +152,7 @@ struct fscache_cookie_def {
 	 * - this is mandatory for any object that may have data
 	 */
 	void (*now_uncached)(void *cookie_netfs_data);
-};
+} __do_const;
 
 /*
  * fscache cached network filesystem type

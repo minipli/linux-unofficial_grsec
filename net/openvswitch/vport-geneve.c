@@ -118,12 +118,17 @@ static struct vport *geneve_create(const struct vport_parms *parms)
 	return ovs_netdev_link(vport, parms->name);
 }
 
+static netdev_tx_t geneve_send(struct sk_buff *skb)
+{
+	return dev_queue_xmit(skb);
+}
+
 static struct vport_ops ovs_geneve_vport_ops = {
 	.type		= OVS_VPORT_TYPE_GENEVE,
 	.create		= geneve_create,
 	.destroy	= ovs_netdev_tunnel_destroy,
 	.get_options	= geneve_get_options,
-	.send		= dev_queue_xmit,
+	.send		= geneve_send,
 };
 
 static int __init ovs_geneve_tnl_init(void)

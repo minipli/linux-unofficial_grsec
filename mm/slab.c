@@ -116,6 +116,7 @@
 #include	<linux/kmemcheck.h>
 #include	<linux/memory.h>
 #include	<linux/prefetch.h>
+#include	<linux/vmalloc.h>
 
 #include	<net/sock.h>
 
@@ -285,10 +286,12 @@ static void kmem_cache_node_init(struct kmem_cache_node *parent)
 		if ((x)->max_freeable < i)				\
 			(x)->max_freeable = i;				\
 	} while (0)
-#define STATS_INC_ALLOCHIT(x)	atomic_inc(&(x)->allochit)
-#define STATS_INC_ALLOCMISS(x)	atomic_inc(&(x)->allocmiss)
-#define STATS_INC_FREEHIT(x)	atomic_inc(&(x)->freehit)
-#define STATS_INC_FREEMISS(x)	atomic_inc(&(x)->freemiss)
+#define STATS_INC_ALLOCHIT(x)	atomic_inc_unchecked(&(x)->allochit)
+#define STATS_INC_ALLOCMISS(x)	atomic_inc_unchecked(&(x)->allocmiss)
+#define STATS_INC_FREEHIT(x)	atomic_inc_unchecked(&(x)->freehit)
+#define STATS_INC_FREEMISS(x)	atomic_inc_unchecked(&(x)->freemiss)
+#define STATS_INC_SANITIZED(x)	atomic_inc_unchecked(&(x)->sanitized)
+#define STATS_INC_NOT_SANITIZED(x) atomic_inc_unchecked(&(x)->not_sanitized)
 #else
 #define	STATS_INC_ACTIVE(x)	do { } while (0)
 #define	STATS_DEC_ACTIVE(x)	do { } while (0)
@@ -305,6 +308,8 @@ static void kmem_cache_node_init(struct kmem_cache_node *parent)
 #define STATS_INC_ALLOCMISS(x)	do { } while (0)
 #define STATS_INC_FREEHIT(x)	do { } while (0)
 #define STATS_INC_FREEMISS(x)	do { } while (0)
+#define STATS_INC_SANITIZED(x)	do { } while (0)
+#define STATS_INC_NOT_SANITIZED(x) do { } while (0)
 #endif
 
 #if DEBUG
@@ -411,7 +416,7 @@ static inline void *index_to_obj(struct kmem_cache *cache, struct page *page,
  *   reciprocal_divide(offset, cache->reciprocal_buffer_size)
  */
 static inline unsigned int obj_to_index(const struct kmem_cache *cache,
-					const struct page *page, void *obj)
+					const struct page *page, const void *obj)
 {
 	u32 offset = (obj - page->s_mem);
 	return reciprocal_divide(offset, cache->reciprocal_buffer_size);
@@ -1284,7 +1289,7 @@ void __init kmem_cache_init(void)
 	create_boot_cache(kmem_cache, "kmem_cache",
 		offsetof(struct kmem_cache, node) +
 				  nr_node_ids * sizeof(struct kmem_cache_node *),
-				  SLAB_HWCACHE_ALIGN);
+				  SLAB_HWCACHE_ALIGN, 0, 0);
 	list_add(&kmem_cache->list, &slab_caches);
 	slab_state = PARTIAL;
 
@@ -1292,8 +1297,8 @@ void __init kmem_cache_init(void)
 	 * Initialize the caches that provide memory for the  kmem_cache_node
 	 * structures first.  Without this, further allocations will bug.
 	 */
-	kmalloc_caches[INDEX_NODE] = create_kmalloc_cache("kmalloc-node",
-				kmalloc_size(INDEX_NODE), ARCH_KMALLOC_FLAGS);
+	kmalloc_caches[INDEX_NODE] = create_kmalloc_cache_usercopy("kmalloc-node",
+				kmalloc_size(INDEX_NODE), ARCH_KMALLOC_FLAGS, 0, kmalloc_size(INDEX_NODE));
 	slab_state = PARTIAL_NODE;
 	setup_kmalloc_cache_index_table();
 
@@ -1536,7 +1541,7 @@ static void store_stackinfo(struct kmem_cache *cachep, unsigned long *addr,
 
 		while (!kstack_end(sptr)) {
 			svalue = *sptr++;
-			if (kernel_text_address(svalue)) {
+			if (kernel_text_address(ktva_ktla(svalue))) {
 				*addr++ = svalue;
 				size -= sizeof(unsigned long);
 				if (size <= sizeof(unsigned long))
@@ -1923,7 +1928,7 @@ __kmem_cache_alias(const char *name, size_t size, size_t align,
 
 	cachep = find_mergeable(size, align, flags, name, ctor);
 	if (cachep) {
-		cachep->refcount++;
+		atomic_inc(&cachep->refcount);
 
 		/*
 		 * Adjust the object sizes so that we clear
@@ -2051,6 +2056,8 @@ __kmem_cache_create (struct kmem_cache *cachep, unsigned long flags)
 		flags |= SLAB_POISON;
 #endif
 #endif
+
+	flags = pax_sanitize_slab_flags(flags);
 
 	/*
 	 * Check that size is in terms of words.  This is needed to avoid
@@ -3520,6 +3527,20 @@ void ___cache_free(struct kmem_cache *cachep, void *objp,
 	struct array_cache *ac = cpu_cache_get(cachep);
 
 	check_irq_off();
+
+#ifdef CONFIG_PAX_MEMORY_SANITIZE
+	if (cachep->flags & (SLAB_POISON | SLAB_NO_SANITIZE))
+		STATS_INC_NOT_SANITIZED(cachep);
+	else {
+		memset(objp, PAX_MEMORY_SANITIZE_VALUE, cachep->object_size);
+
+		if (cachep->ctor)
+			cachep->ctor(objp);
+
+		STATS_INC_SANITIZED(cachep);
+	}
+#endif
+
 	kmemleak_free_recursive(objp, cachep->flags);
 	objp = cache_free_debugcheck(cachep, objp, caller);
 
@@ -3699,7 +3720,7 @@ __do_kmalloc_node(size_t size, gfp_t flags, int node, unsigned long caller)
 	return ret;
 }
 
-void *__kmalloc_node(size_t size, gfp_t flags, int node)
+void * __size_overflow(1) __kmalloc_node(size_t size, gfp_t flags, int node)
 {
 	return __do_kmalloc_node(size, flags, node, _RET_IP_);
 }
@@ -3719,7 +3740,7 @@ EXPORT_SYMBOL(__kmalloc_node_track_caller);
  * @flags: the type of memory to allocate (see kmalloc).
  * @caller: function caller for debug tracking of the caller
  */
-static __always_inline void *__do_kmalloc(size_t size, gfp_t flags,
+static __always_inline void * __size_overflow(1) __do_kmalloc(size_t size, gfp_t flags,
 					  unsigned long caller)
 {
 	struct kmem_cache *cachep;
@@ -3819,6 +3840,7 @@ void kfree(const void *objp)
 
 	if (unlikely(ZERO_OR_NULL_PTR(objp)))
 		return;
+	VM_BUG_ON(!virt_addr_valid(objp));
 	local_irq_save(flags);
 	kfree_debugcheck(objp);
 	c = virt_to_cache(objp);
@@ -4189,14 +4211,22 @@ void slabinfo_show_stats(struct seq_file *m, struct kmem_cache *cachep)
 	}
 	/* cpu stats */
 	{
-		unsigned long allochit = atomic_read(&cachep->allochit);
-		unsigned long allocmiss = atomic_read(&cachep->allocmiss);
-		unsigned long freehit = atomic_read(&cachep->freehit);
-		unsigned long freemiss = atomic_read(&cachep->freemiss);
+		unsigned long allochit = atomic_read_unchecked(&cachep->allochit);
+		unsigned long allocmiss = atomic_read_unchecked(&cachep->allocmiss);
+		unsigned long freehit = atomic_read_unchecked(&cachep->freehit);
+		unsigned long freemiss = atomic_read_unchecked(&cachep->freemiss);
 
 		seq_printf(m, " : cpustat %6lu %6lu %6lu %6lu",
 			   allochit, allocmiss, freehit, freemiss);
 	}
+#ifdef CONFIG_PAX_MEMORY_SANITIZE
+	{
+		unsigned long sanitized = atomic_read_unchecked(&cachep->sanitized);
+		unsigned long not_sanitized = atomic_read_unchecked(&cachep->not_sanitized);
+
+		seq_printf(m, " : pax %6lu %6lu", sanitized, not_sanitized);
+	}
+#endif
 #endif
 }
 
@@ -4433,16 +4463,48 @@ static const struct file_operations proc_slabstats_operations = {
 static int __init slab_proc_init(void)
 {
 #ifdef CONFIG_DEBUG_SLAB_LEAK
-	proc_create("slab_allocators", 0, NULL, &proc_slabstats_operations);
+	proc_create("slab_allocators", S_IRUSR, NULL, &proc_slabstats_operations);
 #endif
 	return 0;
 }
 module_init(slab_proc_init);
 #endif
 
+bool is_usercopy_object(const void *ptr)
+{
+	struct page *page;
+
+	if (ZERO_OR_NULL_PTR(ptr))
+		return false;
+
+	if (!slab_is_available())
+		return false;
+
+	if (is_vmalloc_addr(ptr)
+#ifdef CONFIG_GRKERNSEC_KSTACKOVERFLOW
+	    && !object_starts_on_stack(ptr)
+#endif
+	) {
+		struct vm_struct *vm = find_vm_area(ptr);
+		if (vm && (vm->flags & VM_USERCOPY))
+			return true;
+		return false;
+	}
+
+	if (!virt_addr_valid(ptr))
+		return false;
+
+	page = virt_to_head_page(ptr);
+
+	if (!PageSlab(page))
+		return false;
+
+	return !!page->slab_cache->usersize;
+}
+
 #ifdef CONFIG_HARDENED_USERCOPY
 /*
- * Rejects objects that are incorrectly sized.
+ * Detect unwanted object access
  *
  * Returns NULL if check passes, otherwise const char * to name of cache
  * to indicate an error.
@@ -4456,17 +4518,23 @@ const char *__check_heap_object(const void *ptr, unsigned long n,
 
 	/* Find and validate object. */
 	cachep = page->slab_cache;
-	objnr = obj_to_index(cachep, page, (void *)ptr);
+
+	objnr = obj_to_index(cachep, page, ptr);
 	BUG_ON(objnr >= cachep->num);
 
 	/* Find offset within object. */
 	offset = ptr - index_to_obj(cachep, page, objnr) - obj_offset(cachep);
 
-	/* Allow address range falling entirely within object size. */
-	if (offset <= cachep->object_size && n <= cachep->object_size - offset)
-		return NULL;
+	if (offset < cachep->useroffset)
+		return cachep->name;
 
-	return cachep->name;
+	if (offset - cachep->useroffset >= cachep->usersize)
+		return cachep->name;
+
+	if (n > cachep->useroffset - offset + cachep->usersize)
+		return cachep->name;
+
+	return NULL;
 }
 #endif /* CONFIG_HARDENED_USERCOPY */
 

@@ -499,6 +499,7 @@ int __kprobes longjmp_break_handler(struct kprobe *p, struct pt_regs *regs)
  * value kept in ri->ret_addr so we don't need to keep adjusting it
  * back and forth.
  */
+#ifdef CONFIG_KRETPROBES
 void __kprobes arch_prepare_kretprobe(struct kretprobe_instance *ri,
 				      struct pt_regs *regs)
 {
@@ -508,6 +509,7 @@ void __kprobes arch_prepare_kretprobe(struct kretprobe_instance *ri,
 	regs->u_regs[UREG_RETPC] =
 		((unsigned long)kretprobe_trampoline) - 8;
 }
+#endif
 
 /*
  * Called when the probe at kretprobe trampoline is hit

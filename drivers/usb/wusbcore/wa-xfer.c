@@ -314,7 +314,7 @@ static void wa_xfer_completion(struct wa_xfer *xfer)
  */
 static void wa_xfer_id_init(struct wa_xfer *xfer)
 {
-	xfer->id = atomic_add_return(1, &xfer->wa->xfer_id_count);
+	xfer->id = atomic_add_return_unchecked(1, &xfer->wa->xfer_id_count);
 }
 
 /* Return the xfer's ID. */

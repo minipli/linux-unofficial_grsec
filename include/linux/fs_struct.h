@@ -6,13 +6,13 @@
 #include <linux/seqlock.h>
 
 struct fs_struct {
-	int users;
+	atomic_t users;
 	spinlock_t lock;
 	seqcount_t seq;
 	int umask;
 	int in_exec;
 	struct path root, pwd;
-};
+} __randomize_layout;
 
 extern struct kmem_cache *fs_cachep;
 

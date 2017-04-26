@@ -153,7 +153,7 @@ L_round_the_result:
 /* If we ever get here then we have problems! */
 L_bugged:
 	pushl	EX_INTERNAL|0x201
-	call	EXCEPTION
+	pax_direct_call EXCEPTION
 	pop	%ebx
 	movl	$-1,%eax
 	jmp	L_exit
@@ -163,5 +163,5 @@ L_exit:
 	popl	%edi
 	popl	%esi
 	leave
-	ret
+	pax_ret FPU_u_add
 #endif /* PARANOID */

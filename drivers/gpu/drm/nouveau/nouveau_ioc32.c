@@ -50,7 +50,7 @@ long nouveau_compat_ioctl(struct file *filp, unsigned int cmd,
 			 unsigned long arg)
 {
 	unsigned int nr = DRM_IOCTL_NR(cmd);
-	drm_ioctl_compat_t *fn = NULL;
+	drm_ioctl_compat_t fn = NULL;
 	int ret;
 
 	if (nr < DRM_COMMAND_BASE)

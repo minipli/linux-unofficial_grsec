@@ -81,7 +81,7 @@ struct mthca_mpt_entry {
  * through the bitmaps)
  */
 
-static u32 mthca_buddy_alloc(struct mthca_buddy *buddy, int order)
+static u32 __intentional_overflow(-1) mthca_buddy_alloc(struct mthca_buddy *buddy, int order)
 {
 	int o;
 	int m;
@@ -426,7 +426,7 @@ static inline u32 adjust_key(struct mthca_dev *dev, u32 key)
 		return key;
 }
 
-int mthca_mr_alloc(struct mthca_dev *dev, u32 pd, int buffer_size_shift,
+int __intentional_overflow(-1) mthca_mr_alloc(struct mthca_dev *dev, u32 pd, int buffer_size_shift,
 		   u64 iova, u64 total_size, u32 access, struct mthca_mr *mr)
 {
 	struct mthca_mailbox *mailbox;
@@ -516,7 +516,7 @@ int mthca_mr_alloc_notrans(struct mthca_dev *dev, u32 pd,
 	return mthca_mr_alloc(dev, pd, 12, 0, ~0ULL, access, mr);
 }
 
-int mthca_mr_alloc_phys(struct mthca_dev *dev, u32 pd,
+int __intentional_overflow(-1) mthca_mr_alloc_phys(struct mthca_dev *dev, u32 pd,
 			u64 *buffer_list, int buffer_size_shift,
 			int list_len, u64 iova, u64 total_size,
 			u32 access, struct mthca_mr *mr)

@@ -834,7 +834,7 @@ static void run_plant_and_detach_test(int is_early)
 	char before[BREAK_INSTR_SIZE];
 	char after[BREAK_INSTR_SIZE];
 
-	probe_kernel_read(before, (char *)kgdbts_break_test,
+	probe_kernel_read(before, (void *)ktla_ktva((unsigned long)kgdbts_break_test),
 	  BREAK_INSTR_SIZE);
 	init_simple_test();
 	ts.tst = plant_and_detach_test;
@@ -842,7 +842,7 @@ static void run_plant_and_detach_test(int is_early)
 	/* Activate test with initial breakpoint */
 	if (!is_early)
 		kgdb_breakpoint();
-	probe_kernel_read(after, (char *)kgdbts_break_test,
+	probe_kernel_read(after, (void *)ktla_ktva((unsigned long)kgdbts_break_test),
 	  BREAK_INSTR_SIZE);
 	if (memcmp(before, after, BREAK_INSTR_SIZE)) {
 		printk(KERN_CRIT "kgdbts: ERROR kgdb corrupted memory\n");
@@ -1130,7 +1130,7 @@ static void kgdbts_put_char(u8 chr)
 		ts.run_test(0, chr);
 }
 
-static int param_set_kgdbts_var(const char *kmessage, struct kernel_param *kp)
+static int param_set_kgdbts_var(const char *kmessage, const struct kernel_param *kp)
 {
 	int len = strlen(kmessage);
 
@@ -1173,7 +1173,7 @@ static void kgdbts_post_exp_handler(void)
 		module_put(THIS_MODULE);
 }
 
-static struct kgdb_io kgdbts_io_ops = {
+static struct kgdb_io kgdbts_io_ops __read_only = {
 	.name			= "kgdbts",
 	.read_char		= kgdbts_get_char,
 	.write_char		= kgdbts_put_char,

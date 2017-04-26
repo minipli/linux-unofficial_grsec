@@ -1887,7 +1887,7 @@ void do_balance(struct tree_balance *tb, struct item_head *ih,
 		return;
 	}
 
-	atomic_inc(&fs_generation(tb->tb_sb));
+	atomic_inc_unchecked(&fs_generation(tb->tb_sb));
 	do_balance_starts(tb);
 
 	/*

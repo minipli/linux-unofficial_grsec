@@ -811,7 +811,7 @@ drain_scq(struct idt77252_dev *card, struct vc_map *vc)
 		else
 			dev_kfree_skb(skb);
 
-		atomic_inc(&vcc->stats->tx);
+		atomic_inc_unchecked(&vcc->stats->tx);
 	}
 
 	atomic_dec(&scq->used);
@@ -1073,13 +1073,13 @@ dequeue_rx(struct idt77252_dev *card, struct rsq_entry *rsqe)
 			if ((sb = dev_alloc_skb(64)) == NULL) {
 				printk("%s: Can't allocate buffers for aal0.\n",
 				       card->name);
-				atomic_add(i, &vcc->stats->rx_drop);
+				atomic_add_unchecked(i, &vcc->stats->rx_drop);
 				break;
 			}
 			if (!atm_charge(vcc, sb->truesize)) {
 				RXPRINTK("%s: atm_charge() dropped aal0 packets.\n",
 					 card->name);
-				atomic_add(i - 1, &vcc->stats->rx_drop);
+				atomic_add_unchecked(i - 1, &vcc->stats->rx_drop);
 				dev_kfree_skb(sb);
 				break;
 			}
@@ -1096,7 +1096,7 @@ dequeue_rx(struct idt77252_dev *card, struct rsq_entry *rsqe)
 			ATM_SKB(sb)->vcc = vcc;
 			__net_timestamp(sb);
 			vcc->push(vcc, sb);
-			atomic_inc(&vcc->stats->rx);
+			atomic_inc_unchecked(&vcc->stats->rx);
 
 			cell += ATM_CELL_PAYLOAD;
 		}
@@ -1133,13 +1133,13 @@ dequeue_rx(struct idt77252_dev *card, struct rsq_entry *rsqe)
 			         "(CDC: %08x)\n",
 			         card->name, len, rpp->len, readl(SAR_REG_CDC));
 			recycle_rx_pool_skb(card, rpp);
-			atomic_inc(&vcc->stats->rx_err);
+			atomic_inc_unchecked(&vcc->stats->rx_err);
 			return;
 		}
 		if (stat & SAR_RSQE_CRC) {
 			RXPRINTK("%s: AAL5 CRC error.\n", card->name);
 			recycle_rx_pool_skb(card, rpp);
-			atomic_inc(&vcc->stats->rx_err);
+			atomic_inc_unchecked(&vcc->stats->rx_err);
 			return;
 		}
 		if (skb_queue_len(&rpp->queue) > 1) {
@@ -1150,7 +1150,7 @@ dequeue_rx(struct idt77252_dev *card, struct rsq_entry *rsqe)
 				RXPRINTK("%s: Can't alloc RX skb.\n",
 					 card->name);
 				recycle_rx_pool_skb(card, rpp);
-				atomic_inc(&vcc->stats->rx_err);
+				atomic_inc_unchecked(&vcc->stats->rx_err);
 				return;
 			}
 			if (!atm_charge(vcc, skb->truesize)) {
@@ -1169,7 +1169,7 @@ dequeue_rx(struct idt77252_dev *card, struct rsq_entry *rsqe)
 			__net_timestamp(skb);
 
 			vcc->push(vcc, skb);
-			atomic_inc(&vcc->stats->rx);
+			atomic_inc_unchecked(&vcc->stats->rx);
 
 			return;
 		}
@@ -1191,7 +1191,7 @@ dequeue_rx(struct idt77252_dev *card, struct rsq_entry *rsqe)
 		__net_timestamp(skb);
 
 		vcc->push(vcc, skb);
-		atomic_inc(&vcc->stats->rx);
+		atomic_inc_unchecked(&vcc->stats->rx);
 
 		if (skb->truesize > SAR_FB_SIZE_3)
 			add_rx_skb(card, 3, SAR_FB_SIZE_3, 1);
@@ -1302,14 +1302,14 @@ idt77252_rx_raw(struct idt77252_dev *card)
 		if (vcc->qos.aal != ATM_AAL0) {
 			RPRINTK("%s: raw cell for non AAL0 vc %u.%u\n",
 				card->name, vpi, vci);
-			atomic_inc(&vcc->stats->rx_drop);
+			atomic_inc_unchecked(&vcc->stats->rx_drop);
 			goto drop;
 		}
 	
 		if ((sb = dev_alloc_skb(64)) == NULL) {
 			printk("%s: Can't allocate buffers for AAL0.\n",
 			       card->name);
-			atomic_inc(&vcc->stats->rx_err);
+			atomic_inc_unchecked(&vcc->stats->rx_err);
 			goto drop;
 		}
 
@@ -1328,7 +1328,7 @@ idt77252_rx_raw(struct idt77252_dev *card)
 		ATM_SKB(sb)->vcc = vcc;
 		__net_timestamp(sb);
 		vcc->push(vcc, sb);
-		atomic_inc(&vcc->stats->rx);
+		atomic_inc_unchecked(&vcc->stats->rx);
 
 drop:
 		skb_pull(queue, 64);
@@ -1953,13 +1953,13 @@ idt77252_send_skb(struct atm_vcc *vcc, struct sk_buff *skb, int oam)
 
 	if (vc == NULL) {
 		printk("%s: NULL connection in send().\n", card->name);
-		atomic_inc(&vcc->stats->tx_err);
+		atomic_inc_unchecked(&vcc->stats->tx_err);
 		dev_kfree_skb(skb);
 		return -EINVAL;
 	}
 	if (!test_bit(VCF_TX, &vc->flags)) {
 		printk("%s: Trying to transmit on a non-tx VC.\n", card->name);
-		atomic_inc(&vcc->stats->tx_err);
+		atomic_inc_unchecked(&vcc->stats->tx_err);
 		dev_kfree_skb(skb);
 		return -EINVAL;
 	}
@@ -1971,14 +1971,14 @@ idt77252_send_skb(struct atm_vcc *vcc, struct sk_buff *skb, int oam)
 		break;
 	default:
 		printk("%s: Unsupported AAL: %d\n", card->name, vcc->qos.aal);
-		atomic_inc(&vcc->stats->tx_err);
+		atomic_inc_unchecked(&vcc->stats->tx_err);
 		dev_kfree_skb(skb);
 		return -EINVAL;
 	}
 
 	if (skb_shinfo(skb)->nr_frags != 0) {
 		printk("%s: No scatter-gather yet.\n", card->name);
-		atomic_inc(&vcc->stats->tx_err);
+		atomic_inc_unchecked(&vcc->stats->tx_err);
 		dev_kfree_skb(skb);
 		return -EINVAL;
 	}
@@ -1986,7 +1986,7 @@ idt77252_send_skb(struct atm_vcc *vcc, struct sk_buff *skb, int oam)
 
 	err = queue_skb(card, vc, skb, oam);
 	if (err) {
-		atomic_inc(&vcc->stats->tx_err);
+		atomic_inc_unchecked(&vcc->stats->tx_err);
 		dev_kfree_skb(skb);
 		return err;
 	}
@@ -2009,7 +2009,7 @@ idt77252_send_oam(struct atm_vcc *vcc, void *cell, int flags)
 	skb = dev_alloc_skb(64);
 	if (!skb) {
 		printk("%s: Out of memory in send_oam().\n", card->name);
-		atomic_inc(&vcc->stats->tx_err);
+		atomic_inc_unchecked(&vcc->stats->tx_err);
 		return -ENOMEM;
 	}
 	atomic_add(skb->truesize, &sk_atm(vcc)->sk_wmem_alloc);

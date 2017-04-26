@@ -60,9 +60,9 @@ int __init efi_create_mapping(struct mm_struct *mm, efi_memory_desc_t *md)
 	 * preference.
 	 */
 	if (md->attribute & EFI_MEMORY_WB)
-		desc.type = MT_MEMORY_RWX;
+		desc.type = __MT_MEMORY_RWX;
 	else if (md->attribute & EFI_MEMORY_WT)
-		desc.type = MT_MEMORY_RWX_NONCACHED;
+		desc.type = MT_MEMORY_RW_NONCACHED;
 	else if (md->attribute & EFI_MEMORY_WC)
 		desc.type = MT_DEVICE_WC;
 	else

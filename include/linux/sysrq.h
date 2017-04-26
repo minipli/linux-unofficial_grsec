@@ -16,6 +16,7 @@
 
 #include <linux/errno.h>
 #include <linux/types.h>
+#include <linux/compiler.h>
 
 /* Possible values of bitmask for enabling sysrq functions */
 /* 0x0001 is reserved for enable everything */
@@ -33,7 +34,7 @@ struct sysrq_key_op {
 	char *help_msg;
 	char *action_msg;
 	int enable_mask;
-};
+} __do_const;
 
 #ifdef CONFIG_MAGIC_SYSRQ
 

@@ -187,7 +187,7 @@ struct mca_msr_regs {
 	u32 (*status)	(int bank);
 	u32 (*addr)	(int bank);
 	u32 (*misc)	(int bank);
-};
+} __no_const;
 
 extern struct mce_vendor_flags mce_flags;
 

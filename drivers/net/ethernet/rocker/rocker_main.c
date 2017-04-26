@@ -2890,7 +2890,7 @@ out:
 	return NOTIFY_DONE;
 }
 
-static struct notifier_block rocker_netdevice_nb __read_mostly = {
+static struct notifier_block rocker_netdevice_nb = {
 	.notifier_call = rocker_netdevice_event,
 };
 
@@ -2924,7 +2924,7 @@ static int rocker_netevent_event(struct notifier_block *unused,
 	return NOTIFY_DONE;
 }
 
-static struct notifier_block rocker_netevent_nb __read_mostly = {
+static struct notifier_block rocker_netevent_nb = {
 	.notifier_call = rocker_netevent_event,
 };
 

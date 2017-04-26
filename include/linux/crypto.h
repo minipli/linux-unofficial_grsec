@@ -510,7 +510,7 @@ struct cipher_tfm {
 	                  const u8 *key, unsigned int keylen);
 	void (*cit_encrypt_one)(struct crypto_tfm *tfm, u8 *dst, const u8 *src);
 	void (*cit_decrypt_one)(struct crypto_tfm *tfm, u8 *dst, const u8 *src);
-};
+} __no_const;
 
 struct compress_tfm {
 	int (*cot_compress)(struct crypto_tfm *tfm,
@@ -519,7 +519,7 @@ struct compress_tfm {
 	int (*cot_decompress)(struct crypto_tfm *tfm,
 	                      const u8 *src, unsigned int slen,
 	                      u8 *dst, unsigned int *dlen);
-};
+} __no_const;
 
 #define crt_ablkcipher	crt_u.ablkcipher
 #define crt_blkcipher	crt_u.blkcipher

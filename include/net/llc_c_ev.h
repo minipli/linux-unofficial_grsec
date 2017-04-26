@@ -125,8 +125,8 @@ static __inline__ struct llc_conn_state_ev *llc_conn_ev(struct sk_buff *skb)
 	return (struct llc_conn_state_ev *)skb->cb;
 }
 
-typedef int (*llc_conn_ev_t)(struct sock *sk, struct sk_buff *skb);
-typedef int (*llc_conn_ev_qfyr_t)(struct sock *sk, struct sk_buff *skb);
+typedef int (* const llc_conn_ev_t)(struct sock *sk, struct sk_buff *skb);
+typedef int (* const llc_conn_ev_qfyr_t)(struct sock *sk, struct sk_buff *skb);
 
 int llc_conn_ev_conn_req(struct sock *sk, struct sk_buff *skb);
 int llc_conn_ev_data_req(struct sock *sk, struct sk_buff *skb);

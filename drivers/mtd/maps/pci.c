@@ -59,13 +59,13 @@ static void mtd_pci_copyfrom(struct map_info *_map, void *to, unsigned long from
 	memcpy_fromio(to, map->base + map->translate(map, from), len);
 }
 
-static void mtd_pci_write8(struct map_info *_map, map_word val, unsigned long ofs)
+static void mtd_pci_write8(struct map_info *_map, const map_word val, unsigned long ofs)
 {
 	struct map_pci_info *map = (struct map_pci_info *)_map;
 	writeb(val.x[0], map->base + map->translate(map, ofs));
 }
 
-static void mtd_pci_write32(struct map_info *_map, map_word val, unsigned long ofs)
+static void mtd_pci_write32(struct map_info *_map, const map_word val, unsigned long ofs)
 {
 	struct map_pci_info *map = (struct map_pci_info *)_map;
 	writel(val.x[0], map->base + map->translate(map, ofs));

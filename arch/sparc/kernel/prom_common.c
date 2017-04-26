@@ -144,7 +144,7 @@ static int __init prom_common_nextprop(phandle node, char *prev, char *buf)
 
 unsigned int prom_early_allocated __initdata;
 
-static struct of_pdt_ops prom_sparc_ops __initdata = {
+static const struct of_pdt_ops prom_sparc_ops __initconst = {
 	.nextprop = prom_common_nextprop,
 	.getproplen = prom_getproplen,
 	.getproperty = prom_getproperty,

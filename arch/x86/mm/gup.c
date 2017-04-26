@@ -317,7 +317,7 @@ int __get_user_pages_fast(unsigned long start, int nr_pages, int write,
 	addr = start;
 	len = (unsigned long) nr_pages << PAGE_SHIFT;
 	end = start + len;
-	if (unlikely(!access_ok(write ? VERIFY_WRITE : VERIFY_READ,
+	if (unlikely(!access_ok_noprefault(write ? VERIFY_WRITE : VERIFY_READ,
 					(void __user *)start, len)))
 		return 0;
 
@@ -392,6 +392,10 @@ int get_user_pages_fast(unsigned long start, int nr_pages, int write,
 	if (end >> __VIRTUAL_MASK_SHIFT)
 		goto slow_irqon;
 #endif
+
+	if (unlikely(!access_ok_noprefault(write ? VERIFY_WRITE : VERIFY_READ,
+					(void __user *)start, len)))
+		return 0;
 
 	/*
 	 * XXX: batch / limit 'nr', to avoid large irq off latency

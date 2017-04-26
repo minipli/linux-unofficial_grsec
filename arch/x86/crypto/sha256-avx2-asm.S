@@ -50,6 +50,7 @@
 
 #ifdef CONFIG_AS_AVX2
 #include <linux/linkage.h>
+#include <asm/alternative-asm.h>
 
 ## assume buffers not aligned
 #define	VMOVDQ vmovdqu
@@ -528,8 +529,7 @@ STACK_SIZE	= _RSP      + _RSP_SIZE
 ## arg 3 : Num blocks
 ########################################################################
 .text
-ENTRY(sha256_transform_rorx)
-.align 32
+RAP_ENTRY(sha256_transform_rorx)
 	pushq	%rbx
 	pushq	%rbp
 	pushq	%r12
@@ -720,7 +720,7 @@ done_hash:
 	popq	%r12
 	popq	%rbp
 	popq	%rbx
-	ret
+	pax_ret sha256_transform_rorx
 ENDPROC(sha256_transform_rorx)
 
 .data

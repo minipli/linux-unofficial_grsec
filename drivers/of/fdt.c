@@ -1295,7 +1295,9 @@ static int __init of_fdt_raw_init(void)
 		pr_warn("not creating '/sys/firmware/fdt': CRC check failed\n");
 		return 0;
 	}
-	of_fdt_raw_attr.size = fdt_totalsize(initial_boot_params);
+	pax_open_kernel();
+	const_cast(of_fdt_raw_attr.size) = fdt_totalsize(initial_boot_params);
+	pax_close_kernel();
 	return sysfs_create_bin_file(firmware_kobj, &of_fdt_raw_attr);
 }
 late_initcall(of_fdt_raw_init);

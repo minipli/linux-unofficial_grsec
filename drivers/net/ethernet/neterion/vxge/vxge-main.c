@@ -4043,7 +4043,7 @@ static int vxge_pm_resume(struct pci_dev *pdev)
  * this device has been detected.
  */
 static pci_ers_result_t vxge_io_error_detected(struct pci_dev *pdev,
-						pci_channel_state_t state)
+						enum pci_channel_state state)
 {
 	struct __vxge_hw_device *hldev = pci_get_drvdata(pdev);
 	struct net_device *netdev = hldev->ndev;

@@ -110,8 +110,8 @@ typedef struct drm_i810_private {
 	int page_flipping;
 
 	wait_queue_head_t irq_queue;
-	atomic_t irq_received;
-	atomic_t irq_emitted;
+	atomic_unchecked_t irq_received;
+	atomic_unchecked_t irq_emitted;
 
 	int front_offset;
 } drm_i810_private_t;
@@ -128,7 +128,7 @@ extern int i810_driver_device_is_agp(struct drm_device *dev);
 
 extern long i810_ioctl(struct file *file, unsigned int cmd, unsigned long arg);
 extern const struct drm_ioctl_desc i810_ioctls[];
-extern int i810_max_ioctl;
+extern const int i810_max_ioctl;
 
 #define I810_BASE(reg)		((unsigned long) \
 				dev_priv->mmio_map->handle)

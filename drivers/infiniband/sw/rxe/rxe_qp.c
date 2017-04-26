@@ -219,7 +219,7 @@ static void rxe_qp_init_misc(struct rxe_dev *rxe, struct rxe_qp *qp,
 	spin_lock_init(&qp->grp_lock);
 	spin_lock_init(&qp->state_lock);
 
-	atomic_set(&qp->ssn, 0);
+	atomic_set_unchecked(&qp->ssn, 0);
 	atomic_set(&qp->skb_out, 0);
 }
 
@@ -526,7 +526,7 @@ static void rxe_qp_reset(struct rxe_qp *qp)
 	}
 
 	/* cleanup attributes */
-	atomic_set(&qp->ssn, 0);
+	atomic_set_unchecked(&qp->ssn, 0);
 	qp->req.opcode = -1;
 	qp->req.need_retry = 0;
 	qp->req.noack_pkts = 0;

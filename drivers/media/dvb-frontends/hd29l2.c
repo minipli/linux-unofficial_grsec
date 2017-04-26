@@ -555,7 +555,7 @@ err:
 	return DVBFE_ALGO_SEARCH_ERROR;
 }
 
-static int hd29l2_get_frontend_algo(struct dvb_frontend *fe)
+static enum dvbfe_algo hd29l2_get_frontend_algo(struct dvb_frontend *fe)
 {
 	return DVBFE_ALGO_CUSTOM;
 }

@@ -172,8 +172,8 @@ static void ne2k_pci_get_8390_hdr(struct net_device *dev, struct e8390_pkt_hdr *
 			  int ring_page);
 static void ne2k_pci_block_input(struct net_device *dev, int count,
 			  struct sk_buff *skb, int ring_offset);
-static void ne2k_pci_block_output(struct net_device *dev, const int count,
-		const unsigned char *buf, const int start_page);
+static void ne2k_pci_block_output(struct net_device *dev, int count,
+		const unsigned char *buf, int start_page);
 static const struct ethtool_ops ne2k_pci_ethtool_ops;
 
 
@@ -563,7 +563,7 @@ static void ne2k_pci_block_input(struct net_device *dev, int count,
 }
 
 static void ne2k_pci_block_output(struct net_device *dev, int count,
-				  const unsigned char *buf, const int start_page)
+				  const unsigned char *buf, int start_page)
 {
 	long nic_base = NE_BASE;
 	unsigned long dma_start;

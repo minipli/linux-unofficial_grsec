@@ -55,10 +55,10 @@ int csio_fdmi_enable = 1;
 #define PORT_ID_PTR(_x)         ((uint8_t *)(&_x) + 1)
 
 /* Lnode SM declarations */
-static void csio_lns_uninit(struct csio_lnode *, enum csio_ln_ev);
-static void csio_lns_online(struct csio_lnode *, enum csio_ln_ev);
-static void csio_lns_ready(struct csio_lnode *, enum csio_ln_ev);
-static void csio_lns_offline(struct csio_lnode *, enum csio_ln_ev);
+static void csio_lns_uninit(struct csio_sm *, uint32_t);
+static void csio_lns_online(struct csio_sm *, uint32_t);
+static void csio_lns_ready(struct csio_sm *, uint32_t);
+static void csio_lns_offline(struct csio_sm *, uint32_t);
 
 static int csio_ln_mgmt_submit_req(struct csio_ioreq *,
 		void (*io_cbfn) (struct csio_hw *, struct csio_ioreq *),
@@ -1077,7 +1077,7 @@ csio_handle_link_down(struct csio_hw *hw, uint8_t portid, uint32_t fcfi,
 int
 csio_is_lnode_ready(struct csio_lnode *ln)
 {
-	return (csio_get_state(ln) == ((csio_sm_state_t)csio_lns_ready));
+	return (csio_get_state(&ln->sm) == csio_lns_ready);
 }
 
 /*****************************************************************************/
@@ -1093,8 +1093,10 @@ csio_is_lnode_ready(struct csio_lnode *ln)
  * Return - none.
  */
 static void
-csio_lns_uninit(struct csio_lnode *ln, enum csio_ln_ev evt)
+csio_lns_uninit(struct csio_sm *_ln, uint32_t _evt)
 {
+	struct csio_lnode *ln = container_of(_ln, struct csio_lnode, sm);
+	enum csio_ln_ev evt = _evt;
 	struct csio_hw *hw = csio_lnode_to_hw(ln);
 	struct csio_lnode *rln = hw->rln;
 	int rv;
@@ -1146,8 +1148,10 @@ csio_lns_uninit(struct csio_lnode *ln, enum csio_ln_ev evt)
  * Return - none.
  */
 static void
-csio_lns_online(struct csio_lnode *ln, enum csio_ln_ev evt)
+csio_lns_online(struct csio_sm *_ln, uint32_t _evt)
 {
+	struct csio_lnode *ln = container_of(_ln, struct csio_lnode, sm);
+	enum csio_ln_ev evt = _evt;
 	struct csio_hw *hw = csio_lnode_to_hw(ln);
 
 	CSIO_INC_STATS(ln, n_evt_sm[evt]);
@@ -1198,8 +1202,10 @@ csio_lns_online(struct csio_lnode *ln, enum csio_ln_ev evt)
  * Return - none.
  */
 static void
-csio_lns_ready(struct csio_lnode *ln, enum csio_ln_ev evt)
+csio_lns_ready(struct csio_sm *_ln, uint32_t _evt)
 {
+	struct csio_lnode *ln = container_of(_ln, struct csio_lnode, sm);
+	enum csio_ln_ev evt = _evt;
 	struct csio_hw *hw = csio_lnode_to_hw(ln);
 
 	CSIO_INC_STATS(ln, n_evt_sm[evt]);
@@ -1272,8 +1278,10 @@ csio_lns_ready(struct csio_lnode *ln, enum csio_ln_ev evt)
  * Return - none.
  */
 static void
-csio_lns_offline(struct csio_lnode *ln, enum csio_ln_ev evt)
+csio_lns_offline(struct csio_sm *_ln, uint32_t _evt)
 {
+	struct csio_lnode *ln = container_of(_ln, struct csio_lnode, sm);
+	enum csio_ln_ev evt = _evt;
 	struct csio_hw *hw = csio_lnode_to_hw(ln);
 	struct csio_lnode *rln = hw->rln;
 	int rv;
@@ -1349,15 +1357,15 @@ csio_free_fcfinfo(struct kref *kref)
 void
 csio_lnode_state_to_str(struct csio_lnode *ln, int8_t *str)
 {
-	if (csio_get_state(ln) == ((csio_sm_state_t)csio_lns_uninit)) {
+	if (csio_get_state(&ln->sm) == csio_lns_uninit) {
 		strcpy(str, "UNINIT");
 		return;
 	}
-	if (csio_get_state(ln) == ((csio_sm_state_t)csio_lns_ready)) {
+	if (csio_get_state(&ln->sm) == csio_lns_ready) {
 		strcpy(str, "READY");
 		return;
 	}
-	if (csio_get_state(ln) == ((csio_sm_state_t)csio_lns_offline)) {
+	if (csio_get_state(&ln->sm) == csio_lns_offline) {
 		strcpy(str, "OFFLINE");
 		return;
 	}

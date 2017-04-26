@@ -65,7 +65,11 @@ void *kmap_atomic_prot_pfn(unsigned long pfn, pgprot_t prot)
 	type = kmap_atomic_idx_push();
 	idx = type + KM_TYPE_NR * smp_processor_id();
 	vaddr = __fix_to_virt(FIX_KMAP_BEGIN + idx);
+
+	pax_open_kernel();
 	set_pte(kmap_pte - idx, pfn_pte(pfn, prot));
+	pax_close_kernel();
+
 	arch_flush_lazy_mmu_mode();
 
 	return (void *)vaddr;

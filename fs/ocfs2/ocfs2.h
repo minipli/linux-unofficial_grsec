@@ -247,11 +247,11 @@ enum ocfs2_vol_state
 
 struct ocfs2_alloc_stats
 {
-	atomic_t moves;
-	atomic_t local_data;
-	atomic_t bitmap_data;
-	atomic_t bg_allocs;
-	atomic_t bg_extends;
+	atomic_unchecked_t moves;
+	atomic_unchecked_t local_data;
+	atomic_unchecked_t bitmap_data;
+	atomic_unchecked_t bg_allocs;
+	atomic_unchecked_t bg_extends;
 };
 
 enum ocfs2_local_alloc_state
