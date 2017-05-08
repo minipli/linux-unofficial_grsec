@@ -1433,14 +1433,12 @@ static void cpuhp_store_callbacks(enum cpuhp_state state,
 	/* (Un)Install the callbacks for further cpu hotplug operations */
 	struct cpuhp_step *sp;
 
-	mutex_lock(&cpuhp_state_mutex);
 	sp = cpuhp_get_step(state);
 	sp->startup = startup;
 	sp->teardown = teardown;
 	sp->name = name;
 	sp->multi_instance = multi_instance;
 	INIT_HLIST_HEAD(&sp->list);
-	mutex_unlock(&cpuhp_state_mutex);
 }
 
 static union cpuhp_step_teardown cpuhp_get_teardown_cb(enum cpuhp_state state)
@@ -1510,16 +1508,13 @@ static int cpuhp_reserve_state(enum cpuhp_state state)
 {
 	enum cpuhp_state i;
 
-	mutex_lock(&cpuhp_state_mutex);
 	for (i = CPUHP_AP_ONLINE_DYN; i <= CPUHP_AP_ONLINE_DYN_END; i++) {
 		if (cpuhp_ap_states[i].name)
 			continue;
 
 		cpuhp_ap_states[i].name = "Reserved";
-		mutex_unlock(&cpuhp_state_mutex);
 		return i;
 	}
-	mutex_unlock(&cpuhp_state_mutex);
 	WARN(1, "No more dynamic states available for CPU hotplug\n");
 	return -ENOSPC;
 }
@@ -1536,6 +1531,7 @@ int __cpuhp_state_add_instance(enum cpuhp_state state, struct hlist_node *node,
 		return -EINVAL;
 
 	get_online_cpus();
+	mutex_lock(&cpuhp_state_mutex);
 
 	if (!invoke || !sp->startup.multi)
 		goto add_node;
@@ -1560,11 +1556,10 @@ int __cpuhp_state_add_instance(enum cpuhp_state state, struct hlist_node *node,
 	}
 add_node:
 	ret = 0;
-	mutex_lock(&cpuhp_state_mutex);
 	hlist_add_head(node, &sp->list);
-	mutex_unlock(&cpuhp_state_mutex);
 
 err:
+	mutex_unlock(&cpuhp_state_mutex);
 	put_online_cpus();
 	return ret;
 }
@@ -1593,6 +1588,7 @@ int __cpuhp_setup_state(enum cpuhp_state state,
 		return -EINVAL;
 
 	get_online_cpus();
+	mutex_lock(&cpuhp_state_mutex);
 
 	/* currently assignments for the ONLINE state are possible */
 	if (state == CPUHP_AP_ONLINE_DYN) {
@@ -1631,6 +1627,8 @@ int __cpuhp_setup_state(enum cpuhp_state state,
 		}
 	}
 out:
+	mutex_unlock(&cpuhp_state_mutex);
+
 	put_online_cpus();
 	if (!ret && dyn_state)
 		return state;
@@ -1650,6 +1648,8 @@ int __cpuhp_state_remove_instance(enum cpuhp_state state,
 		return -EINVAL;
 
 	get_online_cpus();
+	mutex_lock(&cpuhp_state_mutex);
+
 	if (!invoke || !cpuhp_get_teardown_cb(state).single)
 		goto remove;
 	/*
@@ -1666,7 +1666,6 @@ int __cpuhp_state_remove_instance(enum cpuhp_state state,
 	}
 
 remove:
-	mutex_lock(&cpuhp_state_mutex);
 	hlist_del(node);
 	mutex_unlock(&cpuhp_state_mutex);
 	put_online_cpus();
@@ -1693,6 +1692,7 @@ void __cpuhp_remove_state(enum cpuhp_state state, bool invoke)
 	BUG_ON(cpuhp_cb_check(state));
 
 	get_online_cpus();
+	mutex_lock(&cpuhp_state_mutex);
 
 	if (sp->multi_instance) {
 		WARN(!hlist_empty(&sp->list),
@@ -1718,6 +1718,7 @@ void __cpuhp_remove_state(enum cpuhp_state state, bool invoke)
 	}
 remove:
 	cpuhp_store_callbacks(state, NULL, startup, teardown, false);
+	mutex_unlock(&cpuhp_state_mutex);
 	put_online_cpus();
 }
 EXPORT_SYMBOL(__cpuhp_remove_state);
