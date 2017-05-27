@@ -88,6 +88,10 @@ static inline int range_is_allowed(unsigned long pfn, unsigned long size)
 	return 1;
 }
 #elif defined(CONFIG_GRKERNSEC_KMEM)
+static inline int page_is_allowed(unsigned long pfn)
+{
+	return 0;
+}
 static inline int range_is_allowed(unsigned long pfn, unsigned long size)
 {
 	return 0;
