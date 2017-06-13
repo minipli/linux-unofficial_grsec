@@ -525,8 +525,8 @@ static void randomize_layout_finish_decl(void *event_data, void *data)
 
 	DECL_SIZE(decl) = 0;
 	DECL_SIZE_UNIT(decl) = 0;
-	DECL_ALIGN(decl) = 0;
-	DECL_MODE (decl) = VOIDmode;
+	SET_DECL_ALIGN(decl, 0);
+	SET_DECL_MODE(decl, VOIDmode);
 	SET_DECL_RTL(decl, 0);
 	update_decl_size(decl);
 	layout_decl(decl, 0);
