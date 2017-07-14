@@ -63,8 +63,7 @@ arch_get_unmapped_area(struct file *filp, unsigned long addr,
 			addr = PAGE_ALIGN(addr);
 
 		vma = find_vma(mm, addr);
-		if (TASK_SIZE - len >= addr &&
-		    (!vma || addr + len <= vma->vm_start))
+		if (TASK_SIZE - len >= addr && check_heap_stack_gap(vma, addr, len, 0))
 			return addr;
 	}
 
@@ -74,5 +73,6 @@ arch_get_unmapped_area(struct file *filp, unsigned long addr,
 	info.high_limit = TASK_SIZE;
 	info.align_mask = do_align ? (PAGE_MASK & (SHMLBA - 1)) : 0;
 	info.align_offset = pgoff << PAGE_SHIFT;
+	info.threadstack_offset = 0;
 	return vm_unmapped_area(&info);
 }

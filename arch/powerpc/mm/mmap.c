@@ -105,8 +105,7 @@ radix__arch_get_unmapped_area(struct file *filp, unsigned long addr,
 	if (addr) {
 		addr = PAGE_ALIGN(addr);
 		vma = find_vma(mm, addr);
-		if (TASK_SIZE - len >= addr && addr >= mmap_min_addr &&
-		    (!vma || addr + len <= vma->vm_start))
+		if (TASK_SIZE - len >= addr && addr >= mmap_min_addr && check_heap_stack_gap(vma, addr, len, 0))
 			return addr;
 	}
 
@@ -115,6 +114,7 @@ radix__arch_get_unmapped_area(struct file *filp, unsigned long addr,
 	info.low_limit = mm->mmap_base;
 	info.high_limit = TASK_SIZE;
 	info.align_mask = 0;
+	info.threadstack_offset = 0;
 	return vm_unmapped_area(&info);
 }
 
@@ -141,8 +141,7 @@ radix__arch_get_unmapped_area_topdown(struct file *filp,
 	if (addr) {
 		addr = PAGE_ALIGN(addr);
 		vma = find_vma(mm, addr);
-		if (TASK_SIZE - len >= addr && addr >= mmap_min_addr &&
-				(!vma || addr + len <= vma->vm_start))
+		if (TASK_SIZE - len >= addr && addr >= mmap_min_addr && check_heap_stack_gap(vma, addr, len, 0))
 			return addr;
 	}
 
@@ -151,6 +150,7 @@ radix__arch_get_unmapped_area_topdown(struct file *filp,
 	info.low_limit = max(PAGE_SIZE, mmap_min_addr);
 	info.high_limit = mm->mmap_base;
 	info.align_mask = 0;
+	info.threadstack_offset = 0;
 	addr = vm_unmapped_area(&info);
 
 	/*

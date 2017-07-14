@@ -77,6 +77,7 @@ unsigned long arch_get_unmapped_area(struct file *filp, unsigned long addr,
 	info.high_limit = TASK_SIZE;
 	info.align_mask = do_colour_align ? (PAGE_MASK & shm_align_mask) : 0;
 	info.align_offset = pgoff << PAGE_SHIFT;
+	info.threadstack_offset = offset;
 	return vm_unmapped_area(&info);
 }
 
@@ -131,6 +132,7 @@ arch_get_unmapped_area_topdown(struct file *filp, unsigned long addr0,
 	info.high_limit = mm->mmap_base;
 	info.align_mask = do_colour_align ? (PAGE_MASK & shm_align_mask) : 0;
 	info.align_offset = pgoff << PAGE_SHIFT;
+	info.threadstack_offset = offset;
 	addr = vm_unmapped_area(&info);
 
 	/*

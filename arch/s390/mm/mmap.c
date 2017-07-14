@@ -87,6 +87,7 @@ arch_get_unmapped_area(struct file *filp, unsigned long addr,
 	struct mm_struct *mm = current->mm;
 	struct vm_area_struct *vma;
 	struct vm_unmapped_area_info info;
+	unsigned long offset = gr_rand_threadstack_offset(mm, filp, flags);
 
 	if (len > TASK_SIZE - mmap_min_addr)
 		return -ENOMEM;
@@ -94,11 +95,14 @@ arch_get_unmapped_area(struct file *filp, unsigned long addr,
 	if (flags & MAP_FIXED)
 		return addr;
 
+#ifdef CONFIG_PAX_RANDMMAP
+	if (!(mm->pax_flags & MF_PAX_RANDMMAP))
+#endif
+
 	if (addr) {
 		addr = PAGE_ALIGN(addr);
 		vma = find_vma(mm, addr);
-		if (TASK_SIZE - len >= addr && addr >= mmap_min_addr &&
-		    (!vma || addr + len <= vma->vm_start))
+		if (TASK_SIZE - len >= addr && addr >= mmap_min_addr && check_heap_stack_gap(vma, addr, len, offset))
 			return addr;
 	}
 
@@ -111,6 +115,7 @@ arch_get_unmapped_area(struct file *filp, unsigned long addr,
 	else
 		info.align_mask = 0;
 	info.align_offset = pgoff << PAGE_SHIFT;
+	info.threadstack_offset = offset;
 	return vm_unmapped_area(&info);
 }
 
@@ -123,6 +128,7 @@ arch_get_unmapped_area_topdown(struct file *filp, const unsigned long addr0,
 	struct mm_struct *mm = current->mm;
 	unsigned long addr = addr0;
 	struct vm_unmapped_area_info info;
+	unsigned long offset = gr_rand_threadstack_offset(mm, filp, flags);
 
 	/* requested length too big for entire address space */
 	if (len > TASK_SIZE - mmap_min_addr)
@@ -131,12 +137,15 @@ arch_get_unmapped_area_topdown(struct file *filp, const unsigned long addr0,
 	if (flags & MAP_FIXED)
 		return addr;
 
+#ifdef CONFIG_PAX_RANDMMAP
+	if (!(mm->pax_flags & MF_PAX_RANDMMAP))
+#endif
+
 	/* requesting a specific address */
 	if (addr) {
 		addr = PAGE_ALIGN(addr);
 		vma = find_vma(mm, addr);
-		if (TASK_SIZE - len >= addr && addr >= mmap_min_addr &&
-				(!vma || addr + len <= vma->vm_start))
+		if (TASK_SIZE - len >= addr && addr >= mmap_min_addr && check_heap_stack_gap(vma, addr, len, offset))
 			return addr;
 	}
 
@@ -149,6 +158,7 @@ arch_get_unmapped_area_topdown(struct file *filp, const unsigned long addr0,
 	else
 		info.align_mask = 0;
 	info.align_offset = pgoff << PAGE_SHIFT;
+	info.threadstack_offset = offset;
 	addr = vm_unmapped_area(&info);
 
 	/*

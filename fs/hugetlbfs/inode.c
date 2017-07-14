@@ -211,6 +211,7 @@ hugetlb_get_unmapped_area(struct file *file, unsigned long addr,
 	info.high_limit = TASK_SIZE;
 	info.align_mask = PAGE_MASK & ~huge_page_mask(h);
 	info.align_offset = 0;
+	info.threadstack_offset = offset;
 	return vm_unmapped_area(&info);
 }
 #endif

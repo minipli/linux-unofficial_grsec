@@ -121,8 +121,7 @@ unsigned long arch_get_unmapped_area(struct file *filp, unsigned long addr,
 			addr = PAGE_ALIGN(addr);
 
 		vma = find_vma(mm, addr);
-		if (task_size - len >= addr &&
-		    (!vma || addr + len <= vma->vm_start))
+		if (task_size - len >= addr && check_heap_stack_gap(vma, addr, len, offset))
 			goto found_addr;
 	}
 
@@ -186,9 +185,9 @@ arch_get_unmapped_area_topdown(struct file *filp, const unsigned long addr0,
 			addr = COLOR_ALIGN(addr, last_mmap, pgoff);
 		else
 			addr = PAGE_ALIGN(addr);
+
 		vma = find_vma(mm, addr);
-		if (TASK_SIZE - len >= addr &&
-		    (!vma || addr + len <= vma->vm_start))
+		if (TASK_SIZE - len >= addr && check_heap_stack_gap(vma, addr, len, offset))
 			goto found_addr;
 	}
 

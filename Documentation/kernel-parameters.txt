@@ -3971,6 +3971,16 @@ bytes respectively. Such letter suffixes can also be entirely omitted.
 	spia_pedr=
 	spia_peddr=
 
+	stack_guard_gap=nn[KMG] [MM]
+			Override the default heap stack gap protection range.
+			The value defines how many bytes prior to (for stacks
+			growing down) resp. after (for stacks growing up) the
+			main stack are reserved for no other mapping. The
+			granularity is in bytes, rounded up to the page size
+			of the given architecture. The default value is 64 kB.
+			This value can also be changed at runtime through the
+			vm.heap_stack_gap sysctl.
+
 	stacktrace	[FTRACE]
 			Enabled the stack tracer on boot up.
 
