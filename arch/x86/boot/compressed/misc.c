@@ -349,7 +349,7 @@ asmlinkage __visible void *extract_kernel(void *rmode, memptr heap,
 #else
 	const unsigned long kernel_total_size = VO__end - VO__text;
 #endif
-	unsigned long virt_addr = (unsigned long)output;
+	unsigned long virt_addr = ____LOAD_PHYSICAL_ADDR;
 
 	/* Retain x86 boot parameters pointer passed from startup_32/64. */
 	boot_params = rmode;
@@ -408,7 +408,7 @@ asmlinkage __visible void *extract_kernel(void *rmode, memptr heap,
 #ifndef CONFIG_RELOCATABLE
 	if ((unsigned long)output != ____LOAD_PHYSICAL_ADDR)
 		error("Destination address does not match LOAD_PHYSICAL_ADDR");
-	if ((unsigned long)output != virt_addr)
+	if (virt_addr != ____LOAD_PHYSICAL_ADDR)
 		error("Destination virtual address changed when not relocatable");
 #endif
 

@@ -94,10 +94,10 @@ __setup("noexec32=", nonx32_setup);
  */
 void sync_global_pgds(unsigned long start, unsigned long end, int removed)
 {
-	unsigned long address;
+	unsigned long addr;
 
-	for (address = start; address <= end; address += PGDIR_SIZE) {
-		const pgd_t *pgd_ref = pgd_offset_k(address);
+	for (addr = start; addr <= end; addr = ALIGN(addr + 1, PGDIR_SIZE)) {
+		const pgd_t *pgd_ref = pgd_offset_k(addr);
 
 #ifdef CONFIG_PAX_PER_CPU_PGD
 		unsigned long cpu;
@@ -117,7 +117,7 @@ void sync_global_pgds(unsigned long start, unsigned long end, int removed)
 
 #ifdef CONFIG_PAX_PER_CPU_PGD
 		for (cpu = 0; cpu < nr_cpu_ids; ++cpu) {
-			pgd_t *pgd = pgd_offset_cpu(cpu, user, address);
+			pgd_t *pgd = pgd_offset_cpu(cpu, user, addr);
 
 			if (!pgd_none(*pgd_ref) && !pgd_none(*pgd))
 				BUG_ON(pgd_page_vaddr(*pgd)
@@ -131,13 +131,13 @@ void sync_global_pgds(unsigned long start, unsigned long end, int removed)
 					set_pgd(pgd, *pgd_ref);
 			}
 
-			pgd = pgd_offset_cpu(cpu, kernel, address);
+			pgd = pgd_offset_cpu(cpu, kernel, addr);
 #else
 		list_for_each_entry(page, &pgd_list, lru) {
 			pgd_t *pgd;
 			spinlock_t *pgt_lock;
 
-			pgd = (pgd_t *)page_address(page) + pgd_index(address);
+			pgd = (pgd_t *)page_address(page) + pgd_index(addr);
 			/* the pgt_lock only for Xen */
 			pgt_lock = &pgd_page_get_mm(page)->page_table_lock;
 			spin_lock(pgt_lock);
