@@ -195,7 +195,7 @@ asmlinkage void sha1_transform_avx2(struct sha1_state *digest, const u8 *data,
 
 static bool avx2_usable(void)
 {
-	if (avx_usable() && boot_cpu_has(X86_FEATURE_AVX2)
+	if (false && avx_usable() && boot_cpu_has(X86_FEATURE_AVX2)
 		&& boot_cpu_has(X86_FEATURE_BMI1)
 		&& boot_cpu_has(X86_FEATURE_BMI2))
 		return true;
