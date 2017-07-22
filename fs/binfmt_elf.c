@@ -9,6 +9,7 @@
  * Copyright 1993, 1994: Eric Youngdale (ericy@cais.com).
  */
 
+#include <linux/sched.h>
 #include <linux/module.h>
 #include <linux/kernel.h>
 #include <linux/fs.h>
@@ -34,7 +35,6 @@
 #include <linux/elf-randomize.h>
 #include <linux/utsname.h>
 #include <linux/coredump.h>
-#include <linux/sched.h>
 #include <linux/dax.h>
 #include <linux/xattr.h>
 #include <asm/uaccess.h>
