@@ -107,8 +107,8 @@ ENTRY(copy_user_generic_unrolled)
 	incq %rdi
 	decl %ecx
 	jnz 21b
-23:	xor %eax,%eax
-	ASM_USER_ACCESS_END
+23:	ASM_USER_ACCESS_END
+	xor %eax,%eax
 	FRAME_END
 	pax_ret copy_user_generic_unrolled
 
@@ -178,8 +178,8 @@ ENTRY(copy_user_generic_string)
 2:	movl %edx,%ecx
 3:	rep
 	movsb
-	xorl %eax,%eax
 	ASM_USER_ACCESS_END
+	xorl %eax,%eax
 	FRAME_END
 	pax_ret copy_user_generic_string
 
@@ -215,8 +215,8 @@ ENTRY(copy_user_enhanced_fast_string)
 	movl %edx,%ecx
 1:	rep
 	movsb
-	xorl %eax,%eax
 	ASM_USER_ACCESS_END
+	xorl %eax,%eax
 	FRAME_END
 	pax_ret copy_user_enhanced_fast_string
 
@@ -343,8 +343,8 @@ ENTRY(__copy_user_nocache)
 
 	/* Finished copying; fence the prior stores */
 .L_finish_copy:
-	xorl %eax,%eax
 	ASM_USER_ACCESS_END
+	xorl %eax,%eax
 	sfence
 	FRAME_END
 	pax_ret __copy_user_nocache

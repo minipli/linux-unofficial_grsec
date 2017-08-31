@@ -33,13 +33,6 @@
  * as they get called from within inline assembly.
  */
 
-#define ENTER	FRAME_BEGIN
-#define EXIT_NO_CLOSE	\
-		FRAME_END ;		\
-		pax_ret __put_user_1
-#define EXIT	ASM_USER_ACCESS_END ;	\
-		EXIT_NO_CLOSE
-
 #if defined(CONFIG_X86_64) && defined(CONFIG_PAX_MEMORY_UDEREF)
 #define _DEST %_ASM_CX,%_ASM_BX
 #else
@@ -54,7 +47,7 @@
 
 .text
 ENTRY(__put_user_1)
-	ENTER
+	FRAME_BEGIN
 
 #if !defined(CONFIG_X86_32) || !defined(CONFIG_PAX_MEMORY_UDEREF)
 	mov PER_CPU_VAR(current_task), %_ASM_BX
@@ -73,13 +66,15 @@ ENTRY(__put_user_1)
 
 	ASM_USER_ACCESS_BEGIN
 1:	__copyuser_seg movb %al,(_DEST)
+	ASM_USER_ACCESS_END
 	xor %eax,%eax
-	EXIT
+	FRAME_END
+	pax_ret __put_user_1
 ENDPROC(__put_user_1)
 EXPORT_SYMBOL(__put_user_1)
 
 ENTRY(__put_user_2)
-	ENTER
+	FRAME_BEGIN
 
 #if !defined(CONFIG_X86_32) || !defined(CONFIG_PAX_MEMORY_UDEREF)
 	mov PER_CPU_VAR(current_task), %_ASM_BX
@@ -100,13 +95,15 @@ ENTRY(__put_user_2)
 
 	ASM_USER_ACCESS_BEGIN
 2:	__copyuser_seg movw %ax,(_DEST)
+	ASM_USER_ACCESS_END
 	xor %eax,%eax
-	EXIT
+	FRAME_END
+	pax_ret __put_user_2
 ENDPROC(__put_user_2)
 EXPORT_SYMBOL(__put_user_2)
 
 ENTRY(__put_user_4)
-	ENTER
+	FRAME_BEGIN
 
 #if !defined(CONFIG_X86_32) || !defined(CONFIG_PAX_MEMORY_UDEREF)
 	mov PER_CPU_VAR(current_task), %_ASM_BX
@@ -127,13 +124,15 @@ ENTRY(__put_user_4)
 
 	ASM_USER_ACCESS_BEGIN
 3:	__copyuser_seg movl %eax,(_DEST)
+	ASM_USER_ACCESS_END
 	xor %eax,%eax
-	EXIT
+	FRAME_END
+	pax_ret __put_user_4
 ENDPROC(__put_user_4)
 EXPORT_SYMBOL(__put_user_4)
 
 ENTRY(__put_user_8)
-	ENTER
+	FRAME_BEGIN
 
 #if !defined(CONFIG_X86_32) || !defined(CONFIG_PAX_MEMORY_UDEREF)
 	mov PER_CPU_VAR(current_task), %_ASM_BX
@@ -157,8 +156,10 @@ ENTRY(__put_user_8)
 #ifdef CONFIG_X86_32
 5:	__copyuser_seg movl %edx,4(_DEST)
 #endif
+	ASM_USER_ACCESS_END
 	xor %eax,%eax
-	EXIT
+	FRAME_END
+	pax_ret __put_user_8
 ENDPROC(__put_user_8)
 EXPORT_SYMBOL(__put_user_8)
 
@@ -166,7 +167,8 @@ bad_put_user_ex:
 	ASM_USER_ACCESS_END
 bad_put_user:
 	movl $-EFAULT,%eax
-	EXIT_NO_CLOSE
+	FRAME_END
+	pax_ret __put_user_bad
 END(bad_put_user)
 
 	_ASM_EXTABLE(1b,bad_put_user_ex)

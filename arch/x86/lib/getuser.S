@@ -65,8 +65,8 @@ ENTRY(__get_user_1)
 
 	ASM_USER_ACCESS_BEGIN
 1:	__copyuser_seg movzbl (%_ASM_AX),%edx
-	xor %eax,%eax
 	ASM_USER_ACCESS_END
+	xor %eax,%eax
 	FRAME_END
 	pax_ret __get_user_1
 ENDPROC(__get_user_1)
@@ -94,8 +94,8 @@ ENTRY(__get_user_2)
 
 	ASM_USER_ACCESS_BEGIN
 2:	__copyuser_seg movzwl -1(%_ASM_AX),%edx
-	xor %eax,%eax
 	ASM_USER_ACCESS_END
+	xor %eax,%eax
 	FRAME_END
 	pax_ret __get_user_2
 ENDPROC(__get_user_2)
@@ -123,8 +123,8 @@ ENTRY(__get_user_4)
 
 	ASM_USER_ACCESS_BEGIN
 3:	__copyuser_seg movl -3(%_ASM_AX),%edx
-	xor %eax,%eax
 	ASM_USER_ACCESS_END
+	xor %eax,%eax
 	FRAME_END
 	pax_ret __get_user_4
 ENDPROC(__get_user_4)
@@ -150,8 +150,8 @@ ENTRY(__get_user_8)
 
 	ASM_USER_ACCESS_BEGIN
 4:	movq -7(%_ASM_AX),%rdx
-	xor %eax,%eax
 	ASM_USER_ACCESS_END
+	xor %eax,%eax
 	FRAME_END
 	pax_ret __get_user_8
 #else
@@ -163,8 +163,8 @@ ENTRY(__get_user_8)
 	ASM_USER_ACCESS_BEGIN
 4:	__copyuser_seg movl -7(%_ASM_AX),%edx
 5:	__copyuser_seg movl -3(%_ASM_AX),%ecx
-	xor %eax,%eax
 	ASM_USER_ACCESS_END
+	xor %eax,%eax
 	FRAME_END
 	pax_ret __get_user_8
 #endif
