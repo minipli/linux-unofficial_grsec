@@ -34,9 +34,11 @@
  */
 
 #define ENTER	FRAME_BEGIN
-#define EXIT	ASM_USER_ACCESS_END ;	\
+#define EXIT_NO_CLOSE	\
 		FRAME_END ;		\
 		pax_ret __put_user_1
+#define EXIT	ASM_USER_ACCESS_END ;	\
+		EXIT_NO_CLOSE
 
 #if defined(CONFIG_X86_64) && defined(CONFIG_PAX_MEMORY_UDEREF)
 #define _DEST %_ASM_CX,%_ASM_BX
@@ -160,15 +162,17 @@ ENTRY(__put_user_8)
 ENDPROC(__put_user_8)
 EXPORT_SYMBOL(__put_user_8)
 
+bad_put_user_ex:
+	ASM_USER_ACCESS_END
 bad_put_user:
 	movl $-EFAULT,%eax
-	EXIT
+	EXIT_NO_CLOSE
 END(bad_put_user)
 
-	_ASM_EXTABLE(1b,bad_put_user)
-	_ASM_EXTABLE(2b,bad_put_user)
-	_ASM_EXTABLE(3b,bad_put_user)
-	_ASM_EXTABLE(4b,bad_put_user)
+	_ASM_EXTABLE(1b,bad_put_user_ex)
+	_ASM_EXTABLE(2b,bad_put_user_ex)
+	_ASM_EXTABLE(3b,bad_put_user_ex)
+	_ASM_EXTABLE(4b,bad_put_user_ex)
 #ifdef CONFIG_X86_32
-	_ASM_EXTABLE(5b,bad_put_user)
+	_ASM_EXTABLE(5b,bad_put_user_ex)
 #endif

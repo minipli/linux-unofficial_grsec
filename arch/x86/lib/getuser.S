@@ -172,31 +172,33 @@ ENDPROC(__get_user_8)
 EXPORT_SYMBOL(__get_user_8)
 
 
+bad_get_user_ex:
+	ASM_USER_ACCESS_END
 bad_get_user:
 	xor %edx,%edx
 	mov $(-EFAULT),%_ASM_AX
-	ASM_USER_ACCESS_END
 	FRAME_END
 	pax_ret __get_user_bad
 END(bad_get_user)
 
 #ifdef CONFIG_X86_32
+bad_get_user_ex_8:
+	ASM_USER_ACCESS_END
 bad_get_user_8:
 	xor %edx,%edx
 	xor %ecx,%ecx
 	mov $(-EFAULT),%_ASM_AX
-	ASM_USER_ACCESS_END
 	FRAME_END
 	pax_ret __get_user_bad
 END(bad_get_user_8)
 #endif
 
-	_ASM_EXTABLE(1b,bad_get_user)
-	_ASM_EXTABLE(2b,bad_get_user)
-	_ASM_EXTABLE(3b,bad_get_user)
+	_ASM_EXTABLE(1b,bad_get_user_ex)
+	_ASM_EXTABLE(2b,bad_get_user_ex)
+	_ASM_EXTABLE(3b,bad_get_user_ex)
 #ifdef CONFIG_X86_64
-	_ASM_EXTABLE(4b,bad_get_user)
+	_ASM_EXTABLE(4b,bad_get_user_ex)
 #else
-	_ASM_EXTABLE(4b,bad_get_user_8)
-	_ASM_EXTABLE(5b,bad_get_user_8)
+	_ASM_EXTABLE(4b,bad_get_user_ex_8)
+	_ASM_EXTABLE(5b,bad_get_user_ex_8)
 #endif
