@@ -18,7 +18,7 @@
  */
 
 #include "size_overflow.h"
-#include <libgen.h>
+#include "libiberty.h"
 
 static void walk_use_def_next_functions(struct walk_use_def_data *use_def_data, tree lhs);
 
@@ -59,7 +59,7 @@ static const char* get_vardecl_context(const_tree decl)
 	xloc = expand_location(DECL_SOURCE_LOCATION(decl));
 	gcc_assert(xloc.file);
 	path = xstrdup(xloc.file);
-	bname = basename(path);
+	bname = lbasename(path);
 
 	len = asprintf(&buf, "vardecl_%s", bname);
 	gcc_assert(len > 0);
