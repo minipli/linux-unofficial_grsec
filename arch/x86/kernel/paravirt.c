@@ -46,9 +46,9 @@
  * nop stub, which must not clobber anything *including the stack* to
  * avoid confusing the entry prologues.
  */
-extern void _paravirt_nop(void);
 asm (".pushsection .entry.text, \"ax\"\n"
      ".global _paravirt_nop\n"
+     RAP_HASH_STR(_paravirt_nop)
      "_paravirt_nop:\n\t"
      "ret\n\t"
      ".size _paravirt_nop, . - _paravirt_nop\n\t"

@@ -93,6 +93,9 @@
 # else
 #  error incompatible BITS_PER_LONG
 # endif
+# define RAP_HASH_STR(name)	__stringify(__ASM_RAP_HASH(__rap_hash_call_##name) ASM_NL)
+#else
+# define RAP_HASH_STR(name)	""
 #endif
 
 #ifdef __ASSEMBLY__

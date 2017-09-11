@@ -688,7 +688,7 @@ void _paravirt_nop(void);
 u32 _paravirt_ident_32(u32);
 u64 _paravirt_ident_64(u64);
 
-#define paravirt_nop	((void *)_paravirt_nop)
+#define paravirt_nop	_paravirt_nop
 
 /* These all sit in the .parainstructions section to tell us what to patch. */
 struct paravirt_patch_site {
