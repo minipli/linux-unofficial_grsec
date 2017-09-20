@@ -1897,18 +1897,23 @@ static int do_execveat_common(int fd, struct filename *filename,
 
 #ifdef CONFIG_GRKERNSEC
 	old_acl = current->acl;
+	task_lock(current->group_leader);
 	memcpy(old_rlim, current->signal->rlim, sizeof(old_rlim));
-	old_exec_file = current->exec_file;
-	get_file(file);
-	current->exec_file = file;
-#endif
 #ifdef CONFIG_GRKERNSEC_PROC_MEMMAP
 	/* limit suid stack to 8MB
 	 * we saved the old limits above and will restore them if this exec fails
 	 */
 	if (((!uid_eq(bprm->cred->euid, current_euid())) || (!gid_eq(bprm->cred->egid, current_egid()))) &&
-	    (old_rlim[RLIMIT_STACK].rlim_cur > (8 * 1024 * 1024)))
+	    (rlimit_max(RLIMIT_STACK) > (8 * 1024 * 1024)))
+	{
+		current->signal->rlim[RLIMIT_STACK].rlim_max =
 		current->signal->rlim[RLIMIT_STACK].rlim_cur = 8 * 1024 * 1024;
+	}
+#endif
+	task_unlock(current->group_leader);
+	old_exec_file = current->exec_file;
+	get_file(file);
+	current->exec_file = file;
 #endif
 
 	if (gr_process_kernel_exec_ban() || gr_process_sugid_exec_ban(bprm)) {
