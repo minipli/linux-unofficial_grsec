@@ -545,6 +545,15 @@ int modules__parse(const char *filename, void *arg,
 		line[--line_len] = '\0'; /* \n */
 
 		sep = strrchr(line, 'x');
+
+		/* KERNEXEC splits modules into two sections -- one for code
+		 * and one for data. In this case we're looking for the first
+		 * one -- which is non-present in non-PaX kernels.
+		 * Make the below lookup support both variants.
+		 */
+		while (sep > line && (isxdigit(*sep) || *sep == ' ' || *sep == 'x'))
+			sep--;
+		sep = strchr(sep, 'x');
 		if (sep == NULL)
 			continue;
 
