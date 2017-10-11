@@ -22,6 +22,7 @@ static struct plugin_info rap_plugin_info = {
 			  "retabort=ud2\t\t\toverride __builtin_trap with specified asm for both kinds of return address checking\n"
 			  "callabort=ud2\t\t\toverride __builtin_trap with specified asm for indirect call checking\n"
 			  "hash=abs,abs-finish,abs-ops,abs-attr,const,volatile\n"
+			  "report=runtime\t\t\taid runtime reporting by passing the violating address in a designated register\n"
 			  "report=func,fptr,abs\n"
 };
 
@@ -726,6 +727,8 @@ __visible int plugin_init(struct plugin_name_args *plugin_info, struct plugin_gc
 					report_fptr_hash = true;
 				else if (!strcmp(value, "abs"))
 					report_abs_hash = true;
+				else if (!strcmp(value, "runtime"))
+					report_runtime = true;
 				else
 					error(G_("unknown value supplied for option '-fplugin-arg-%s-%s=%s'"), plugin_name, argv[i].key, value);
 				value = strtok_r(NULL, ",", &saveptr);

@@ -86,6 +86,7 @@ ifdef CONFIG_GCC_PLUGINS
   gcc-plugin-cflags-$(CONFIG_PAX_RAP)			+= -fplugin-arg-rap_plugin-hash=abs-ops
   gcc-plugin-cflags-$(CONFIG_PAX_RAP)			+= -fplugin-arg-rap_plugin-hash=abs-attr
 #  gcc-plugin-cflags-$(CONFIG_PAX_RAP)			+= -fplugin-arg-rap_plugin-report=func,fptr,abs
+  gcc-plugin-cflags-$(CONFIG_PAX_RAP_VERBOSE)		+= -fplugin-arg-rap_plugin-report=runtime
   gcc-plugin-cflags-$(CONFIG_PAX_RAP)			+= -DX86_RAP_CALL_VECTOR=0x82 -DX86_RAP_RET_VECTOR=0x83
   gcc-plugin-cflags-$(CONFIG_PAX_RAP)			+= '-fplugin-arg-rap_plugin-callabort=int $$0x82'
   gcc-plugin-cflags-$(CONFIG_PAX_RAP)			+= '-fplugin-arg-rap_plugin-retabort=int $$0x83'

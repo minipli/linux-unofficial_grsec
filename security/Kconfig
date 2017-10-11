@@ -1054,6 +1054,18 @@ config PAX_RAP
 	  i.e., gcc 4.5 or newer.  You may need to install the supporting
 	  headers explicitly in addition to the normal gcc package.
 
+config PAX_RAP_VERBOSE
+	bool "Print function name in RAP violation reports"
+	depends on PAX_RAP
+	default n
+	help
+	  By saying Y here a RAP violation report will output the address and
+	  symbolic name of the offending function / return address that failed
+	  the RAP hash check.
+
+	  Say Y here only if you're trying to debug RAP violations. It slightly
+	  increases the size of the kernel.
+
 endmenu
 
 endmenu

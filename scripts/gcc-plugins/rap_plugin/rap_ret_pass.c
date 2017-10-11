@@ -123,6 +123,21 @@ static void check_retaddr(gimple_stmt_iterator *gsi, tree new_retaddr)
 	// insert call to builtin_trap or rap_abort_ret
 	*gsi = gsi_start_bb(true_bb);
 
+	if (report_runtime) {
+		VEC(tree, gc) *inputs = NULL;
+		tree input;
+
+		// build the equivalence of asm volatile ("" : : "cx"(__builtin_return_address(0)));
+		input = build_tree_list(NULL_TREE, build_const_char_string(3, "cx"));
+		input = chainon(NULL_TREE, build_tree_list(input, new_retaddr));
+		VEC_safe_push(tree, gc, inputs, input);
+
+		stmt = gimple_build_asm_vec("", inputs, NULL, NULL, NULL);
+		gimple_asm_set_volatile(as_a_gasm(stmt), true);
+		gimple_set_location(stmt, loc);
+		gsi_insert_after(gsi, stmt, GSI_CONTINUE_LINKING);
+	}
+
 	if (rap_abort_ret) {
 		stmt = gimple_build_asm_vec(rap_abort_ret, NULL, NULL, NULL, NULL);
 		gimple_asm_set_volatile(as_a_gasm(stmt), true);

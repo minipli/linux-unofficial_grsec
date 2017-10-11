@@ -14,6 +14,7 @@ typedef struct {
 extern rap_hash_flags_t imprecise_rap_hash_flags;
 
 extern bool report_fptr_hash;
+extern bool report_runtime;
 
 extern GTY(()) tree rap_hash_type_node;
 extern const char *rap_abort_ret;

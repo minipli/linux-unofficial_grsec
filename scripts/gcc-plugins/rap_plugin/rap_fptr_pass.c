@@ -7,6 +7,7 @@
 
 #include "rap.h"
 
+bool report_runtime;
 bool report_fptr_hash;
 
 static bool rap_fptr_gate(void)
@@ -149,6 +150,21 @@ static void rap_instrument_fptr(gimple_stmt_iterator *gsi)
 	add_bb_to_loop(true_bb, cond_bb->loop_father);
 
 	*gsi = gsi_start_bb(true_bb);
+
+	if (report_runtime) {
+		VEC(tree, gc) *inputs = NULL;
+		tree input;
+
+		// build the equivalence of asm volatile ("" : : "a"(fptr));
+		input = build_tree_list(NULL_TREE, build_const_char_string(2, "a"));
+		input = chainon(NULL_TREE, build_tree_list(input, fptr));
+		VEC_safe_push(tree, gc, inputs, input);
+
+		stmt = gimple_build_asm_vec("", inputs, NULL, NULL, NULL);
+		gimple_asm_set_volatile(as_a_gasm(stmt), true);
+		gimple_set_location(stmt, loc);
+		gsi_insert_after(gsi, stmt, GSI_CONTINUE_LINKING);
+	}
 
 	if (rap_abort_call) {
 		stmt = gimple_build_asm_vec(rap_abort_call, NULL, NULL, NULL, NULL);

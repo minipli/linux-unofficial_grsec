@@ -197,9 +197,15 @@ do_trap_no_signal(struct task_struct *tsk, int trapnr, const char *str,
 
 #ifdef CONFIG_PAX_RAP
 			if (trapnr == X86_RAP_CALL_VECTOR) {
+#ifdef CONFIG_PAX_RAP_VERBOSE
+				printk(KERN_EMERG "PAX: RAP hash violation for function pointer: %pA\n", (void *) regs->ax);
+#endif
 				str = "PAX: overwritten function pointer detected";
 				regs->ip -= 2; // sizeof int $xx
 			} else if (trapnr == X86_RAP_RET_VECTOR) {
+#ifdef CONFIG_PAX_RAP_VERBOSE
+				printk(KERN_EMERG "PAX: RAP hash violation for return address: %pA\n", (void *) regs->cx);
+#endif
 				str = "PAX: overwritten return address detected";
 				regs->ip -= 2; // sizeof int $xx
 			}
