@@ -143,7 +143,7 @@ int snd_seq_oss_readq_sysex(struct seq_oss_readq *q, int dev,
 
 	if ((ev->flags & SNDRV_SEQ_EVENT_LENGTH_MASK) != SNDRV_SEQ_EVENT_LENGTH_VARIABLE)
 		return 0;
-	return snd_seq_dump_var_event(ev, readq_dump_sysex, &ctx);
+	return snd_seq_dump_var_event(ev, (snd_seq_dump_func_t) readq_dump_sysex, &ctx);
 }
 
 /*
