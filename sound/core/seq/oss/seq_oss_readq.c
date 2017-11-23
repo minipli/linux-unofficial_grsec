@@ -126,7 +126,7 @@ struct readq_sysex_ctx {
 	int dev;
 };
 
-static int readq_dump_sysex(void *ptr, void *buf, int count)
+static int readq_dump_sysex(void *ptr, const void *buf, int count)
 {
 	struct readq_sysex_ctx *ctx = ptr;
 
