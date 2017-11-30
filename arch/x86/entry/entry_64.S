@@ -443,13 +443,17 @@ ENTRY(pax_erase_kstack)
 ENDPROC(pax_erase_kstack)
 #endif
 
-.macro TRACE_IRQS_IRETQ
+.macro TRACE_IRQS_FLAGS flags:req
 #ifdef CONFIG_TRACE_IRQFLAGS
-	bt	$9, EFLAGS(%rsp)		/* interrupts off? */
+	bt	$9, \flags		/* interrupts off? */
 	jnc	1f
 	TRACE_IRQS_ON
 1:
 #endif
+.endm
+
+.macro TRACE_IRQS_IRETQ
+	TRACE_IRQS_FLAGS EFLAGS(%rsp)
 .endm
 
 /*
@@ -1344,11 +1348,13 @@ idtentry rap_ret_error			do_rap_ret_error		has_error_code=0
 ENTRY(native_load_gs_index)
 	pushfq
 	DISABLE_INTERRUPTS(CLBR_ANY & ~CLBR_RDI)
+	TRACE_IRQS_OFF
 	SWAPGS
 .Lgs_change:
 	movl	%edi, %gs
 2:	ALTERNATIVE "", "mfence", X86_BUG_SWAPGS_FENCE
 	SWAPGS
+	TRACE_IRQS_FLAGS (%rsp)
 	popfq
 	pax_ret native_load_gs_index
 ENDPROC(native_load_gs_index)

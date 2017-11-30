@@ -24,6 +24,7 @@
 
 #ifndef atomic_read_acquire
 #define  atomic_read_acquire(v)		smp_load_acquire(&(v)->counter)
+#define  atomic_read_acquire_unchecked(v)	atomic_read_acquire((v))
 #endif
 
 #ifndef atomic_set_release
@@ -72,7 +73,7 @@
 #define  atomic_add_return_relaxed	atomic_add_return
 #define  atomic_add_return_acquire	atomic_add_return
 #define  atomic_add_return_release	atomic_add_return
-#define atomic_add_return_unchecked_relaxed	atomic_add_return_unchecked
+#define  atomic_add_return_unchecked_relaxed	atomic_add_return_unchecked
 
 #else /* atomic_add_return_relaxed */
 
