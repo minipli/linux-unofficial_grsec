@@ -49,10 +49,11 @@ void exit_thread_runtime_instr(void)
 
 	preempt_disable();
 	if (!task->thread.ri_cb)
-		return;
+		goto out;
 	disable_runtime_instr();
 	kfree(task->thread.ri_cb);
 	task->thread.ri_cb = NULL;
+out:
 	preempt_enable();
 }
 
