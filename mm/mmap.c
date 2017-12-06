@@ -2843,9 +2843,11 @@ static int __split_vma(struct mm_struct *mm, struct vm_area_struct *vma,
 	unsigned long addr_m = addr + SEGMEXEC_TASK_SIZE;
 #endif
 
-	if (is_vm_hugetlb_page(vma) && (addr &
-					~(huge_page_mask(hstate_vma(vma)))))
-		return -EINVAL;
+	if (vma->vm_ops && vma->vm_ops->split) {
+		err = vma->vm_ops->split(vma, addr);
+		if (err)
+			return err;
+	}
 
 #ifdef CONFIG_PAX_SEGMEXEC
 	vma_m = pax_find_mirror_vma(vma);
