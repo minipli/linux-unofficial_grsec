@@ -13,6 +13,7 @@
 #include <linux/mm.h>
 #include <linux/ratelimit.h>
 #include <linux/smp.h>
+#include <linux/syscalls.h>
 #include <linux/slab.h>
 #include <linux/vmalloc.h>
 #include <linux/uaccess.h>
@@ -333,5 +334,14 @@ SYSCALL_DEFINE3(modify_ldt, int, func, void __user *, ptr, unsigned long, byteco
 		ret = write_ldt(ptr, bytecount, 0);
 		break;
 	}
-	return ret;
+	/*
+	 * The SYSCALL_DEFINE() macros give us an 'unsigned long'
+	 * return type, but tht ABI for sys_modify_ldt() expects
+	 * 'int'.  This cast gives us an int-sized value in %rax
+	 * for the return code.  The 'unsigned' is necessary so
+	 * the compiler does not try to sign-extend the negative
+	 * return codes into the high half of the register when
+	 * taking the value from int->long.
+	 */
+	return (unsigned int)ret;
 }
