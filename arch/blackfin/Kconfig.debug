@@ -17,6 +17,7 @@ config DEBUG_VERBOSE
 
 config DEBUG_MMRS
 	tristate "Generate Blackfin MMR tree"
+	depends on !PINCTRL
 	select DEBUG_FS
 	depends on !GRKERNSEC_KMEM
 	help
