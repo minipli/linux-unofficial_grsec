@@ -105,6 +105,7 @@
 #include "ipa-utils.h"
 
 #if BUILDING_GCC_VERSION >= 4009
+#include "stringpool.h"
 #include "attribs.h"
 #include "varasm.h"
 #include "stor-layout.h"
@@ -115,7 +116,6 @@
 #include "context.h"
 #include "tree-ssa-alias.h"
 #include "tree-ssa.h"
-#include "stringpool.h"
 #if BUILDING_GCC_VERSION >= 7000
 #include "tree-vrp.h"
 #endif
