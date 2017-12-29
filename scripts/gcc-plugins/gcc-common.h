@@ -1025,4 +1025,12 @@ static inline void debug_gimple_stmt(const_gimple s)
 	get_inner_reference(exp, pbitsize, pbitpos, poffset, pmode, punsignedp, preversep, pvolatilep)
 #endif
 
+#if BUILDING_GCC_VERSION < 8000
+#define E_HImode HImode
+#define E_SImode SImode
+#define E_DImode DImode
+#define E_TImode TImode
+#define E_QImode QImode
+#endif
+
 #endif

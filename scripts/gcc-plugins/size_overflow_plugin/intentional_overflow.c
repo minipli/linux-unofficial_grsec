@@ -535,16 +535,16 @@ static bool is_lt_signed_type_max(const_tree rhs)
 		return true;
 
 	switch (TYPE_MODE(type)) {
-	case QImode:
+	case E_QImode:
 		new_type = intQI_type_node;
 		break;
-	case HImode:
+	case E_HImode:
 		new_type = intHI_type_node;
 		break;
-	case SImode:
+	case E_SImode:
 		new_type = intSI_type_node;
 		break;
-	case DImode:
+	case E_DImode:
 		new_type = intDI_type_node;
 		break;
 	default:

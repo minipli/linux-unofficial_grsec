@@ -76,16 +76,16 @@ static tree get_proper_unsigned_half_type(const_tree node)
 
 	type = TREE_TYPE(node);
 	switch (TYPE_MODE(type)) {
-	case HImode:
+	case E_HImode:
 		new_type = unsigned_intQI_type_node;
 		break;
-	case SImode:
+	case E_SImode:
 		new_type = unsigned_intHI_type_node;
 		break;
-	case DImode:
+	case E_DImode:
 		new_type = unsigned_intSI_type_node;
 		break;
-	case TImode:
+	case E_TImode:
 		new_type = unsigned_intDI_type_node;
 		break;
 	default:
