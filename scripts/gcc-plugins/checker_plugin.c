@@ -19,11 +19,11 @@
 #include "gcc-common.h"
 
 extern void c_register_addr_space (const char *str, addr_space_t as);
-extern enum machine_mode default_addr_space_pointer_mode (addr_space_t);
-extern enum machine_mode default_addr_space_address_mode (addr_space_t);
-extern bool default_addr_space_valid_pointer_mode(enum machine_mode mode, addr_space_t as);
-extern bool default_addr_space_legitimate_address_p(enum machine_mode mode, rtx mem, bool strict, addr_space_t as);
-extern rtx default_addr_space_legitimize_address(rtx x, rtx oldx, enum machine_mode mode, addr_space_t as);
+extern SCALAR_INT_MODE default_addr_space_pointer_mode (addr_space_t);
+extern SCALAR_INT_MODE default_addr_space_address_mode (addr_space_t);
+extern bool default_addr_space_valid_pointer_mode(SCALAR_INT_MODE mode, addr_space_t as);
+extern bool default_addr_space_legitimate_address_p(MACHINE_MODE mode, rtx mem, bool strict, addr_space_t as);
+extern rtx default_addr_space_legitimize_address(rtx x, rtx oldx, MACHINE_MODE mode, addr_space_t as);
 
 __visible int plugin_is_GPL_compatible;
 
@@ -44,27 +44,27 @@ static struct plugin_info checker_plugin_info = {
 #define ADDR_SPACE_RCU			0
 #define ADDR_SPACE_FORCE_RCU		0
 
-static enum machine_mode checker_addr_space_pointer_mode(addr_space_t addrspace)
+static SCALAR_INT_MODE checker_addr_space_pointer_mode(addr_space_t addrspace)
 {
 	return default_addr_space_pointer_mode(ADDR_SPACE_GENERIC);
 }
 
-static enum machine_mode checker_addr_space_address_mode(addr_space_t addrspace)
+static SCALAR_INT_MODE checker_addr_space_address_mode(addr_space_t addrspace)
 {
 	return default_addr_space_address_mode(ADDR_SPACE_GENERIC);
 }
 
-static bool checker_addr_space_valid_pointer_mode(enum machine_mode mode, addr_space_t as)
+static bool checker_addr_space_valid_pointer_mode(SCALAR_INT_MODE mode, addr_space_t as)
 {
 	return default_addr_space_valid_pointer_mode(mode, as);
 }
 
-static bool checker_addr_space_legitimate_address_p(enum machine_mode mode, rtx mem, bool strict, addr_space_t as)
+static bool checker_addr_space_legitimate_address_p(MACHINE_MODE mode, rtx mem, bool strict, addr_space_t as)
 {
 	return default_addr_space_legitimate_address_p(mode, mem, strict, ADDR_SPACE_GENERIC);
 }
 
-static rtx checker_addr_space_legitimize_address(rtx x, rtx oldx, enum machine_mode mode, addr_space_t as)
+static rtx checker_addr_space_legitimize_address(rtx x, rtx oldx, MACHINE_MODE mode, addr_space_t as)
 {
 	return default_addr_space_legitimize_address(x, oldx, mode, as);
 }

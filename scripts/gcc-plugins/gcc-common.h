@@ -1033,4 +1033,15 @@ static inline void debug_gimple_stmt(const_gimple s)
 #define E_QImode QImode
 #endif
 
+#if BUILDING_GCC_VERSION < 5000
+#define SCALAR_INT_MODE	enum machine_mode
+#define MACHINE_MODE	enum machine_mode
+#elif BUILDING_GCC_VERSION < 8000
+#define SCALAR_INT_MODE	machine_mode
+#define MACHINE_MODE	machine_mode
+#else
+#define SCALAR_INT_MODE	scalar_int_mode
+#define MACHINE_MODE	machine_mode
+#endif
+
 #endif
