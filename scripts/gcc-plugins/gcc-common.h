@@ -1044,4 +1044,8 @@ static inline void debug_gimple_stmt(const_gimple s)
 #define MACHINE_MODE	machine_mode
 #endif
 
+#if BUILDING_GCC_VERSION >= 8000
+#define empty_string	""
+#endif
+
 #endif
