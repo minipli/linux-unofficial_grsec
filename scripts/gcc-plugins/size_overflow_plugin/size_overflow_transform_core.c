@@ -507,7 +507,7 @@ static void insert_check_size_overflow(interesting_stmts_t expand_from, gimple s
 	cond_bb = e->src;
 	join_bb = e->dest;
 	e->flags = EDGE_FALSE_VALUE;
-	e->probability = REG_BR_PROB_BASE;
+	e->probability = probability(REG_BR_PROB_BASE);
 
 	bb_true = create_empty_bb(cond_bb);
 	make_edge(cond_bb, bb_true, EDGE_TRUE_VALUE);

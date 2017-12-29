@@ -1046,6 +1046,16 @@ static inline void debug_gimple_stmt(const_gimple s)
 
 #if BUILDING_GCC_VERSION >= 8000
 #define empty_string	""
+
+static inline profile_probability probability(int prob)
+{
+	return profile_probability::from_reg_br_prob_base(prob);
+}
+#else
+static inline int probability(int prob)
+{
+	return prob;
+}
 #endif
 
 #endif

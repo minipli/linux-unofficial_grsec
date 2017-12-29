@@ -137,7 +137,7 @@ static void rap_instrument_fptr(gimple_stmt_iterator *gsi)
 	cond_bb = e->src;
 	join_bb = e->dest;
 	e->flags = EDGE_FALSE_VALUE;
-	e->probability = REG_BR_PROB_BASE;
+	e->probability = probability(REG_BR_PROB_BASE);
 
 	true_bb = create_empty_bb(EXIT_BLOCK_PTR_FOR_FN(cfun)->prev_bb);
 	make_edge(cond_bb, true_bb, EDGE_TRUE_VALUE | EDGE_PRESERVE);
@@ -284,6 +284,8 @@ static unsigned int rap_fptr_execute(void)
 
 	free_dominance_info(CDI_DOMINATORS);
 	free_dominance_info(CDI_POST_DOMINATORS);
+	if (current_loops)
+		loops_state_set(LOOPS_NEED_FIXUP);
 	loop_optimizer_finalize();
 
 	return 0;
