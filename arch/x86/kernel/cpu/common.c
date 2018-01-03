@@ -306,6 +306,14 @@ early_param("pax_nouderef", setup_pax_nouderef);
 #ifdef CONFIG_X86_64
 static __init int setup_disable_pcid(char *arg)
 {
+	/* require an exact match without trailing characters */
+	if (strlen(arg))
+		return 0;
+
+	/* do not emit a message if the feature is not present */
+	if (!boot_cpu_has(X86_FEATURE_PCID))
+		return 1;
+
 	setup_clear_cpu_cap(X86_FEATURE_PCID);
 	setup_clear_cpu_cap(X86_FEATURE_INVPCID);
 
@@ -314,15 +322,34 @@ static __init int setup_disable_pcid(char *arg)
 		pax_user_shadow_base = 1UL << TASK_SIZE_MAX_SHIFT;
 #endif
 
+	pr_info("nopcid: PCID feature disabled\n");
 	return 1;
 }
 __setup("nopcid", setup_disable_pcid);
+#endif
 
 static void setup_pcid(struct cpuinfo_x86 *c)
 {
 	if (cpu_has(c, X86_FEATURE_PCID)) {
+		if (cpu_has(c, X86_FEATURE_PGE)) {
+			cr4_set_bits(X86_CR4_PCIDE);
+		} else {
+			/*
+			 * flush_tlb_all(), as currently implemented, won't
+			 * work if PCID is on but PGE is not.  Since that
+			 * combination doesn't exist on real hardware, there's
+			 * no reason to try to fully support it, but it's
+			 * polite to avoid corrupting data if we're on
+			 * an improperly configured VM.
+			 */
+			clear_cpu_cap(c, X86_FEATURE_PCID);
+		}
+	}
+
+#ifdef CONFIG_X86_64
+	if (cpu_has(c, X86_FEATURE_PCID)) {
 		printk("PAX: PCID detected\n");
-		cr4_set_bits(X86_CR4_PCIDE);
+		BUG_ON(!(__read_cr4() & X86_CR4_PCIDE));
 	} else
 		clear_cpu_cap(c, X86_FEATURE_INVPCID);
 
@@ -355,9 +382,8 @@ static void setup_pcid(struct cpuinfo_x86 *c)
 		printk("PAX: strong UDEREF enabled\n");
 	}
 #endif
-
-}
 #endif
+}
 
 /*
  * Protection Keys are not available in 32-bit mode.
@@ -1129,9 +1155,8 @@ static void identify_cpu(struct cpuinfo_x86 *c)
 #endif
 #endif
 
-#ifdef CONFIG_X86_64
+	/* Set up PCID */
 	setup_pcid(c);
-#endif
 
 	/*
 	 * The vendor-specific functions might have changed features.
