@@ -12,7 +12,7 @@ quiet_cmd_build_size_overflow_hash = GENHASH  $@
 define build_size_overflow_hash
 targets += $(addsuffix .h,$(1))
 $(srctree)/$(src)/size_overflow_plugin_hash.c: $(addprefix $(obj)/,$(addsuffix .h,$(1)))
-$(addprefix $(obj)/,$(addsuffix .h,$(1))): $(addprefix $(src)/,$(addsuffix .data,$(1)))
+$(addprefix $(obj)/,$(addsuffix .h,$(1))): $(addprefix $(src)/,$(addsuffix .data,$(1))) FORCE
 	$$(call if_changed,build_size_overflow_hash)
 endef
 
